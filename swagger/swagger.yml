@@ -1,0 +1,625 @@
+swagger: "2.0"
+info:
+  title: beego Test API
+  description: beego has a very cool tools to autogenerate documents for your API
+  version: 1.0.0
+  termsOfService: http://beego.me/
+  contact:
+    email: astaxie@gmail.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+basePath: /v1
+paths:
+  /aprobacion_apropiacionAprobar/:
+    post:
+      tags:
+      - aprobacion_apropiacion
+      description: Aprobar Apropiacion
+      operationId: AprobacionController.Aprobar
+      parameters:
+      - in: body
+        name: body
+        description: body for Apropiacion  content
+        required: true
+        schema:
+          $ref: '#/definitions/models.Apropiacion'
+      responses:
+        "201":
+          description: '{int} models.InfoSolDisp'
+        "403":
+          description: body is empty
+  /disponibilidad/:
+    post:
+      tags:
+      - disponibilidad
+      description: create Disponibilidad
+      operationId: DisponibilidadController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for InfoSolDisp content
+        required: true
+        schema:
+          $ref: '#/definitions/models.InfoSolDisp'
+      responses:
+        "201":
+          description: '{int} models.InfoSolDisp'
+        "403":
+          description: body is empty
+  /disponibilidadSolicitudById/{id}:
+    get:
+      tags:
+      - disponibilidad
+      description: get SolicitudById
+      operationId: DisponibilidadController.SolicitudById
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.InfoSolDisp'
+        "403": {}
+  /disponibilidadSolicitudes/:
+    get:
+      tags:
+      - disponibilidad
+      description: get Solicitudes
+      operationId: DisponibilidadController.Solicitudes
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.InfoSolDisp'
+        "403": {}
+  /registro_presupuestal/:
+    get:
+      tags:
+      - registro_presupuestal
+      description: get RegistroPresupuestal
+      operationId: RegistroPresupuestalController.GetAll
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.RegistroPresupuestal'
+        "403": {}
+    post:
+      tags:
+      - registro_presupuestal
+      description: create RegistroPresupuestal
+      operationId: RegistroPresupuestalController.Create
+      parameters:
+      - in: body
+        name: body
+        description: body for DatosRegistroPresupuestal content
+        required: true
+        schema:
+          $ref: '#/definitions/models.DatosRegistroPresupuestal'
+      responses:
+        "201":
+          schema:
+            $ref: '#/definitions/models.DatosRegistroPresupuestal'
+        "403":
+          description: body is empty
+  /registro_presupuestal/{id}:
+    put:
+      tags:
+      - registro_presupuestal
+      description: update the RegistroPresupuestal
+      operationId: RegistroPresupuestalController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for RegistroPresupuestal content
+        required: true
+        schema:
+          $ref: '#/definitions/models.RegistroPresupuestal'
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.RegistroPresupuestal'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - registro_presupuestal
+      description: delete the RegistroPresupuestal
+      operationId: RegistroPresupuestalController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
+  /registro_presupuestal/GetSaldoRp:
+    get:
+      tags:
+      - registro_presupuestal
+      description: get saldo rp by apropiacion
+      operationId: RegistroPresupuestalController.GetSaldoRp
+      parameters:
+      - in: body
+        name: body
+        description: body for DatosRegistroPresupuestal content
+        required: true
+        schema:
+          $ref: '#/definitions/models.DatosRegistroPresupuestal'
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.RegistroPresupuestal'
+        "403":
+          description: :id is empty
+definitions:
+  models.Apropiacion:
+    title: Apropiacion
+    type: object
+    properties:
+      DocumentoFecha:
+        type: string
+        format: string
+      DocumentoNumero:
+        type: string
+      Estado:
+        $ref: '#/definitions/models.EstadoApropiacion'
+      Id:
+        type: integer
+        format: int64
+      Rubro:
+        $ref: '#/definitions/models.Rubro'
+      TipoDocumento:
+        type: string
+      UnidadEjecutora:
+        type: integer
+        format: int64
+      Valor:
+        type: number
+        format: double
+      ValorRezago:
+        type: number
+        format: double
+      Vigencia:
+        type: number
+        format: double
+  models.CategoriaCompromiso:
+    title: CategoriaCompromiso
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.Compromiso:
+    title: Compromiso
+    type: object
+    properties:
+      EstadoCompromiso:
+        $ref: '#/definitions/models.EstadoCompromiso'
+      FechaFin:
+        type: string
+        format: string
+      FechaInicio:
+        type: string
+        format: string
+      FechaModificacion:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      Objeto:
+        type: string
+      TipoCompromisoTesoral:
+        $ref: '#/definitions/models.TipoCompromisoTesoral'
+      UnidadEjecutora:
+        $ref: '#/definitions/models.UnidadEjecutora'
+      Vigencia:
+        type: number
+        format: double
+  models.DatosRegistroPresupuestal:
+    title: DatosRegistroPresupuestal
+    type: object
+    properties:
+      Rp:
+        $ref: '#/definitions/models.RegistroPresupuestal'
+      Rubros:
+        type: array
+        items:
+          $ref: '#/definitions/models.DatosRubroRegistroPresupuestal'
+  models.DatosRubroRegistroPresupuestal:
+    title: DatosRubroRegistroPresupuestal
+    type: object
+    properties:
+      Apropiacion:
+        $ref: '#/definitions/models.Apropiacion'
+      Disponibilidad:
+        $ref: '#/definitions/models.Disponibilidad'
+      Id:
+        type: integer
+        format: int64
+      Saldo:
+        type: number
+        format: double
+      Valor:
+        type: number
+        format: double
+      ValorAsignado:
+        type: number
+        format: double
+  models.Dependencia:
+    title: Dependencia
+    type: object
+    properties:
+      Id:
+        type: integer
+        format: int64
+      InfoJefeDependencia:
+        $ref: '#/definitions/models.InformacionPersonaNatural'
+      InfoOrdenador:
+        $ref: '#/definitions/models.InformacionPersonaNatural'
+      JefeDependencia:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+      OrdenadorGasto:
+        type: integer
+        format: int64
+  models.Disponibilidad:
+    title: Disponibilidad
+    type: object
+    properties:
+      Destino:
+        type: integer
+        format: int64
+      Estado:
+        $ref: '#/definitions/models.EstadoDisponibilidad'
+      FechaRegistro:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      NumeroDisponibilidad:
+        type: number
+        format: double
+      NumeroOficio:
+        type: string
+      Responsable:
+        type: integer
+        format: int64
+      Solicitante:
+        type: integer
+        format: int64
+      Solicitud:
+        type: integer
+        format: int64
+      UnidadEjecutora:
+        $ref: '#/definitions/models.UnidadEjecutora'
+      Vigencia:
+        type: number
+        format: double
+  models.Entidad:
+    title: Entidad
+    type: object
+    properties:
+      CodigoEntidad:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.EstadoApropiacion:
+    title: EstadoApropiacion
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.EstadoCompromiso:
+    title: EstadoCompromiso
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.EstadoDisponibilidad:
+    title: EstadoDisponibilidad
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.EstadoRegistroPresupuestal:
+    title: EstadoRegistroPresupuestal
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.InfoSolDisp:
+    title: InfoSolDisp
+    type: object
+    properties:
+      DependenciaDestino:
+        $ref: '#/definitions/models.Dependencia'
+      DependenciaSolicitante:
+        $ref: '#/definitions/models.Dependencia'
+      SolicitudDisponibilidad:
+        $ref: '#/definitions/models.SolicitudDisponibilidad'
+  models.InformacionPersonaNatural:
+    title: InformacionPersonaNatural
+    type: object
+    properties:
+      Cargo:
+        type: string
+      DigitoVerificacion:
+        type: number
+        format: double
+      Especialidad:
+        type: string
+      Genero:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      MontoCapitalAutorizado:
+        type: number
+        format: double
+      Perfil:
+        $ref: '#/definitions/models.ParametroEstandar'
+      PrimerApellido:
+        type: string
+      PrimerNombre:
+        type: string
+      Profesion:
+        type: string
+      SegundoApellido:
+        type: string
+      SegundoNombre:
+        type: string
+      TipoDocumento:
+        $ref: '#/definitions/models.ParametroEstandar'
+  models.Necesidad:
+    title: Necesidad
+    type: object
+    properties:
+      Id:
+        type: integer
+        format: int64
+      Justificacion:
+        type: string
+      Numero:
+        type: integer
+        format: int64
+      Objeto:
+        type: string
+      UnidadEjecutora:
+        type: integer
+        format: int64
+      Valor:
+        type: number
+        format: double
+      Vigencia:
+        type: number
+        format: double
+  models.ParametroEstandar:
+    title: ParametroEstandar
+    type: object
+    properties:
+      ClaseParametro:
+        type: string
+      DescripcionParametro:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      ValorParametro:
+        type: string
+  models.RegistroPresupuestal:
+    title: RegistroPresupuestal
+    type: object
+    properties:
+      Beneficiario:
+        type: integer
+        format: int64
+      Compromiso:
+        $ref: '#/definitions/models.Compromiso'
+      Estado:
+        $ref: '#/definitions/models.EstadoRegistroPresupuestal'
+      FechaMovimiento:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      NumeroRegistroPresupuestal:
+        type: integer
+        format: int64
+      Responsable:
+        type: integer
+        format: int64
+      UnidadEjecutora:
+        $ref: '#/definitions/models.UnidadEjecutora'
+      Vigencia:
+        type: number
+        format: double
+  models.Rubro:
+    title: Rubro
+    type: object
+    properties:
+      Administracion:
+        type: string
+      Codigo:
+        type: string
+      Descripcion:
+        type: string
+      Entidad:
+        $ref: '#/definitions/models.Entidad'
+      Estado:
+        type: integer
+        format: int32
+      Id:
+        type: integer
+        format: int64
+      TipoPlan:
+        type: integer
+        format: int32
+      Vigencia:
+        type: number
+        format: double
+  models.SolicitudDisponibilidad:
+    title: SolicitudDisponibilidad
+    type: object
+    properties:
+      Expedida:
+        type: boolean
+      FechaSolicitud:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      Necesidad:
+        $ref: '#/definitions/models.Necesidad'
+      Numero:
+        type: integer
+        format: int64
+      Vigencia:
+        type: number
+        format: double
+  models.TipoCompromisoTesoral:
+    title: TipoCompromisoTesoral
+    type: object
+    properties:
+      CategoriaCompromiso:
+        $ref: '#/definitions/models.CategoriaCompromiso'
+      Descripcion:
+        type: string
+      EstadoActivo:
+        type: boolean
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.UnidadEjecutora:
+    title: UnidadEjecutora
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+tags:
+- name: registro_presupuestal
+  description: |
+    RegistroPresupuestalController operations for RegistroPresupuestal
