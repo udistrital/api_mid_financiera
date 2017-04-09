@@ -235,6 +235,18 @@ paths:
             $ref: '#/definitions/models.RegistroPresupuestal'
         "403":
           description: :id is empty
+  /registro_presupuestal/GetSolicitudesRp:
+    get:
+      tags:
+      - registro_presupuestal
+      description: get saldo rp by apropiacion
+      operationId: RegistroPresupuestalController.GetSolicitudesRp
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/models.SolicitudRp'
+        "403":
+          description: :id is empty
 definitions:
   models.Apropiacion:
     title: Apropiacion
@@ -277,6 +289,36 @@ definitions:
         format: int64
       Nombre:
         type: string
+  models.Ciudad:
+    title: Ciudad
+    type: object
+    properties:
+      AbPais:
+        type: string
+      Abreviatura:
+        type: string
+      Departamento:
+        type: string
+      Descripcion:
+        type: string
+      Estado:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      IdDepartamento:
+        $ref: '#/definitions/models.Departamento'
+      Latitud:
+        type: number
+        format: double
+      Longitud:
+        type: number
+        format: double
+      Nombre:
+        type: string
+      Poblacion:
+        type: integer
+        format: int64
   models.Compromiso:
     title: Compromiso
     type: object
@@ -334,6 +376,35 @@ definitions:
       ValorAsignado:
         type: number
         format: double
+  models.Departamento:
+    title: Departamento
+    type: object
+    properties:
+      AbPais:
+        type: string
+      Abreviatura:
+        type: string
+      Area:
+        type: integer
+        format: int64
+      CapitalDepartamento:
+        type: string
+      DepartamentoCapPais:
+        type: string
+      Descripcion:
+        type: string
+      Estado:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      IdPais:
+        $ref: '#/definitions/models.Pais'
+      Nombre:
+        type: string
+      Poblacion:
+        type: integer
+        format: int64
   models.Dependencia:
     title: Dependencia
     type: object
@@ -357,6 +428,8 @@ definitions:
     title: Disponibilidad
     type: object
     properties:
+      DatosNecesidad:
+        $ref: '#/definitions/models.Necesidad'
       Destino:
         type: integer
         format: int64
@@ -485,10 +558,60 @@ definitions:
         type: string
       TipoDocumento:
         $ref: '#/definitions/models.ParametroEstandar'
+  models.InformacionProveedor:
+    title: InformacionProveedor
+    type: object
+    properties:
+      Anexorut:
+        type: string
+      ClasificacionEvaluacion:
+        type: string
+      Correo:
+        type: string
+      Descripcion:
+        type: string
+      Direccion:
+        type: string
+      Estado:
+        $ref: '#/definitions/models.ParametroEstandar'
+      FechaRegistro:
+        type: string
+      FechaUltimaModificacion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      IdCiudadContacto:
+        $ref: '#/definitions/models.Ciudad'
+      IdEntidadBancaria:
+        type: number
+        format: double
+      NomAsesor:
+        type: string
+      NomProveedor:
+        type: string
+      NumCuentaBancaria:
+        type: string
+      NumDocumento:
+        type: number
+        format: double
+      PuntajeEvaluacion:
+        type: number
+        format: double
+      TelAsesor:
+        type: string
+      TipoCuentaBancaria:
+        type: string
+      Tipopersona:
+        type: string
+      Web:
+        type: string
   models.Necesidad:
     title: Necesidad
     type: object
     properties:
+      DatosDependenciaSolicitante:
+        $ref: '#/definitions/models.Dependencia'
       Id:
         type: integer
         format: int64
@@ -508,6 +631,32 @@ definitions:
       Vigencia:
         type: number
         format: double
+  models.Pais:
+    title: Pais
+    type: object
+    properties:
+      Abreviatura:
+        type: string
+      AreaPais:
+        type: integer
+        format: int64
+      CapitalPais:
+        type: string
+      CodigoPais:
+        type: integer
+        format: int64
+      Estado:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      NombrePais:
+        type: string
+      PoblacionPais:
+        type: integer
+        format: int64
+      ProvinciaPais:
+        type: string
   models.ParametroEstandar:
     title: ParametroEstandar
     type: object
@@ -593,6 +742,37 @@ definitions:
       Vigencia:
         type: number
         format: double
+  models.SolicitudRp:
+    title: SolicitudRp
+    type: object
+    properties:
+      Cdp:
+        type: integer
+        format: int64
+      Compromiso:
+        type: integer
+        format: int64
+      DatosCompromiso:
+        $ref: '#/definitions/models.Compromiso'
+      DatosDisponibilidad:
+        $ref: '#/definitions/models.Disponibilidad'
+      DatosProveedor:
+        $ref: '#/definitions/models.InformacionProveedor'
+      Expedida:
+        type: boolean
+      FechaSolicitud:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      NumeroContrato:
+        type: string
+      Vigencia:
+        type: integer
+        format: int64
+      VigenciaContrato:
+        type: string
   models.TipoCompromisoTesoral:
     title: TipoCompromisoTesoral
     type: object

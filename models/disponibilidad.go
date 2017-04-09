@@ -16,6 +16,7 @@ type Disponibilidad struct {
 	NumeroOficio         string                `orm:"column(numero_oficio);null"`
 	Destino              int                   `orm:"column(destino);null"`
 	Solicitud            int                   `orm:"column(solicitud)"`
+	DatosNecesidad       *Necesidad
 }
 
 type InfoSolDisp struct {
