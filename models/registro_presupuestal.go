@@ -27,3 +27,8 @@ type DatosRegistroPresupuestal struct { //estructura temporal para el registro c
 	Rp     *RegistroPresupuestal
 	Rubros []DatosRubroRegistroPresupuestal
 }
+
+type InfoSolRp struct {
+	Solicitud *SolicitudRp
+	Rubros    []DisponibilidadApropiacionSolicitud_rp
+}
