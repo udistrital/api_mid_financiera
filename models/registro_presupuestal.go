@@ -14,6 +14,8 @@ type RegistroPresupuestal struct {
 	NumeroRegistroPresupuestal int                         `orm:"column(numero_registro_presupuestal)"`
 	Beneficiario               int                         `orm:"column(beneficiario);rel(fk)"`
 	Compromiso                 *Compromiso                 `orm:"column(compromiso);rel(fk)"`
+	Solicitud                  int
+	DatosSolicitud             *SolicitudRp
 }
 type DatosRubroRegistroPresupuestal struct {
 	Id             int

@@ -313,6 +313,34 @@
                 }
             }
         },
+        "/registro_presupuestal/GetSolicitudesRpById/{id}": {
+            "get": {
+                "tags": [
+                    "registro_presupuestal"
+                ],
+                "description": "get GetSolicitudesRpById by id",
+                "operationId": "RegistroPresupuestalController.GetSolicitudesRpById",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "description": "The key for staticblock",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "schema": {
+                            "$ref": "#/definitions/models.SolicitudRp"
+                        }
+                    },
+                    "403": {
+                        "description": ":id is empty"
+                    }
+                }
+            }
+        },
         "/registro_presupuestal/{id}": {
             "put": {
                 "tags": [
@@ -992,6 +1020,9 @@
                 "Compromiso": {
                     "$ref": "#/definitions/models.Compromiso"
                 },
+                "DatosSolicitud": {
+                    "$ref": "#/definitions/models.SolicitudRp"
+                },
                 "Estado": {
                     "$ref": "#/definitions/models.EstadoRegistroPresupuestal"
                 },
@@ -1008,6 +1039,10 @@
                     "format": "int64"
                 },
                 "Responsable": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Solicitud": {
                     "type": "integer",
                     "format": "int64"
                 },
