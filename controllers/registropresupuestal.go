@@ -298,7 +298,7 @@ func (c *RegistroPresupuestalController) Post() {
 				sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/"+strconv.Itoa(rp_a_registrar.Rp.Solicitud), "PUT", &respuesta_mod, &rp_a_registrar.Rp.DatosSolicitud)
 				fmt.Println("Solicitud: ", rp_a_registrar.Rp.Solicitud)
 				fmt.Println("respuesta: ", respuesta_mod)
-				alertas = append(alertas, "RP registrado exitosamente")
+				alertas = append(alertas, "RP registrado exitosamente con el consecutivo: "+strconv.Itoa(rp_a_registrar.Rp.NumeroRegistroPresupuestal))
 			} else {
 				alertas[0] = "error"
 				alertas = append(alertas, "No se pudo registrar el RP")
