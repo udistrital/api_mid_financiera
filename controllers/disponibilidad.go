@@ -303,7 +303,7 @@ func (this *DisponibilidadController) Post() {
 							Valor:          rubros_solicitud[j].MontoParcial}
 						sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
 					}
-					alertas = append(alertas, "se genero el CDP Con Consecutivo "+strconv.FormatFloat(disponibilidad.NumeroDisponibilidad, 'f', -1, 64)+" para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
+					alertas = append(alertas, "se genero el CDP Con Consecutivo  No. "+strconv.FormatFloat(disponibilidad.NumeroDisponibilidad, 'f', -1, 64)+" para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
 				} else {
 					alertas[0] = "error"
 					alertas = append(alertas, "Error al registrar el CDP para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
