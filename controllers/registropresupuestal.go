@@ -53,14 +53,24 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 								if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DatosNecesidad.Id), &depNes); err == nil {
 									if depNes != nil {
 										var depSol []models.Dependencia
-										if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].DependenciaSolicitante), &depSol); err == nil {
-											if depSol != nil {
-												solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
+										var jefe_dep_sol []models.JefeDependencia
+										if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+											if jefe_dep_sol != nil {
+												if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+													if depSol != nil {
+														solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
+													} else {
+														//si no hay datos de la dependencia
+													}
+												} else {
+													//si hay error al consultar la dependecia solicitante
+												}
 											} else {
-												//si no hay datos de la dependencia
+												//no hay datos jefe dep
 											}
+
 										} else {
-											//si hay error al consultar la dependecia solicitante
+											//jefe_dep
 										}
 									} else {
 										//si no hay datos en la consulta dependencia_necesidad
@@ -147,14 +157,24 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 								if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DatosNecesidad.Id), &depNes); err == nil {
 									if depNes != nil {
 										var depSol []models.Dependencia
-										if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].DependenciaSolicitante), &depSol); err == nil {
-											if depSol != nil {
-												solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
+										var jefe_dep_sol []models.JefeDependencia
+										if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+											if jefe_dep_sol != nil {
+												if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+													if depSol != nil {
+														solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
+													} else {
+														//si no hay datos de la dependencia
+													}
+												} else {
+													//si hay error al consultar la dependecia solicitante
+												}
 											} else {
-												//si no hay datos de la dependencia
+												//no hay datos jefe dep
 											}
+
 										} else {
-											//si hay error al consultar la dependecia solicitante
+											//jefe_dep
 										}
 									} else {
 										//si no hay datos en la consulta dependencia_necesidad
