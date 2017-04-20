@@ -1,9 +1,9 @@
 package models
 
-
 type DisponibilidadApropiacion struct {
-	Id             int             `orm:"column(id);pk"`
-	Disponibilidad *Disponibilidad `orm:"column(disponibilidad);rel(fk)"`
-	Apropiacion    *Apropiacion    `orm:"column(apropiacion);rel(fk)"`
-	Valor          float64         `orm:"column(valor);null"`
+	Id                   int                 `orm:"column(id);pk"`
+	Disponibilidad       *Disponibilidad     `orm:"column(disponibilidad);rel(fk)"`
+	Apropiacion          *Apropiacion        `orm:"column(apropiacion);rel(fk)"`
+	Valor                float64             `orm:"column(valor);null"`
+	FuenteFinanciamiento *FuenteFinanciacion `orm:"column(fuente_financiamiento);rel(fk);null"`
 }
