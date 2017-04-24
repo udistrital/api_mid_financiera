@@ -8,5 +8,6 @@ type Necesidad struct {
 	Objeto                      string  `orm:"column(objeto)"`
 	Valor                       float64 `orm:"column(valor)"`
 	Justificacion               string  `orm:"column(justificacion)"`
+	ModalidadSeleccion          *ModalidadSeleccion
 	DatosDependenciaSolicitante *Dependencia
 }
