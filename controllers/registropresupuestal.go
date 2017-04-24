@@ -264,7 +264,14 @@ func (c *RegistroPresupuestalController) Post() {
 			}
 			if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad/SaldoCdp", "POST", &saldoCDP, &datos); err == nil {
 				fmt.Println(rubros_a_comprobar.FuenteFinanciacion)
-				predicados = append(predicados, models.Predicado{Nombre: "rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ")."})
+				if rubros_a_comprobar.FuenteFinanciacion == nil {
+					predicados = append(predicados, models.Predicado{Nombre: "rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(0) +
+						"," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ")."})
+				} else {
+					predicados = append(predicados, models.Predicado{Nombre: "rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(rubros_a_comprobar.FuenteFinanciacion.Id) +
+						"," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ")."})
+				}
+
 			} else {
 				alertas[0] = "error"
 				alertas = append(alertas, "No se pudo cargar el saldo para algunas apropiaciones")
@@ -272,7 +279,13 @@ func (c *RegistroPresupuestalController) Post() {
 
 				c.ServeJSON()
 			}
-			predicados = append(predicados, models.Predicado{Nombre: "valor_rubro_rp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.FormatFloat(rubros_a_comprobar.ValorAsignado, 'f', -1, 64) + ")."})
+			if rubros_a_comprobar.FuenteFinanciacion == nil {
+				predicados = append(predicados, models.Predicado{Nombre: "valor_rubro_rp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(0) + "," + strconv.FormatFloat(rubros_a_comprobar.ValorAsignado, 'f', -1, 64) + ")."})
+
+			} else {
+				predicados = append(predicados, models.Predicado{Nombre: "valor_rubro_rp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(rubros_a_comprobar.FuenteFinanciacion.Id) + "," + strconv.FormatFloat(rubros_a_comprobar.ValorAsignado, 'f', -1, 64) + ")."})
+
+			}
 		}
 		reglas := FormatoReglas(predicados) + reglasBase
 		fmt.Println("reglas: ", reglas)
@@ -293,14 +306,14 @@ func (c *RegistroPresupuestalController) Post() {
 				//fmt.Println("entro...", respuesta)
 				var acumCDP float64
 				acumCDP = 0
-				var aux float64
+				var aux map[string]float64
 				for _, rubros_a_comprobar := range rp_a_registrar.Rubros {
 					datos := models.DatosRubroRegistroPresupuestal{Disponibilidad: rubros_a_comprobar.Disponibilidad,
-						Apropiacion: rubros_a_comprobar.Apropiacion,
+						Apropiacion: rubros_a_comprobar.Apropiacion, FuenteFinanciacion: rubros_a_comprobar.FuenteFinanciacion,
 					}
 
 					if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad/SaldoCdp", "POST", &aux, &datos); err == nil {
-						acumCDP = acumCDP + aux
+						acumCDP = acumCDP + aux["saldo"]
 					}
 
 				}
