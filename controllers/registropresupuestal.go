@@ -253,17 +253,18 @@ func (c *RegistroPresupuestalController) Post() {
 	var numero_asignado_rp int
 	var ultimo_registro []models.RegistroPresupuestal
 	var comprobacion models.RegistroPresupuestal
-	var saldoCDP float64
+	var saldoCDP map[string]float64
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &rp_a_registrar); err == nil {
 
 		reglasBase := CargarReglasBase("Presupuesto")
 		for _, rubros_a_comprobar := range rp_a_registrar.Rubros {
 
 			datos := models.DatosRubroRegistroPresupuestal{Disponibilidad: rubros_a_comprobar.Disponibilidad,
-				Apropiacion: rubros_a_comprobar.Apropiacion,
+				Apropiacion: rubros_a_comprobar.Apropiacion, FuenteFinanciacion: rubros_a_comprobar.FuenteFinanciacion,
 			}
 			if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad/SaldoCdp", "POST", &saldoCDP, &datos); err == nil {
-				predicados = append(predicados, models.Predicado{Nombre: "rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.FormatFloat(saldoCDP, 'f', -1, 64) + ")."})
+				fmt.Println(rubros_a_comprobar.FuenteFinanciacion)
+				predicados = append(predicados, models.Predicado{Nombre: "rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ")."})
 			} else {
 				alertas[0] = "error"
 				alertas = append(alertas, "No se pudo cargar el saldo para algunas apropiaciones")
