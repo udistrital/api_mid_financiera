@@ -18,12 +18,13 @@ type RegistroPresupuestal struct {
 	DatosSolicitud             *SolicitudRp
 }
 type DatosRubroRegistroPresupuestal struct {
-	Id             int
-	Disponibilidad *Disponibilidad
-	Apropiacion    *Apropiacion
-	Valor          float64
-	ValorAsignado  float64
-	Saldo          float64
+	Id                 int
+	Disponibilidad     *Disponibilidad
+	Apropiacion        *Apropiacion
+	FuenteFinanciacion *FuenteFinanciacion
+	Valor              float64
+	ValorAsignado      float64
+	Saldo              float64
 }
 type DatosRegistroPresupuestal struct { //estructura temporal para el registro con relacion a las apropiaciones
 	Rp     *RegistroPresupuestal
