@@ -313,13 +313,24 @@ func (this *DisponibilidadController) Post() {
 							sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id), "PUT", &respuesta_mod, &solicitudes_disponibilidad[i].SolicitudDisponibilidad)
 							fmt.Println("err", respuesta_mod)
 							for j := 0; j < len(rubros_solicitud); j++ {
-								disponibilidad_apropiacion := models.DisponibilidadApropiacion{
-									Apropiacion:          &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
-									Disponibilidad:       &respuesta, //&respuesta,
-									Valor:                rubros_solicitud[j].MontoParcial,
-									FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciacion},
+
+								if rubros_solicitud[j].FuenteFinanciacion > 0 {
+									disponibilidad_apropiacion := models.DisponibilidadApropiacion{
+										Apropiacion:          &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
+										Disponibilidad:       &respuesta, //&respuesta,
+										Valor:                rubros_solicitud[j].MontoParcial,
+										FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciacion},
+									}
+									sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
+								} else {
+									disponibilidad_apropiacion := models.DisponibilidadApropiacion{
+										Apropiacion:    &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
+										Disponibilidad: &respuesta, //&respuesta,
+										Valor:          rubros_solicitud[j].MontoParcial,
+									}
+									sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
 								}
-								sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
+
 							}
 							alertas = append(alertas, "se genero el CDP Con Consecutivo  No. "+strconv.FormatFloat(disponibilidad.NumeroDisponibilidad, 'f', -1, 64)+" para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
 						} else {
