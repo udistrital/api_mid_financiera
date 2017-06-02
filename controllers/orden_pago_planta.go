@@ -1,7 +1,7 @@
 package controllers
 
 import (
-
+	"fmt"
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/utilidades"
@@ -41,14 +41,17 @@ func (c *Orden_pago_plantaController) Post() {
 			OrdenPago map[string]interface{}
 			DetalleLiquidacion []interface{}
 		}
-		total := Send{OrdenPago: m, DetalleLiquidacion:detalle,}
-		//kronos
-		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad/SaldoCdp", "POST", &saldoCDP, &datos); err == nil {
+		total := Send{OrdenPago: m, DetalleLiquidacion: detalle,}
+		var outputData interface{}
+		//send data to kronos
+		fmt.Println("Enviar Data a Kronos")
+		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
+		fmt.Println("**111111111***")
 		}else{
-
+			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta")
+			fmt.Println( err.Error() )
 		}
-
-		c.Data["json"] = total
+		c.Data["json"] = outputData
 		c.ServeJSON()
 	}
 }
