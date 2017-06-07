@@ -45,7 +45,7 @@ func (c *Orden_pago_plantaController) Post() {
 		var outputData interface{}
 		//send data to kronos
 		fmt.Println("Enviar Data a Kronos")
-		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
+		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
 		fmt.Println("**111111111***")
 		}else{
 			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta")
