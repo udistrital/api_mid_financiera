@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/udistrital/api_mid_financiera/models"
 	"net/http"
-	"net/url"
 	"time"
-
 	"github.com/astaxie/beego"
 )
 
@@ -17,8 +15,8 @@ func sendJson(urlp string, trequest string, target interface{}, datajson interfa
 	if datajson != nil {
 		json.NewEncoder(b).Encode(datajson)
 	}
-	proxyUrl, err := url.Parse("http://10.20.4.15:3128")
-	http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	//proxyUrl, err := url.Parse("http://10.20.4.15:3128")
+	//http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
 	client := &http.Client{}
 	req, err := http.NewRequest(trequest, urlp, b)
 	r, err := client.Do(req)
@@ -33,8 +31,8 @@ func sendJson(urlp string, trequest string, target interface{}, datajson interfa
 }
 
 func getJson(urlp string, target interface{}) error {
-	proxyUrl, err := url.Parse("http://10.20.4.15:3128")
-	http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	//proxyUrl, err := url.Parse("http://10.20.4.15:3128")
+	//http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
 	r, err := http.Get(urlp)
 	if err != nil {
 		return err
