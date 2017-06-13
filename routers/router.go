@@ -30,6 +30,11 @@ func init() {
 				&controllers.RegistroPresupuestalController{},
 			),
 		),
+		beego.NSNamespace("/partida_doble",
+			beego.NSInclude(
+				&controllers.PartidadobleController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
