@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/udistrital/api_mid_financiera/models"
 	"net/http"
+	"net/url"
 	"time"
+
 	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/models"
 )
 
 func sendJson(urlp string, trequest string, target interface{}, datajson interface{}) error {
@@ -31,8 +33,8 @@ func sendJson(urlp string, trequest string, target interface{}, datajson interfa
 }
 
 func getJson(urlp string, target interface{}) error {
-	//proxyUrl, err := url.Parse("http://10.20.4.15:3128")
-	//http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	proxyUrl, err := url.Parse("http://10.20.4.15:3128")
+	http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
 	r, err := http.Get(urlp)
 	if err != nil {
 		return err

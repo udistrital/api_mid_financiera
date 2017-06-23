@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"strconv"
+
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/utilidades"
-	"strconv"
 )
 
 // Orden_pago_plantaController operations for Orden_pago_planta
@@ -28,28 +29,30 @@ func (c *Orden_pago_plantaController) URLMapping() {
 // @router / [post]
 func (c *Orden_pago_plantaController) Post() {
 	var v interface{}
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil{
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		m := v.(map[string]interface{})
 		var detalle []interface{}
 		var id_liquidacion int
 		utilidades.FillStruct(m["Liquidacion"], &id_liquidacion)
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_liquidacion?query=Liquidacion:"+strconv.Itoa(id_liquidacion)+"&sortby=Concepto&order=desc", &detalle); err == nil {
-		}else{
+		} else {
 			c.Data["json"] = err.Error()
+			c.ServeJSON()
 		}
-		type Send struct{
-			OrdenPago map[string]interface{}
+		type Send struct {
+			OrdenPago          interface{}
 			DetalleLiquidacion []interface{}
 		}
-		total := Send{OrdenPago: m, DetalleLiquidacion: detalle,}
+		total := Send{OrdenPago: m, DetalleLiquidacion: detalle}
+
 		var outputData interface{}
 		//send data to kronos
-		fmt.Println("Enviar Data a Kronos")
+		fmt.Println("Enviar Data a Kronos ", detalle)
 		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
-		fmt.Println("**111111111***")
-		}else{
-			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta")
-			fmt.Println( err.Error() )
+			fmt.Println("**111111111***")
+		} else {
+			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("titanService")+"detalle_liquidacion?query=Liquidacion:"+strconv.Itoa(id_liquidacion)+"&sortby=Concepto&order=desc")
+			fmt.Println(err.Error())
 		}
 		c.Data["json"] = outputData
 		c.ServeJSON()
