@@ -39,7 +39,7 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
-	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:Orden_pago_plantaController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:Orden_pago_plantaController"],
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"],
 		beego.ControllerComments{
 			Method: "Post",
 			Router: `/`,

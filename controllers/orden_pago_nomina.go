@@ -10,13 +10,13 @@ import (
 	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
-// Orden_pago_plantaController operations for Orden_pago_planta
-type Orden_pago_plantaController struct {
+// OrdenPagoNominaController operations for Orden_pago_planta
+type OrdenPagoNominaController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *Orden_pago_plantaController) URLMapping() {
+func (c *OrdenPagoNominaController) URLMapping() {
 	c.Mapping("Post", c.Post)
 
 }
@@ -28,7 +28,7 @@ func (c *Orden_pago_plantaController) URLMapping() {
 // @Success 201 {object} models.Orden_pago_planta
 // @Failure 403 body is empty
 // @router / [post]
-func (c *Orden_pago_plantaController) Post() {
+func (c *OrdenPagoNominaController) Post() {
 	var alerta models.Alert
 	var v interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
@@ -53,7 +53,7 @@ func (c *Orden_pago_plantaController) Post() {
 			c.Data["json"] = alerta
 			c.ServeJSON()
 		}
-		fmt.Print("detalle:", detalle)
+		// Control si no existe detalle de liquidacion
 		if len(detalle) == 0 {
 			alerta.Type = "error"
 			alerta.Code = "E_OPP_01_5"
@@ -69,7 +69,6 @@ func (c *Orden_pago_plantaController) Post() {
 		total := Send{OrdenPago: m, DetalleLiquidacion: detalle}
 		var outputData interface{}
 		//Envia data to kronos
-		//fmt.Println("Enviar Data a Kronos ", detalle)
 		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
 			fmt.Println("**111111111***")
 		} else {
