@@ -32,7 +32,7 @@ func init() {
 		),
 		beego.NSNamespace("/Orden_pago_planta",
 			beego.NSInclude(
-				&controllers.Orden_pago_plantaController{},
+				&controllers.OrdenPagoNominaController{},
 			),
 		),
 	)
