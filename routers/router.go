@@ -30,7 +30,7 @@ func init() {
 				&controllers.RegistroPresupuestalController{},
 			),
 		),
-		beego.NSNamespace("/Orden_pago_planta",
+		beego.NSNamespace("/Orden_pago_nomina",
 			beego.NSInclude(
 				&controllers.OrdenPagoNominaController{},
 			),
