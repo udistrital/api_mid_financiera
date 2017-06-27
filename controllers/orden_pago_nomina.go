@@ -71,7 +71,7 @@ func (c *OrdenPagoNominaController) Post() {
 		//Envia data to kronos
 		// en local no se a logrado comunicar el mid con el api de financiera
 		//if err := sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpNomina", "POST", &outputData, &total); err == nil {
-		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
+		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpPlanta", "POST", &outputData, &total); err == nil {
 		} else {
 			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"orden_pago/RegistrarOpPlanta")
 			fmt.Print(err.Error())
