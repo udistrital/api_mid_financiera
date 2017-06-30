@@ -35,6 +35,11 @@ func init() {
 				&controllers.PartidadobleController{},
 			),
 		),
+		beego.NSNamespace("/orden_pago_nomina",
+			beego.NSInclude(
+				&controllers.OrdenPagoNominaController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

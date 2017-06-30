@@ -9,6 +9,7 @@ import (
 	//."github.com/mndrix/golog"
 	. "github.com/mndrix/golog"
 	"github.com/udistrital/api_mid_financiera/models"
+	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
 type EntornoReglas struct {
@@ -24,7 +25,7 @@ func (e *EntornoReglas) Agregar_dominio(dominio string) {
 	}
 }
 
-func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (err error) {
+func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (result []map[string]interface{}, err error) {
 	var regla string
 	regla = ""
 	//recorrer los predicados que se quieren insertar
@@ -54,9 +55,10 @@ func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (err er
 					sort = "&query=" + vs[2] + ":" + vs[3]
 				}
 				fmt.Println("http://" + beego.AppConfig.String(service) + route + "?limit=-1" + sort)
-				var result []interface{}
-				if err = getJson("http://"+beego.AppConfig.String(service)+route+"?limit=-1"+sort, &result); err == nil {
-					fmt.Println(result)
+				var serviceresult []interface{}
+				if err = getJson("http://"+beego.AppConfig.String(service)+route+"?limit=-1"+sort, &serviceresult); err == nil {
+					err = utilidades.FillStruct(serviceresult, &result)
+					//fmt.Println("res ", result)
 				} else {
 					return
 				}

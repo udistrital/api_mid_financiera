@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-
-	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
 type DisponibilidadController struct {
@@ -20,6 +20,57 @@ func (c *DisponibilidadController) URLMapping() {
 	c.Mapping("Post", c.Post)
 	c.Mapping("Solicitudes", c.InfoSolicitudDisponibilidad)
 	c.Mapping("SolicitudById", c.InfoSolicitudDisponibilidadById)
+}
+
+// DisponibilidadByNecesidad ...
+// @Title DisponibilidadByNecesidad
+// @Description get Disponibilidad by id Necesidad
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} interface{}
+// @Failure 403
+// @router DisponibilidadByNecesidad/:id [get]
+func (this *DisponibilidadController) DisponibilidadByNecesidad() {
+	var resdisponibilidad []map[string]interface{}
+	var solicitud []map[string]interface{}
+	idStr := this.Ctx.Input.Param(":id")                                                                                                                                    //id de la necesidad.
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Expedida:true,Necesidad.Id:"+idStr, &solicitud); err == nil { //traer solicitudes por id de necesidad
+		var id int64
+		err = utilidades.FillStruct(solicitud[0]["Id"], &id)
+		if err != nil {
+			this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+			this.ServeJSON()
+		}
+		fmt.Println("id solicitud", id)
+		fmt.Println("peticion: " + "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad?limit=-1&query=Solicitud:" + strconv.FormatInt(id, 10))
+		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Solicitud:"+strconv.FormatInt(id, 10), &resdisponibilidad); err == nil {
+			err = utilidades.FillStruct(resdisponibilidad[0]["Id"], &id)
+			if err != nil {
+				this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+				this.ServeJSON()
+			}
+			var rp []map[string]interface{}
+			if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.FormatInt(id, 10), &rp); err == nil {
+				resdisponibilidad[0]["registro_presupuestal"] = rp
+				this.Data["json"] = resdisponibilidad
+			} else {
+				fmt.Println(err)
+				this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+			}
+
+		} else {
+			fmt.Println(err)
+			this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+		}
+
+	} else {
+		this.Data["json"] = err.Error()
+	}
+	this.ServeJSON()
 }
 
 // Solicitudes ...
