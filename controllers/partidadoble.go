@@ -61,10 +61,10 @@ func (c *PartidadobleController) GetOne() {
 func (c *PartidadobleController) GetAll() {
 	tool := new(tools.EntornoReglas)
 	tool.Agregar_dominio("Presupuesto")
-	err := tool.Agregar_predicado_dinamico("nombre_regl:argoService.necesidad|Id|Valor")
+	res, err := tool.Agregar_predicado_dinamico("nombre_regl:argoService.necesidad|Id|Valor")
 	fmt.Println("err: ", err)
 	//fmt.Println(tool)
-	c.Data["json"] = tool
+	c.Data["json"] = res
 	c.ServeJSON()
 }
 
