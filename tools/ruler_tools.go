@@ -25,18 +25,18 @@ func (e *EntornoReglas) Agregar_dominio(dominio string) {
 	}
 }
 
-func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (result []map[string]interface{}, err error) {
-	var regla string
-	regla = ""
+func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (err error) {
+	result := ""
 	//recorrer los predicados que se quieren insertar
 	for _, predicadod := range predicados { //se recorren el o los predicados dinamicos
+		var rulename string
 		for i, rp := range strings.SplitN(predicadod, ":", 3) {
 			if len(rp) <= 1 {
 				err = errors.New("Error1: invalid query key/value pair")
 				return
 			}
 			if i == 0 {
-				regla = regla + rp + "("
+				rulename = rulename + rp + "("
 			} else {
 				vr := strings.Split(rp, "|")
 				if len(vr) <= 1 {
@@ -51,31 +51,67 @@ func (e *EntornoReglas) Agregar_predicado_dinamico(predicados ...string) (result
 				service := vs[0]
 				route := vs[1]
 				sort := ""
+				fmt.Println(vr)
 				if len(vs) == 4 {
 					sort = "&query=" + vs[2] + ":" + vs[3]
 				}
 				fmt.Println("http://" + beego.AppConfig.String(service) + route + "?limit=-1" + sort)
-				var serviceresult []interface{}
+				var serviceresult []map[string]interface{}
 				if err = getJson("http://"+beego.AppConfig.String(service)+route+"?limit=-1"+sort, &serviceresult); err == nil {
-					err = utilidades.FillStruct(serviceresult, &result)
-					//fmt.Println("res ", result)
+					//result[]
+					fmt.Println("res ", vr)
+					for _, res := range serviceresult {
+						for j := 1; j < len(vr); j++ {
+							if j == 1 {
+								if values := strings.Split(vr[j], "."); len(values) > 1 {
+									var finalvalue interface{}
+									for index, mp := range values {
+										if index != 0 {
+											var aux map[string]interface{}
+											err = utilidades.FillStruct(finalvalue, &aux)
+											fmt.Println("finalvalue ", finalvalue)
+											if err != nil {
+												return
+											}
+											err = utilidades.FillStruct(aux[mp], &finalvalue)
+											fmt.Println("finalvalue ", finalvalue)
+											if err != nil {
+												return
+											}
+										} else {
+											err = utilidades.FillStruct(res[mp], &finalvalue)
+											fmt.Println("finalvalue1 ", finalvalue)
+											if err != nil {
+												return
+											}
+										}
+									}
+									value := fmt.Sprintf("%v", finalvalue) //convertir cualquier interface en string **
+									result = result + rulename + value
+								} else {
+									value := fmt.Sprintf("%v", res[vr[j]]) //convertir cualquier interface en string **
+									result = result + rulename + value
+								}
+							} else {
+								value := fmt.Sprintf("%v", res[vr[j]])
+								result = result + "," + value
+							}
+						}
+						result = result + ")."
+						e.Agregar_predicado(result)
+						result = ""
+					}
+
 				} else {
 					return
 				}
-				for j := 1; j < len(vr); j++ {
-					if j == 1 {
 
-						regla = regla + vr[j]
-					} else {
-						regla = regla + "," + vr[j]
-					}
-				}
 			}
 
 		}
-		regla = regla + "). \n"
+
 	}
-	fmt.Println(regla)
+	//fmt.Println(result)
 	return
 }
 
@@ -87,7 +123,7 @@ func (e *EntornoReglas) Obtener_predicados() (predicados string) {
 	return e.predicados
 }
 
-func (e *EntornoReglas) ejecutar_regla(regla string, variable string) {
+func (e *EntornoReglas) ejecutar_result(regla string, variable string) {
 	var m = NewMachine()
 	f := m.Consult(e.predicados)
 	solutions := f.ProveAll(regla)
