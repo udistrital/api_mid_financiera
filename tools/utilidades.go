@@ -1,4 +1,4 @@
-package controllers
+package tools
 
 import (
 	"bytes"
@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
+
+	"github.com/astaxie/beego"
 )
 
 func sendJson(urlp string, trequest string, target interface{}, datajson interface{}) error {
@@ -42,6 +43,7 @@ func getJson(urlp string, target interface{}) error {
 
 	return json.NewDecoder(r.Body).Decode(target)
 }
+
 func diff(a, b time.Time) (year, month, day int) {
 	if a.Location() != b.Location() {
 		b = b.In(a.Location())
