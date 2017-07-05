@@ -91,3 +91,49 @@ func (c *OrdenPagoNominaController) Post() {
 		c.ServeJSON()
 	}
 }
+
+// CrearOPSeguridadSocial ...
+// @Title Create
+// @Description create Orden Pago Seguridad Social
+// @Param	body		body 	models.Orden_pago_planta	true		"body for Orden_pago_planta content"
+// @Success 201 {object} models.Orden_pago_planta
+// @Failure 403 body is empty
+// @router CrearOPSeguridadSocial [post]
+func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
+	var alerta models.Alert
+	var v interface{}
+	if err1 := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err1 == nil {
+		m := v.(map[string]interface{})
+		var DataSeguridadSocial interface{}
+		var PagosSeguridadSocial []interface{}
+		//
+		err2 := utilidades.FillStruct(m["SeguridadSocial"], &DataSeguridadSocial)
+		if err2 != nil {
+			alerta.Type = "error"
+			alerta.Code = "E_OPN_01_2"
+			alerta.Body = err2.Error()
+			c.Data["json"] = alerta
+			c.ServeJSON()
+		}
+		fmt.Print(DataSeguridadSocial) //
+		// get data administarativa seguridad social
+		// debe ser por mes y año el filtro, en el momento el api no cuenta con esos datos.
+		fmt.Print("\n http://" + beego.AppConfig.String("SsService") + "pago?query=PeriodoPago.Id:1")
+		if err3 := getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err3 == nil {
+		} else {
+			alerta.Type = "error"
+			alerta.Code = "E_OPN_01_3"
+			alerta.Body = err3.Error()
+			c.Data["json"] = alerta
+			c.ServeJSON()
+		}
+		fmt.Print("\nPAGOS SS:", PagosSeguridadSocial)
+
+	} else {
+		alerta.Type = "error"
+		alerta.Code = "E_OPN_01_1"
+		alerta.Body = err1.Error()
+		c.Data["json"] = alerta
+		c.ServeJSON()
+	}
+}
