@@ -69,11 +69,13 @@ func (c *OrdenPagoNominaController) Post() {
 		total := Send{OrdenPago: m, DetalleLiquidacion: detalle}
 		var outputData interface{}
 		//Envia data to kronos
-		// en local no se a logrado comunicar el mid con el api de financiera
-		//if err := sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpNomina", "POST", &outputData, &total); err == nil {
+		fmt.Println("\n----------")
+		fmt.Print("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago/RegistrarOpNomina")
+		fmt.Println("\n----------")
 		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpNomina", "POST", &outputData, &total); err == nil {
+			//if err := sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpNomina", "POST", &outputData, &total); err == nil {
 		} else {
-			fmt.Println("Error ----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpNomina")
+			fmt.Println("Error URL----------- ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpNomina")
 			fmt.Print(err.Error())
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_5"
@@ -93,7 +95,7 @@ func (c *OrdenPagoNominaController) Post() {
 }
 
 // CrearOPSeguridadSocial ...
-// @Title Create
+// @Title CrearOPSeguridadSocial
 // @Description create Orden Pago Seguridad Social
 // @Param	body		body 	models.Orden_pago_planta	true		"body for Orden_pago_planta content"
 // @Success 201 {object} models.Orden_pago_planta
@@ -102,37 +104,78 @@ func (c *OrdenPagoNominaController) Post() {
 func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 	var alerta models.Alert
 	var v interface{}
-	if err1 := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err1 == nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		m := v.(map[string]interface{})
-		var DataSeguridadSocial interface{}
+		var DataSeguridadSocial map[string]interface{}
+		var DataOrdenPago map[string]interface{}
 		var PagosSeguridadSocial []interface{}
 		//
-		err2 := utilidades.FillStruct(m["SeguridadSocial"], &DataSeguridadSocial)
-		if err2 != nil {
+		err = utilidades.FillStruct(m["SeguridadSocial"], &DataSeguridadSocial)
+		// Mes := fmt.Sprintf("%v", DataSeguridadSocial["Mes"])
+		// Anio := fmt.Sprintf("%v", DataSeguridadSocial["Vigencia"])
+		err = utilidades.FillStruct(m["OrdenPago"], &DataOrdenPago)
+
+		// fmt.Print(Mes)
+		// fmt.Print(Anio)
+		fmt.Print("\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n")
+		fmt.Print(DataOrdenPago)
+		fmt.Print("\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n")
+		if err != nil {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_2"
-			alerta.Body = err2.Error()
+			alerta.Body = err.Error()
 			c.Data["json"] = alerta
 			c.ServeJSON()
 		}
-		fmt.Print(DataSeguridadSocial) //
+		// fmt.Print(DataSeguridadSocial)
 		// get data administarativa seguridad social
 		// debe ser por mes y año el filtro, en el momento el api no cuenta con esos datos.
-		fmt.Print("\n http://" + beego.AppConfig.String("SsService") + "pago?query=PeriodoPago.Id:1")
-		if err3 := getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err3 == nil {
+		if err = getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err == nil {
 		} else {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_3"
-			alerta.Body = err3.Error()
+			alerta.Body = err.Error()
 			c.Data["json"] = alerta
 			c.ServeJSON()
 		}
-		fmt.Print("\nPAGOS SS:", PagosSeguridadSocial)
-
+		// Control si no existe detalle de liquidacion
+		if len(PagosSeguridadSocial) == 0 {
+			alerta.Type = "error"
+			alerta.Code = "E_OPN_01_4"
+			alerta.Body = ""
+			c.Data["json"] = alerta
+			c.ServeJSON()
+		}
+		// fmt.Print("\nPAGOS SS:\n", PagosSeguridadSocial)
+		// estructura para enviar data a kronos
+		type SendData struct {
+			OrdenPago            interface{}
+			PagosSeguridadSocial []interface{}
+		}
+		SendData2Kronos := SendData{OrdenPago: DataOrdenPago, PagosSeguridadSocial: PagosSeguridadSocial}
+		var outputData interface{}
+		//Envia data to kronos
+		fmt.Println("\n----------")
+		fmt.Print("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago/RegistrarOpSeguridadSocial")
+		fmt.Println("\n----------")
+		//if err = sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
+		if err = sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
+		} else {
+			fmt.Println("Error ----------- ", "http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial")
+			fmt.Print(err.Error())
+			alerta.Type = "error"
+			alerta.Code = "E_OPN_01_5"
+			alerta.Body = ""
+			c.Data["json"] = alerta
+			c.ServeJSON()
+		}
+		c.Data["json"] = outputData
+		c.ServeJSON()
+		//fin
 	} else {
 		alerta.Type = "error"
 		alerta.Code = "E_OPN_01_1"
-		alerta.Body = err1.Error()
+		alerta.Body = err.Error()
 		c.Data["json"] = alerta
 		c.ServeJSON()
 	}
