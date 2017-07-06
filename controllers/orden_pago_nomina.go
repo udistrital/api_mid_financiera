@@ -161,8 +161,8 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		fmt.Println("\n----------")
 		fmt.Print("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago/RegistrarOpSeguridadSocial")
 		fmt.Println("\n----------")
-		//if err = sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
-		if err = sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
+		if err = sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
+			//if err = sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
 		} else {
 			fmt.Println("Error ----------- ", "http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial")
 			fmt.Print(err.Error())
