@@ -88,7 +88,7 @@ func (this *DisponibilidadController) DisponibilidadByNecesidad() {
 func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 	var solicitud []models.SolicitudDisponibilidad
 	var res []models.InfoSolDisp
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Expedida:false&sortby=Id&order=desc", &solicitud); err == nil {
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Expedida:false,JustificacionRechazo:&sortby=Id&order=desc", &solicitud); err == nil {
 
 		for _, resultado := range solicitud {
 
