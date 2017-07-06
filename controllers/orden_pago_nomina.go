@@ -109,26 +109,29 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		var DataSeguridadSocial map[string]interface{}
 		var DataOrdenPago map[string]interface{}
 		var PagosSeguridadSocial []interface{}
+		var PeriodoPago []interface{}
 		//
 		err = utilidades.FillStruct(m["SeguridadSocial"], &DataSeguridadSocial)
-		// Mes := fmt.Sprintf("%v", DataSeguridadSocial["Mes"])
-		// Anio := fmt.Sprintf("%v", DataSeguridadSocial["Vigencia"])
+		Mes := fmt.Sprintf("%v", DataSeguridadSocial["Mes"])
+		Anio := fmt.Sprintf("%v", DataSeguridadSocial["Vigencia"])
 		err = utilidades.FillStruct(m["OrdenPago"], &DataOrdenPago)
-
-		// fmt.Print(Mes)
-		// fmt.Print(Anio)
-		fmt.Print("\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n")
-		fmt.Print(DataOrdenPago)
-		fmt.Print("\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n")
-		if err != nil {
+		fmt.Print(Mes)
+		fmt.Print("-")
+		fmt.Print(Anio)
+		// get id periodo pago
+		fmt.Println("\n", "http://"+beego.AppConfig.String("SsService")+"periodo_pago?query=Mes:"+Mes+",Anio:"+Anio)
+		if err = getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago?query=Mes:"+Mes+",Anio:"+Anio, &PeriodoPago); err == nil {
+		} else {
 			alerta.Type = "error"
-			alerta.Code = "E_OPN_01_2"
+			alerta.Code = "E_OPN_01_3"
 			alerta.Body = err.Error()
 			c.Data["json"] = alerta
 			c.ServeJSON()
 		}
-		// fmt.Print(DataSeguridadSocial)
-		// get data administarativa seguridad social
+		fmt.Println("\nAAAAAAAAAAA")
+		fmt.Print(PeriodoPago)
+		fmt.Println("\nAAAAAAAAAAA")
+		// // get data administarativa seguridad social
 		// debe ser por mes y año el filtro, en el momento el api no cuenta con esos datos.
 		if err = getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err == nil {
 		} else {
