@@ -135,6 +135,7 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		// debe ser por mes y año el filtro, en el momento el api no cuenta con esos datos.
 		if err = getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err == nil {
 		} else {
+			fmt.Print("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1")
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_3"
 			alerta.Body = err.Error()
