@@ -40,6 +40,11 @@ func init() {
 				&controllers.OrdenPagoNominaController{},
 			),
 		),
+		beego.NSNamespace("/rubro",
+			beego.NSInclude(
+				&controllers.RubroController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
