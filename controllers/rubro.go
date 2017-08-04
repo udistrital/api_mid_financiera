@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/astaxie/beego"
@@ -37,7 +38,12 @@ type valoresPac struct {
 }
 type cuerpoPac struct {
 	Ingresos []*rowPac
+	Egresos  []*rowPac
 }
+
+var (
+	wg sync.WaitGroup
+)
 
 // GenerarPac ...
 // @Title GenerarPac
@@ -48,7 +54,7 @@ type cuerpoPac struct {
 // @router /GenerarPac/ [post]
 func (c *RubroController) GenerarPac() {
 	defer c.ServeJSON()
-
+	wg.Add(2)
 	var pacData map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
@@ -59,12 +65,10 @@ func (c *RubroController) GenerarPac() {
 		err = utilidades.FillStruct(pacData["fin"], &periodos)
 		if err != nil {
 			if reporteData, err := cuerpoReporte(finicio, ffin); err == nil {
-
 				var alert models.Alert
-				var proy []map[string]interface{}
-				go c.calcularEjecutado(&reporteData, finicio, ffin, &alert, &proy)
-
-				fmt.Println(proy)
+				go c.calcularEjecutadoIngresos(&reporteData, finicio, ffin, &alert)
+				go c.calcularEjecutadoEngresos(&reporteData, finicio, ffin, &alert)
+				wg.Wait()
 				if alert.Body == nil {
 					fmt.Println("no alert")
 				} else {
@@ -87,7 +91,7 @@ func (c *RubroController) GenerarPac() {
 	}
 
 }
-func (c *RubroController) calcularEjecutado(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, alert *models.Alert, res *[]map[string]interface{}) {
+func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, alert *models.Alert) {
 
 	for _, ingresosRow := range reporteData.Ingresos { //recorrer los datos del reporte de ingresos para el rango actual
 
@@ -111,7 +115,7 @@ func (c *RubroController) calcularEjecutado(reporteData *cuerpoPac, finicio time
 
 				if err == nil {
 
-					if rubro == "35773" {
+					if rubro == "35488" {
 						fmt.Println("rubro: ", rubro)
 						fmt.Println("Fuente: ", idFuente)
 						fmt.Println("finicio: ", fechaInicio)
@@ -149,7 +153,73 @@ func (c *RubroController) calcularEjecutado(reporteData *cuerpoPac, finicio time
 		}
 
 	}
+	wg.Done()
+	return
+}
 
+func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, alert *models.Alert) {
+
+	for _, ingresosRow := range reporteData.Egresos { //recorrer los datos del reporte de ingresos para el rango actual
+
+		for _, reporteRow := range ingresosRow.Reporte {
+			var valor string
+			var mes int
+			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			if err == nil {
+				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
+				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
+
+				if fechaFin.After(ffin) {
+					fechaFin = ffin
+				}
+				var rubro string
+				var idFuente string
+				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+
+				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+
+				if err == nil {
+
+					if rubro == "35585" {
+						fmt.Println("rubro: ", rubro)
+						fmt.Println("Fuente: ", idFuente)
+						fmt.Println("finicio: ", fechaInicio)
+						fmt.Println("ffin: ", fechaFin)
+						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
+
+					}
+					var valorEngresos interface{}
+					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
+						var dataEngresos []map[string]interface{}
+						err := utilidades.FillStruct(valorEngresos, &dataEngresos)
+						if err != nil {
+
+						} else {
+							for _, valorData := range dataEngresos {
+								//fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
+								utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+							}
+
+						}
+
+					} else {
+						fmt.Println("err v", err.Error())
+						alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+					}
+				} else {
+					fmt.Println("err ", err.Error())
+					alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+
+			} else {
+				fmt.Println("err 2 ", err.Error())
+				alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		}
+
+	}
+	wg.Done()
 	return
 }
 
@@ -159,7 +229,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	mesfin := int(fin.Month())
 	var m []map[string]interface{}
 	cuerpo := make(map[string]interface{})
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=3", &m)
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=2", &m)
 	if err != nil {
 		return
 	}
@@ -199,6 +269,49 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 		return
 	}
 	cuerpo["ingresos"] = ingresos
+
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=3", &m)
+	if err != nil {
+		return
+	}
+
+	for i := 0; i < len(m); i++ {
+		var fechas []map[string]interface{}
+		for j := 0; j <= (mesfin - mesinicio); j++ {
+			finicio := inicio.AddDate(0, j, 0)
+			aux := make(map[string]interface{})
+
+			val := make(map[string]interface{})
+			val["valor"] = "0"
+			val["proyeccion"] = "0"
+			val["variacion"] = "0"
+			val["pvariacion"] = "0"
+			aux["valores"] = val
+
+			if aux != nil {
+				aux["mes"] = finicio.Format("Jan")
+				aux["n_mes"] = int(finicio.Month())
+				fechas = append(fechas, aux)
+			}
+
+		}
+		m[i]["reporte"] = fechas
+		//m[i]["egresos"], err = RubroOrdenPago(m[i]["id"])
+		if err != nil {
+			fmt.Println("err1 ", err)
+			return
+		}
+
+	}
+
+	err = utilidades.FillStruct(m, &ingresos)
+	if err != nil {
+		fmt.Println("err2 ", err)
+		return
+	}
+
+	cuerpo["egresos"] = ingresos
+	//fmt.Println(cuerpo["egresos"])
 	err = mapstructure.Decode(cuerpo, &res)
 	if err != nil {
 		fmt.Println("err2 ", err)
