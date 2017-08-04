@@ -54,7 +54,7 @@ var (
 // @router /GenerarPac/ [post]
 func (c *RubroController) GenerarPac() {
 	defer c.ServeJSON()
-	wg.Add(2)
+	wg.Add(3)
 	var pacData map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
@@ -62,12 +62,13 @@ func (c *RubroController) GenerarPac() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pacData); err == nil {
 		err := utilidades.FillStruct(pacData["inicio"], &finicio)
 		err = utilidades.FillStruct(pacData["fin"], &ffin)
-		err = utilidades.FillStruct(pacData["fin"], &periodos)
-		if err != nil {
+		err = utilidades.FillStruct(pacData["periodosproy"], &periodos)
+		if err == nil {
 			if reporteData, err := cuerpoReporte(finicio, ffin); err == nil {
 				var alert models.Alert
 				go c.calcularEjecutadoIngresos(&reporteData, finicio, ffin, &alert)
 				go c.calcularEjecutadoEngresos(&reporteData, finicio, ffin, &alert)
+				go c.calcularProyeccionIngresos(&reporteData, finicio, ffin, periodos, &alert)
 				wg.Wait()
 				if alert.Body == nil {
 					fmt.Println("no alert")
@@ -91,6 +92,7 @@ func (c *RubroController) GenerarPac() {
 	}
 
 }
+
 func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, alert *models.Alert) {
 
 	for _, ingresosRow := range reporteData.Ingresos { //recorrer los datos del reporte de ingresos para el rango actual
@@ -115,14 +117,14 @@ func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, fini
 
 				if err == nil {
 
-					if rubro == "35488" {
+					/*if rubro == "35488" {
 						fmt.Println("rubro: ", rubro)
 						fmt.Println("Fuente: ", idFuente)
 						fmt.Println("finicio: ", fechaInicio)
 						fmt.Println("ffin: ", fechaFin)
 						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
 
-					}
+					}*/
 					var valorIngresos interface{}
 					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorIngresos); err == nil {
 						var dataIngresos []map[string]interface{}
@@ -181,14 +183,14 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 
 				if err == nil {
 
-					if rubro == "35585" {
+					/*if rubro == "35585" {
 						fmt.Println("rubro: ", rubro)
 						fmt.Println("Fuente: ", idFuente)
 						fmt.Println("finicio: ", fechaInicio)
 						fmt.Println("ffin: ", fechaFin)
 						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
 
-					}
+					}*/
 					var valorEngresos interface{}
 					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
 						var dataEngresos []map[string]interface{}
@@ -206,6 +208,77 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 					} else {
 						fmt.Println("err v", err.Error())
 						alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+					}
+				} else {
+					fmt.Println("err ", err.Error())
+					alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+
+			} else {
+				fmt.Println("err 2 ", err.Error())
+				alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		}
+
+	}
+	wg.Done()
+	return
+}
+
+func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, nperiodos int, alert *models.Alert) {
+
+	for _, ingresosRow := range reporteData.Ingresos { //recorrer los datos del reporte de ingresos para el rango actual
+
+		for _, reporteRow := range ingresosRow.Reporte {
+			var valor string
+			var mes int
+			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			if err == nil {
+				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
+				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
+
+				if fechaFin.After(ffin) {
+					fechaFin = ffin
+				}
+				var rubro string
+				var idFuente string
+				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+
+				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+
+				if err == nil {
+
+					/*if rubro == "35488" {
+						fmt.Println("rubro: ", rubro)
+						fmt.Println("Fuente: ", idFuente)
+						fmt.Println("finicio: ", fechaInicio)
+						fmt.Println("ffin: ", fechaFin)
+						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
+
+					}*/
+					var valorIngresos interface{}
+					for i := 1; i <= nperiodos; i++ {
+						Inicio := time.Date(fechaInicio.Year()-i, fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, time.Local)
+						Fin := time.Date(fechaFin.Year()-i, fechaFin.Month(), fechaFin.Day(), 0, 0, 0, 0, time.Local)
+						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
+						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
+							var dataIngresos []map[string]interface{}
+							err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+							if err != nil {
+
+							} else {
+								for _, valorData := range dataIngresos {
+									fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
+									//utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+								}
+
+							}
+
+						} else {
+							fmt.Println("err v", err.Error())
+							alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+						}
 					}
 				} else {
 					fmt.Println("err ", err.Error())
