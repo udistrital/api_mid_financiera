@@ -416,3 +416,117 @@ func (this *DisponibilidadController) Post() {
 		this.ServeJSON()
 	}
 }
+
+// Post ...
+// @Title Post
+// @Description create Disponibilidad
+// @Param	body		body 	map[string]interface{}	true		"body for InfoSolDisp content"
+// @Success 201 {int} models.InfoSolDisp
+// @Failure 403 body is empty
+// @router /AprobarAnulacion [post]
+func (this *DisponibilidadController) AprobarAnulacion() {
+	var solicitudAnulacion map[string]interface{}
+	var res []map[string]interface{} //objeto usado para guardar resultado de la peticion del servicio
+	var id int
+	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &solicitudAnulacion); err == nil {
+		//carga responsable de presupuesto
+		var responsable_pres []models.JefeDependencia //responsable
+		if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:102,FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &responsable_pres); err == nil {
+			//cargar necesidad que dio origen al cdp
+
+			err = utilidades.FillStructDeep(solicitudAnulacion, "AnulacionDisponibilidadApropiacion", &res)
+			//fmt.Println("err ", solicitudAnulacion)
+			if err != nil {
+				//err fill idsolicitud
+				this.Data["json"] = err.Error()
+				this.ServeJSON()
+			}
+			err = utilidades.FillStructDeep(res[0], "DisponibilidadApropiacion.Disponibilidad.Solicitud", &id)
+			res[0] = make(map[string]interface{})
+			//fmt.Println("err ", solicitudAnulacion)
+			if err != nil {
+				//err fill idsolicitud
+				this.Data["json"] = "error 1 " + err.Error()
+				this.ServeJSON()
+			}
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(id), &res); err == nil { //traer solicitudes por id de necesidad
+
+				err = utilidades.FillStructDeep(res[0], "Necesidad.Id", &id)
+				res[0] = make(map[string]interface{})
+				if err != nil {
+					//err fill idsolicitud
+					this.Data["json"] = err.Error()
+					this.ServeJSON()
+				}
+				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(id), &res); err == nil {
+
+					err = utilidades.FillStructDeep(res[0], "JefeDependenciaDestino", &id)
+					res[0] = make(map[string]interface{})
+					if err != nil {
+						//err fill idsolicitud
+						this.Data["json"] = err.Error()
+						this.ServeJSON()
+					}
+					if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(id), &res); err == nil {
+						err = utilidades.FillStructDeep(res[0], "DependenciaId", &id)
+						res[0] = make(map[string]interface{})
+						fmt.Println("res ", id)
+						if err != nil {
+							//err fill idsolicitud
+							this.Data["json"] = err.Error()
+							this.ServeJSON()
+						}
+						if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:"+strconv.Itoa(id)+",FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &res); err == nil {
+							fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?limit=0&query=Id:" + strconv.Itoa(id))
+							err = utilidades.FillStructDeep(res[0], "TerceroId", &id)
+							res[0] = make(map[string]interface{})
+							fmt.Println("res ", id)
+							if err != nil {
+								//err fill idsolicitud
+								this.Data["json"] = err.Error()
+								this.ServeJSON()
+							}
+							this.Data["json"] = id
+							this.ServeJSON()
+						}
+					} else {
+						//error json dependencia
+						fmt.Println("res ", err)
+						fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?limit=0&query=Id:" + strconv.Itoa(id))
+						this.Data["json"] = "error json dependencia " + err.Error()
+						this.ServeJSON()
+					}
+				} else {
+					//error json dependencia_necesidad
+					fmt.Println("res ", err)
+					this.Data["json"] = "error json dependencia_necesidad " + err.Error()
+					this.ServeJSON()
+				}
+
+			} else {
+				//error json solicitud_disponibilidad
+				fmt.Println("res ", err)
+				this.Data["json"] = "error json solicitud_disponibilidad " + err.Error()
+				this.ServeJSON()
+			}
+
+		}
+	} else {
+		//error json
+		fmt.Println("res ", err)
+		this.Data["json"] = "error json dependencia " + err.Error()
+		this.ServeJSON()
+	}
+	/*var v map[string]interface{}
+	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &v); err == nil {
+		var id interface{}
+		err = utilidades.FillStructDeep(v, "nivel1.nivel2.value", &id)
+		if err != nil {
+			this.Data["json"] = err.Error()
+		} else {
+			this.Data["json"] = id
+		}
+
+		this.ServeJSON()
+	}*/
+}
