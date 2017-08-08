@@ -14,13 +14,14 @@ import (
 
 type EntornoReglas struct {
 	predicados string
+	base       string
 }
 
 func (e *EntornoReglas) Agregar_dominio(dominio string) {
 	var v []models.Predicado
 	if err := getJson("http://"+beego.AppConfig.String("Urlruler")+":"+beego.AppConfig.String("Portruler")+"/"+beego.AppConfig.String("Nsruler")+"/predicado?limit=0&query=Dominio.Nombre:"+dominio, &v); err == nil {
 		for i := 0; i < len(v); i++ {
-			e.predicados = e.predicados + v[i].Nombre + "\n"
+			e.base = e.base + v[i].Nombre + "\n"
 		}
 	}
 }
@@ -120,15 +121,20 @@ func (e *EntornoReglas) Agregar_predicado(predicado string) {
 }
 
 func (e *EntornoReglas) Obtener_predicados() (predicados string) {
-	return e.predicados
+	return e.predicados + e.base
 }
 
-func (e *EntornoReglas) ejecutar_result(regla string, variable string) {
-	var m = NewMachine()
-	f := m.Consult(e.predicados)
+func (e *EntornoReglas) Quitar_predicados() {
+	e.predicados = ``
+}
+
+func (e *EntornoReglas) Ejecutar_result(regla string, variable string) (res interface{}) {
+	f := NewMachine().Consult(e.predicados + e.base)
 	solutions := f.ProveAll(regla)
+	//fmt.Println(solutions)
 	for _, solution := range solutions {
-		fmt.Printf("%s", solution.ByName_(variable))
-		//fmt.Printf("%s", solution.ByName_("SC"))
+		res = fmt.Sprintf("%v", solution.ByName_(variable))
+		//fmt.Printf("%s", solution.ByName_("R"))
 	}
+	return
 }
