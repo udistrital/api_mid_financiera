@@ -115,11 +115,12 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		Mes := fmt.Sprintf("%v", DataSeguridadSocial["Mes"])
 		Anio := fmt.Sprintf("%v", DataSeguridadSocial["Vigencia"])
 		err = utilidades.FillStruct(m["OrdenPago"], &DataOrdenPago)
+
 		fmt.Print(Mes)
 		fmt.Print("-")
 		fmt.Print(Anio)
 		// get id periodo pago
-		fmt.Println("\n", "http://"+beego.AppConfig.String("SsService")+"periodo_pago?query=Mes:"+Mes+",Anio:"+Anio)
+		//fmt.Println("\n", "http://"+beego.AppConfig.String("SsService")+"periodo_pago?query=Mes:"+Mes+",Anio:"+Anio)
 		if err = getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago?query=Mes:"+Mes+",Anio:"+Anio, &PeriodoPago); err == nil {
 		} else {
 			alerta.Type = "error"
@@ -127,21 +128,27 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 			alerta.Body = err.Error()
 			c.Data["json"] = alerta
 			c.ServeJSON()
+			return
 		}
-		fmt.Println("\nAAAAAAAAAAA")
+		fmt.Println("\nAAAAAAAAAAA \nPeriodoPago")
 		fmt.Print(PeriodoPago)
 		fmt.Println("\nAAAAAAAAAAA")
+
 		// // get data administarativa seguridad social
 		// debe ser por mes y año el filtro, en el momento el api no cuenta con esos datos.
 		if err = getJson("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1", &PagosSeguridadSocial); err == nil {
 		} else {
-			fmt.Print("http://"+beego.AppConfig.String("SsService")+"pago?query=PeriodoPago.Id:1")
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_3"
 			alerta.Body = err.Error()
 			c.Data["json"] = alerta
 			c.ServeJSON()
+			return
 		}
+		fmt.Println("\nAAAAAAAAAAA \nPagosSeguridadSocial")
+		fmt.Print(PagosSeguridadSocial)
+		fmt.Println("\nAAAAAAAAAAA")
+
 		// Control si no existe detalle de liquidacion
 		if len(PagosSeguridadSocial) == 0 {
 			alerta.Type = "error"
@@ -149,8 +156,8 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 			alerta.Body = ""
 			c.Data["json"] = alerta
 			c.ServeJSON()
+			return
 		}
-		// fmt.Print("\nPAGOS SS:\n", PagosSeguridadSocial)
 		// estructura para enviar data a kronos
 		type SendData struct {
 			OrdenPago            interface{}
@@ -159,19 +166,14 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		SendData2Kronos := SendData{OrdenPago: DataOrdenPago, PagosSeguridadSocial: PagosSeguridadSocial}
 		var outputData interface{}
 		//Envia data to kronos
-		fmt.Println("\n----------")
-		fmt.Print("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago/RegistrarOpSeguridadSocial")
-		fmt.Println("\n----------")
 		if err = sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
-			//if err = sendJson("http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial", "POST", &outputData, &SendData2Kronos); err == nil {
 		} else {
-			fmt.Println("Error ----------- ", "http://127.0.0.1:8084/v1/orden_pago/RegistrarOpSeguridadSocial")
-			fmt.Print(err.Error())
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_5"
 			alerta.Body = ""
 			c.Data["json"] = alerta
 			c.ServeJSON()
+			return
 		}
 		c.Data["json"] = outputData
 		c.ServeJSON()
@@ -182,5 +184,6 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		alerta.Body = err.Error()
 		c.Data["json"] = alerta
 		c.ServeJSON()
+		return
 	}
 }
