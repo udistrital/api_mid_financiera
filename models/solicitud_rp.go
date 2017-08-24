@@ -13,6 +13,7 @@ type SolicitudRp struct {
 	NumeroContrato      string    `orm:"column(numero_contrato)"`
 	VigenciaContrato    string    `orm:"column(vigencia_contrato)"`
 	Compromiso          int       `orm:"column(compromiso)"`
+	Masivo							bool      
 	DatosDisponibilidad *Disponibilidad
 	DatosProveedor      *InformacionProveedor
 	DatosCompromiso     *Compromiso
