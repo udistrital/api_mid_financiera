@@ -6,10 +6,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-
-	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/tools"
+	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
 // RegistroPresupuestalController operations for RegistroPresupuestal
@@ -94,15 +95,24 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 				}
 				//obtener informacion del contrato del rp
 				var info_contrato []models.ContratoGeneral
+				var contratista []models.InformacionProveedor
+				fmt.Println("sol ", solicitud.NumeroContrato)
 				if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 					if info_contrato != nil {
-						solicitud.DatosProveedor = info_contrato[0].Contratista
+						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+							solicitud.DatosProveedor = &contratista[0]
+						} else {
+							//error consulta proveedor
+							fmt.Println(err.Error())
+						}
+
 					} else {
 						//si no encuentra datos sobre el contrato
 						fmt.Println("error contrato: no hay datos, id : ", solicitud.NumeroContrato)
 					}
 				} else {
 					//si ocurre error al obtener los datos del contrato
+					fmt.Println(err.Error())
 				}
 				//cargar datos del compromiso de la solicitud de rp
 				var compromiso_rp []models.Compromiso
@@ -111,6 +121,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 						solicitud.DatosCompromiso = &compromiso_rp[0]
 					} else {
 						//si no encuentra los datos del compromiso
+
 					}
 				} else {
 					//si hay error al cargar el compromiso del rp
@@ -198,9 +209,15 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 				}
 				//obtener informacion del contrato del rp
 				var info_contrato []models.ContratoGeneral
+				var contratista []models.InformacionProveedor
 				if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 					if info_contrato != nil {
-						solicitud.DatosProveedor = info_contrato[0].Contratista
+						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+							solicitud.DatosProveedor = &contratista[0]
+						} else {
+							//error consulta proveedor
+							fmt.Println(err.Error())
+						}
 					} else {
 						//si no encuentra datos sobre el contrato
 						fmt.Println("error contrato: no hay datos, id : ", solicitud.NumeroContrato)
@@ -356,6 +373,87 @@ func (c *RegistroPresupuestalController) Post() {
 		fmt.Println("error1: ", err)
 	}
 
+	c.ServeJSON()
+
+}
+
+// CargueMasivoPr ...
+// @Title CargueMasivoPr
+// @Description create RegistroPresupuestal
+// @Param	body		body 	[]models.DatosRegistroPresupuestal	true		"body for DatosRegistroPresupuestal content"
+// @Success 201 {object} models.DatosRegistroPresupuestal
+// @Failure 403 body is empty
+// @router /CargueMasivoPr [post]
+func (c *RegistroPresupuestalController) CargueMasivoPr() {
+	//variables a usar globales en el proceso.
+	var dataRpRegistro []models.DatosRegistroPresupuestal
+	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
+	var saldoCDP map[string]float64
+	var comprobacion interface{}
+	tool := new(tools.EntornoReglas)
+	var respuestaServices interface{}
+	//------------------------------------------------------
+	tool.Agregar_dominio("Presupuesto")
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &dataRpRegistro); err == nil {
+		for _, rp_a_registrar := range dataRpRegistro { //recorrer el array de solicitudes cargadas
+			for _, rubros_a_comprobar := range rp_a_registrar.Rubros { //recorrer la afectacion de la solicitud para inyeccion de reglas.
+
+				datos := models.DatosRubroRegistroPresupuestal{Disponibilidad: rubros_a_comprobar.Disponibilidad,
+					Apropiacion: rubros_a_comprobar.Apropiacion, FuenteFinanciacion: rubros_a_comprobar.FuenteFinanciacion,
+				}
+				if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad/SaldoCdp", "POST", &saldoCDP, &datos); err == nil {
+					fmt.Println(rubros_a_comprobar.FuenteFinanciacion)
+					if rubros_a_comprobar.FuenteFinanciacion == nil {
+						tool.Agregar_predicado("rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(0) +
+							"," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ").")
+					} else {
+						tool.Agregar_predicado("rubro_cdp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(rubros_a_comprobar.FuenteFinanciacion.Id) +
+							"," + strconv.FormatFloat(saldoCDP["saldo"], 'f', -1, 64) + ").")
+					}
+
+				} else {
+					dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
+				}
+				if rubros_a_comprobar.FuenteFinanciacion == nil {
+					tool.Agregar_predicado("valor_rubro_rp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(0) + "," + strconv.FormatFloat(rubros_a_comprobar.ValorAsignado, 'f', -1, 64) + ").")
+
+				} else {
+					tool.Agregar_predicado("valor_rubro_rp(" + strconv.Itoa(rubros_a_comprobar.Disponibilidad.Id) + "," + strconv.Itoa(datos.Apropiacion.Id) + "," + strconv.Itoa(rubros_a_comprobar.FuenteFinanciacion.Id) + "," + strconv.FormatFloat(rubros_a_comprobar.ValorAsignado, 'f', -1, 64) + ").")
+
+				}
+			}
+			var res string
+			err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
+			if err == nil { //
+				if res == "1" { // si se aprueba la solicitud
+					rp_a_registrar.Rp.FechaMovimiento = time.Now().Local()
+					if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
+						dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP001", Body: comprobacion, Type: "success"})
+						rp_a_registrar.Rp.DatosSolicitud.Expedida = true
+						if err := sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/"+strconv.Itoa(rp_a_registrar.Rp.Solicitud), "PUT", &respuestaServices, &rp_a_registrar.Rp.DatosSolicitud); err == nil {
+							//dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP002", Body: respuestaServices, Type: "success"})
+
+						} else {
+							dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP002", Body: err.Error(), Type: "error"})
+						}
+					} else {
+						dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+					}
+				} else {
+
+					dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP001", Body: rp_a_registrar, Type: "error"})
+
+				}
+			} else {
+				dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+			}
+			//res := golog.GetBoolean(reglas, "aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y")
+		}
+	} else {
+		fmt.Println("err 2 ", err.Error())
+		dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+	}
+	c.Data["json"] = dataAlertas //respuesta de las alertas generadas durante el proceso.
 	c.ServeJSON()
 
 }
