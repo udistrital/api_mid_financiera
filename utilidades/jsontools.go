@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
-	"github.com/udistrital/api_financiera/utilidades"
 )
 
 func FillStruct(m interface{}, s interface{}) (err error) {
@@ -81,10 +79,10 @@ func FillStructDeep(m map[string]interface{}, fields string, s interface{}) (err
 
 		if i == 0 {
 			//fmt.Println(m[value])
-			utilidades.FillStruct(m[value], &load)
+			FillStruct(m[value], &load)
 		} else {
-			utilidades.FillStruct(load, &aux)
-			utilidades.FillStruct(aux[value], &load)
+			FillStruct(load, &aux)
+			FillStruct(aux[value], &load)
 			//fmt.Println(aux[value])
 		}
 	}
