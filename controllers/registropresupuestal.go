@@ -389,7 +389,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	var dataRpRegistro []models.DatosRegistroPresupuestal
 	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
 	var saldoCDP map[string]float64
-	var comprobacion interface{}
+	var comprobacion models.DatosRegistroPresupuestal
 	tool := new(tools.EntornoReglas)
 	var respuestaServices interface{}
 	//------------------------------------------------------
@@ -397,7 +397,6 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &dataRpRegistro); err == nil {
 		for _, rp_a_registrar := range dataRpRegistro { //recorrer el array de solicitudes cargadas
 			for _, rubros_a_comprobar := range rp_a_registrar.Rubros { //recorrer la afectacion de la solicitud para inyeccion de reglas.
-
 				datos := models.DatosRubroRegistroPresupuestal{Disponibilidad: rubros_a_comprobar.Disponibilidad,
 					Apropiacion: rubros_a_comprobar.Apropiacion, FuenteFinanciacion: rubros_a_comprobar.FuenteFinanciacion,
 				}
@@ -423,29 +422,29 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 				}
 			}
 			var res string
+			fmt.Println(rp_a_registrar)
 			err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
 			if err == nil { //
 				if res == "1" { // si se aprueba la solicitud
 					rp_a_registrar.Rp.FechaMovimiento = time.Now().Local()
 					if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
-						dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP001", Body: comprobacion, Type: "success"})
+						dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
 						rp_a_registrar.Rp.DatosSolicitud.Expedida = true
 						if err := sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/"+strconv.Itoa(rp_a_registrar.Rp.Solicitud), "PUT", &respuestaServices, &rp_a_registrar.Rp.DatosSolicitud); err == nil {
 							//dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP002", Body: respuestaServices, Type: "success"})
 
 						} else {
-							dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP002", Body: err.Error(), Type: "error"})
+							dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP002", Body: rp_a_registrar, Type: "success"})
 						}
 					} else {
-						dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+						dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 					}
 				} else {
-
 					dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP001", Body: rp_a_registrar, Type: "error"})
 
 				}
 			} else {
-				dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+				dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 			}
 			//res := golog.GetBoolean(reglas, "aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y")
 		}
