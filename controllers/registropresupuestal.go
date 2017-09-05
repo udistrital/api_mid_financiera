@@ -22,8 +22,6 @@ type RegistroPresupuestalController struct {
 func (c *RegistroPresupuestalController) URLMapping() {
 	c.Mapping("Post", c.Post)
 	c.Mapping("GetSaldoRp", c.GetSaldoRp)
-	c.Mapping("Put", c.Put)
-	c.Mapping("Delete", c.Delete)
 	c.Mapping("GetSolicitudesRp", c.GetSolicitudesRp)
 	c.Mapping("GetSolicitudesRpById", c.GetSolicitudesRpById)
 }
@@ -48,7 +46,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 					//consulta de la afectacion presupuestal objetivo.
 					for _, afect := range afectacion_solicitud {
 						var disp_apr_sol []map[string]interface{}
-						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v",afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
+						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
 							var rubros []interface{}
 							for _, disp_apro := range disp_apr_sol {
 								disp_apro["ValorAsignado"] = afect["Monto"]
@@ -56,16 +54,14 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 								rubros = append(rubros, disp_apro)
 							}
 							solicitud.Rubros = rubros
-						}else{
+						} else {
 							//si sale mal la consulta de la afectacion del cdp objetivo.
 
 						}
 					}
-				}else{
+				} else {
 					//si sale mal la consulta de la afectacion de la solicitud.
 				}
-
-
 
 				var cdp_objtvo []models.Disponibilidad
 				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdp_objtvo); err == nil {
@@ -182,27 +178,24 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 			for _, solicitud := range solicitudes_rp {
 				//recuperar datos del CDP objetivo de la solicitud
 
-
 				var afectacion_solicitud []map[string]interface{}
 				if err := getJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=0&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacion_solicitud); err == nil {
 					//consulta de la afectacion presupuestal objetivo.
 					for _, afect := range afectacion_solicitud {
 						var disp_apr_sol []map[string]interface{}
-						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v",afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
+						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
 							for _, disp_apro := range disp_apr_sol {
 								disp_apro["ValorAsignado"] = afect["Monto"]
 								disp_apro["FuenteFinanciacion"] = disp_apro["FuenteFinanciamiento"]
 							}
-						}else{
+						} else {
 							//si sale mal la consulta de la afectacion del cdp objetivo.
 
 						}
 					}
-				}else{
+				} else {
 					//si sale mal la consulta de la afectacion de la solicitud.
 				}
-
-
 
 				var cdp_objtvo []models.Disponibilidad
 				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdp_objtvo); err == nil {
@@ -306,7 +299,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 // @Title Create
 // @Description create RegistroPresupuestal
 // @Param	body		body 	models.DatosRegistroPresupuestal	true		"body for DatosRegistroPresupuestal content"
-// @Success 201 {object} models.DatosRegistroPresupuestal
+// @Success 200 {object} models.DatosRegistroPresupuestal
 // @Failure 403 body is empty
 // @router / [post]
 func (c *RegistroPresupuestalController) Post() {
@@ -429,7 +422,7 @@ func (c *RegistroPresupuestalController) Post() {
 // @Title CargueMasivoPr
 // @Description create RegistroPresupuestal
 // @Param	body		body 	[]models.DatosRegistroPresupuestal	true		"body for DatosRegistroPresupuestal content"
-// @Success 201 {object} models.DatosRegistroPresupuestal
+// @Success 200 {object} models.DatosRegistroPresupuestal
 // @Failure 403 body is empty
 // @router /CargueMasivoPr [post]
 func (c *RegistroPresupuestalController) CargueMasivoPr() {
@@ -471,7 +464,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 			}
 			var res string
 			fmt.Println(rp_a_registrar)
-      if rp_a_registrar.Rubros != nil {
+			if rp_a_registrar.Rubros != nil {
 				err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
 				if err == nil { //
 					if res == "1" { // si se aprueba la solicitud
@@ -495,7 +488,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 				} else {
 					dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 				}
-			}else{
+			} else {
 				dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 			}
 			//res := golog.GetBoolean(reglas, "aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y")
@@ -571,43 +564,4 @@ func (c *RegistroPresupuestalController) GetSaldoRp() {
 
 	}
 	c.ServeJSON()
-}
-
-// GetAll ...
-// @Title GetAll
-// @Description get RegistroPresupuestal
-// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
-// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
-// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
-// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
-// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
-// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
-// @Success 200 {object} models.RegistroPresupuestal
-// @Failure 403
-// @router / [get]
-func (c *RegistroPresupuestalController) GetAll() {
-
-}
-
-// Put ...
-// @Title Put
-// @Description update the RegistroPresupuestal
-// @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.RegistroPresupuestal	true		"body for RegistroPresupuestal content"
-// @Success 200 {object} models.RegistroPresupuestal
-// @Failure 403 :id is not int
-// @router /:id [put]
-func (c *RegistroPresupuestalController) Put() {
-
-}
-
-// Delete ...
-// @Title Delete
-// @Description delete the RegistroPresupuestal
-// @Param	id		path 	string	true		"The id you want to delete"
-// @Success 200 {string} delete success!
-// @Failure 403 id is empty
-// @router /:id [delete]
-func (c *RegistroPresupuestalController) Delete() {
-
 }
