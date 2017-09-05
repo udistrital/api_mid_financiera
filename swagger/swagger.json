@@ -536,7 +536,7 @@
                     }
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
                         "schema": {
                             "$ref": "#/definitions/models.DatosRegistroPresupuestal"
                         }
@@ -566,7 +566,7 @@
                     }
                 ],
                 "responses": {
-                    "201": {
+                    "200": {
                         "schema": {
                             "$ref": "#/definitions/models.DatosRegistroPresupuestal"
                         }
@@ -1380,7 +1380,7 @@
                 "Rubros": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/24208.0xc42037cae0.false"
+                        "$ref": "#/definitions/24136.0xc420364060.false"
                     }
                 },
                 "Vigencia": {
