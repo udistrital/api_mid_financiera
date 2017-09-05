@@ -47,6 +47,61 @@ paths:
           description: '{int} models.InfoSolDisp'
         "403":
           description: body is empty
+  /disponibilidad/AprobarAnulacion:
+    post:
+      tags:
+      - disponibilidad
+      description: create Disponibilidad
+      operationId: DisponibilidadController.Post
+      parameters:
+      - in: body
+        name: body
+        description: body for InfoSolDisp content
+        required: true
+        schema:
+          $ref: '#/definitions/.map[string]interface{}'
+      responses:
+        "201":
+          description: '{int} models.InfoSolDisp'
+        "403":
+          description: body is empty
+  /disponibilidadDisponibilidadByNecesidad/{id}:
+    get:
+      tags:
+      - disponibilidad
+      description: get Disponibilidad by id Necesidad
+      operationId: DisponibilidadController.DisponibilidadByNecesidad
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/.interface{}'
+        "403": {}
   /disponibilidadSolicitudById/{id}:
     get:
       tags:
@@ -121,6 +176,137 @@ paths:
           schema:
             $ref: '#/definitions/models.InfoSolDisp'
         "403": {}
+  /orden_pago_nomina/:
+    post:
+      tags:
+      - orden_pago_nomina
+      description: create Orden_pago_planta
+      operationId: OrdenPagoNominaController.Create
+      parameters:
+      - in: body
+        name: body
+        description: body for Orden_pago_planta content
+        required: true
+        schema:
+          $ref: '#/definitions/.Orden_pago_planta'
+      responses:
+        "201":
+          schema:
+            $ref: '#/definitions/.Orden_pago_planta'
+        "403":
+          description: body is empty
+  /partida_doble/:
+    get:
+      tags:
+      - partida_doble
+      description: get Partidadoble
+      operationId: PartidadobleController.GetAll
+      parameters:
+      - in: query
+        name: query
+        description: Filter. e.g. col1:v1,col2:v2 ...
+        type: string
+      - in: query
+        name: fields
+        description: Fields returned. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: sortby
+        description: Sorted-by fields. e.g. col1,col2 ...
+        type: string
+      - in: query
+        name: order
+        description: Order corresponding to each sortby field, if single value, apply
+          to all sortby fields. e.g. desc,asc ...
+        type: string
+      - in: query
+        name: limit
+        description: Limit the size of result set. Must be an integer
+        type: string
+      - in: query
+        name: offset
+        description: Start position of result set. Must be an integer
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/.Partidadoble'
+        "403": {}
+    post:
+      tags:
+      - partida_doble
+      description: create Partidadoble
+      operationId: PartidadobleController.Create
+      parameters:
+      - in: body
+        name: body
+        description: body for Partidadoble content
+        required: true
+        schema:
+          $ref: '#/definitions/.Partidadoble'
+      responses:
+        "201":
+          schema:
+            $ref: '#/definitions/.Partidadoble'
+        "403":
+          description: body is empty
+  /partida_doble/{id}:
+    get:
+      tags:
+      - partida_doble
+      description: get Partidadoble by id
+      operationId: PartidadobleController.GetOne
+      parameters:
+      - in: path
+        name: id
+        description: The key for staticblock
+        required: true
+        type: string
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/.Partidadoble'
+        "403":
+          description: :id is empty
+    put:
+      tags:
+      - partida_doble
+      description: update the Partidadoble
+      operationId: PartidadobleController.Put
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to update
+        required: true
+        type: string
+      - in: body
+        name: body
+        description: body for Partidadoble content
+        required: true
+        schema:
+          $ref: '#/definitions/.Partidadoble'
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/.Partidadoble'
+        "403":
+          description: :id is not int
+    delete:
+      tags:
+      - partida_doble
+      description: delete the Partidadoble
+      operationId: PartidadobleController.Delete
+      parameters:
+      - in: path
+        name: id
+        description: The id you want to delete
+        required: true
+        type: string
+      responses:
+        "200":
+          description: '{string} delete success!'
+        "403":
+          description: id is empty
   /registro_presupuestal/:
     get:
       tags:
@@ -216,6 +402,25 @@ paths:
           description: '{string} delete success!'
         "403":
           description: id is empty
+  /registro_presupuestal/CargueMasivoPr:
+    post:
+      tags:
+      - registro_presupuestal
+      description: create RegistroPresupuestal
+      operationId: RegistroPresupuestalController.CargueMasivoPr
+      parameters:
+      - in: body
+        name: body
+        description: body for DatosRegistroPresupuestal content
+        required: true
+        schema:
+          $ref: '#/definitions/models.DatosRegistroPresupuestal'
+      responses:
+        "201":
+          schema:
+            $ref: '#/definitions/models.DatosRegistroPresupuestal'
+        "403":
+          description: body is empty
   /registro_presupuestal/GetSaldoRp:
     get:
       tags:
@@ -265,7 +470,35 @@ paths:
             $ref: '#/definitions/models.SolicitudRp'
         "403":
           description: :id is empty
+  /rubro/GenerarPac/:
+    post:
+      tags:
+      - rubro
+      description: Get PAC By Rubro
+      operationId: RubroController.GenerarPac
+      parameters:
+      - in: query
+        name: pacData
+        description: objeto con fechas del rango del PAC
+        required: true
+        schema:
+          $ref: '#/definitions/.interface{}'
+      responses:
+        "200":
+          schema:
+            $ref: '#/definitions/.interface{}'
+        "403": {}
 definitions:
+  .Orden_pago_planta:
+    type: object
+  .Partidadoble:
+    type: object
+  .false:
+    type: object
+  .interface{}:
+    type: object
+  .map[string]interface{}:
+    type: object
   models.Apropiacion:
     title: Apropiacion
     type: object
@@ -307,36 +540,6 @@ definitions:
         format: int64
       Nombre:
         type: string
-  models.Ciudad:
-    title: Ciudad
-    type: object
-    properties:
-      AbPais:
-        type: string
-      Abreviatura:
-        type: string
-      Departamento:
-        type: string
-      Descripcion:
-        type: string
-      Estado:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      IdDepartamento:
-        $ref: '#/definitions/models.Departamento'
-      Latitud:
-        type: number
-        format: double
-      Longitud:
-        type: number
-        format: double
-      Nombre:
-        type: string
-      Poblacion:
-        type: integer
-        format: int64
   models.Compromiso:
     title: Compromiso
     type: object
@@ -382,6 +585,8 @@ definitions:
         $ref: '#/definitions/models.Apropiacion'
       Disponibilidad:
         $ref: '#/definitions/models.Disponibilidad'
+      FuenteFinanciacion:
+        $ref: '#/definitions/models.FuenteFinanciacion'
       Id:
         type: integer
         format: int64
@@ -394,35 +599,6 @@ definitions:
       ValorAsignado:
         type: number
         format: double
-  models.Departamento:
-    title: Departamento
-    type: object
-    properties:
-      AbPais:
-        type: string
-      Abreviatura:
-        type: string
-      Area:
-        type: integer
-        format: int64
-      CapitalDepartamento:
-        type: string
-      DepartamentoCapPais:
-        type: string
-      Descripcion:
-        type: string
-      Estado:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      IdPais:
-        $ref: '#/definitions/models.Pais'
-      Nombre:
-        type: string
-      Poblacion:
-        type: integer
-        format: int64
   models.Dependencia:
     title: Dependencia
     type: object
@@ -533,6 +709,17 @@ definitions:
         format: int64
       Nombre:
         type: string
+  models.FuenteFinanciacion:
+    title: FuenteFinanciacion
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Sigla:
+        type: string
   models.InfoSolDisp:
     title: InfoSolDisp
     type: object
@@ -580,49 +767,26 @@ definitions:
     title: InformacionProveedor
     type: object
     properties:
-      Anexorut:
-        type: string
-      ClasificacionEvaluacion:
-        type: string
-      Correo:
-        type: string
-      Descripcion:
-        type: string
-      Direccion:
-        type: string
-      Estado:
-        $ref: '#/definitions/models.ParametroEstandar'
-      FechaRegistro:
-        type: string
-      FechaUltimaModificacion:
-        type: string
       Id:
         type: integer
         format: int64
-      IdCiudadContacto:
-        $ref: '#/definitions/models.Ciudad'
-      IdEntidadBancaria:
-        type: number
-        format: double
-      NomAsesor:
-        type: string
       NomProveedor:
-        type: string
-      NumCuentaBancaria:
         type: string
       NumDocumento:
         type: number
         format: double
-      PuntajeEvaluacion:
-        type: number
-        format: double
-      TelAsesor:
-        type: string
-      TipoCuentaBancaria:
-        type: string
       Tipopersona:
         type: string
-      Web:
+  models.ModalidadSeleccion:
+    title: ModalidadSeleccion
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
         type: string
   models.Necesidad:
     title: Necesidad
@@ -635,6 +799,8 @@ definitions:
         format: int64
       Justificacion:
         type: string
+      ModalidadSeleccion:
+        $ref: '#/definitions/models.ModalidadSeleccion'
       Numero:
         type: integer
         format: int64
@@ -649,32 +815,6 @@ definitions:
       Vigencia:
         type: number
         format: double
-  models.Pais:
-    title: Pais
-    type: object
-    properties:
-      Abreviatura:
-        type: string
-      AreaPais:
-        type: integer
-        format: int64
-      CapitalPais:
-        type: string
-      CodigoPais:
-        type: integer
-        format: int64
-      Estado:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      NombrePais:
-        type: string
-      PoblacionPais:
-        type: integer
-        format: int64
-      ProvinciaPais:
-        type: string
   models.ParametroEstandar:
     title: ParametroEstandar
     type: object
@@ -789,8 +929,14 @@ definitions:
       Id:
         type: integer
         format: int64
+      Masivo:
+        type: boolean
       NumeroContrato:
         type: string
+      Rubros:
+        type: array
+        items:
+          $ref: '#/definitions/24208.0xc42037cae0.false'
       Vigencia:
         type: integer
         format: int64
@@ -826,3 +972,9 @@ tags:
 - name: registro_presupuestal
   description: |
     RegistroPresupuestalController operations for RegistroPresupuestal
+- name: partida_doble
+  description: |
+    PartidadobleController operations for Partidadoble
+- name: orden_pago_nomina
+  description: |
+    OrdenPagoNominaController operations for Orden_pago_planta
