@@ -357,7 +357,7 @@ paths:
         schema:
           $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
-        "201":
+        "200":
           schema:
             $ref: '#/definitions/models.DatosRegistroPresupuestal'
         "403":
@@ -416,7 +416,7 @@ paths:
         schema:
           $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
-        "201":
+        "200":
           schema:
             $ref: '#/definitions/models.DatosRegistroPresupuestal'
         "403":
@@ -936,7 +936,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/24208.0xc42037cae0.false'
+          $ref: '#/definitions/24136.0xc420364060.false'
       Vigencia:
         type: integer
         format: int64
