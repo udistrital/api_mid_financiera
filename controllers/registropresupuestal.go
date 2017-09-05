@@ -22,8 +22,6 @@ type RegistroPresupuestalController struct {
 func (c *RegistroPresupuestalController) URLMapping() {
 	c.Mapping("Post", c.Post)
 	c.Mapping("GetSaldoRp", c.GetSaldoRp)
-	c.Mapping("Put", c.Put)
-	c.Mapping("Delete", c.Delete)
 	c.Mapping("GetSolicitudesRp", c.GetSolicitudesRp)
 	c.Mapping("GetSolicitudesRpById", c.GetSolicitudesRpById)
 }
@@ -566,43 +564,4 @@ func (c *RegistroPresupuestalController) GetSaldoRp() {
 
 	}
 	c.ServeJSON()
-}
-
-// GetAll ...
-// @Title GetAll
-// @Description get RegistroPresupuestal
-// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
-// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
-// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
-// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
-// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
-// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
-// @Success 200 {object} models.RegistroPresupuestal
-// @Failure 403
-// @router / [get]
-func (c *RegistroPresupuestalController) GetAll() {
-
-}
-
-// Put ...
-// @Title Put
-// @Description update the RegistroPresupuestal
-// @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.RegistroPresupuestal	true		"body for RegistroPresupuestal content"
-// @Success 200 {object} models.RegistroPresupuestal
-// @Failure 403 :id is not int
-// @router /:id [put]
-func (c *RegistroPresupuestalController) Put() {
-
-}
-
-// Delete ...
-// @Title Delete
-// @Description delete the RegistroPresupuestal
-// @Param	id		path 	string	true		"The id you want to delete"
-// @Success 200 {string} delete success!
-// @Failure 403 id is empty
-// @router /:id [delete]
-func (c *RegistroPresupuestalController) Delete() {
-
 }
