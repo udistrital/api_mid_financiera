@@ -308,42 +308,6 @@ paths:
         "403":
           description: id is empty
   /registro_presupuestal/:
-    get:
-      tags:
-      - registro_presupuestal
-      description: get RegistroPresupuestal
-      operationId: RegistroPresupuestalController.GetAll
-      parameters:
-      - in: query
-        name: query
-        description: Filter. e.g. col1:v1,col2:v2 ...
-        type: string
-      - in: query
-        name: fields
-        description: Fields returned. e.g. col1,col2 ...
-        type: string
-      - in: query
-        name: sortby
-        description: Sorted-by fields. e.g. col1,col2 ...
-        type: string
-      - in: query
-        name: order
-        description: Order corresponding to each sortby field, if single value, apply
-          to all sortby fields. e.g. desc,asc ...
-        type: string
-      - in: query
-        name: limit
-        description: Limit the size of result set. Must be an integer
-        type: string
-      - in: query
-        name: offset
-        description: Start position of result set. Must be an integer
-        type: string
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.RegistroPresupuestal'
-        "403": {}
     post:
       tags:
       - registro_presupuestal
@@ -357,51 +321,11 @@ paths:
         schema:
           $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
-        "201":
+        "200":
           schema:
             $ref: '#/definitions/models.DatosRegistroPresupuestal'
         "403":
           description: body is empty
-  /registro_presupuestal/{id}:
-    put:
-      tags:
-      - registro_presupuestal
-      description: update the RegistroPresupuestal
-      operationId: RegistroPresupuestalController.Put
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to update
-        required: true
-        type: string
-      - in: body
-        name: body
-        description: body for RegistroPresupuestal content
-        required: true
-        schema:
-          $ref: '#/definitions/models.RegistroPresupuestal'
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.RegistroPresupuestal'
-        "403":
-          description: :id is not int
-    delete:
-      tags:
-      - registro_presupuestal
-      description: delete the RegistroPresupuestal
-      operationId: RegistroPresupuestalController.Delete
-      parameters:
-      - in: path
-        name: id
-        description: The id you want to delete
-        required: true
-        type: string
-      responses:
-        "200":
-          description: '{string} delete success!'
-        "403":
-          description: id is empty
   /registro_presupuestal/CargueMasivoPr:
     post:
       tags:
@@ -416,7 +340,7 @@ paths:
         schema:
           $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
-        "201":
+        "200":
           schema:
             $ref: '#/definitions/models.DatosRegistroPresupuestal'
         "403":
@@ -936,7 +860,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/24208.0xc42037cae0.false'
+          $ref: '#/definitions/24136.0xc4203579b0.false'
       Vigencia:
         type: integer
         format: int64

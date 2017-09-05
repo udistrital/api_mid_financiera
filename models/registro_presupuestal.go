@@ -26,7 +26,7 @@ type DatosRubroRegistroPresupuestal struct {
 	ValorAsignado      float64
 	Saldo              float64
 }
-type DatosRegistroPresupuestal struct { //estructura temporal para el registro con relacion a las apropiaciones
+type DatosRegistroPresupuestal struct {
 	Rp     *RegistroPresupuestal
 	Rubros []DatosRubroRegistroPresupuestal
 }
