@@ -12,6 +12,9 @@
         },
         {
             "path": "github.com/smartystreets/goconvey/convey"
+        },
+        {  
+            "path":"github.com/mitchellh/mapstructure"
         }
     ]
 }
