@@ -860,7 +860,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/24136.0xc4203579b0.false'
+          $ref: '#/definitions/24136.0xc420372090.false'
       Vigencia:
         type: integer
         format: int64

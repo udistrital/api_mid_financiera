@@ -13,7 +13,7 @@
             "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
         }
     },
-    "basePath": "/v1",
+    "basePath": "api_mid_financiera/v1",
     "paths": {
         "/aprobacion_apropiacionAprobar/": {
             "post": {
@@ -1266,7 +1266,7 @@
                 "Rubros": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/24136.0xc4203579b0.false"
+                        "$ref": "#/definitions/24136.0xc420372090.false"
                     }
                 },
                 "Vigencia": {
