@@ -356,7 +356,7 @@ func (c *RegistroPresupuestalController) Post() {
 					numero_asignado_rp = ultimo_registro[0].NumeroRegistroPresupuestal + 1
 				}
 				rp_a_registrar.Rp.NumeroRegistroPresupuestal = numero_asignado_rp
-				rp_a_registrar.Rp.FechaMovimiento = time.Now().Local()
+				rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
 			} else {
 
 			}
@@ -468,7 +468,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 				err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
 				if err == nil { //
 					if res == "1" { // si se aprueba la solicitud
-						rp_a_registrar.Rp.FechaMovimiento = time.Now().Local()
+						rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
 						if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
 							dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
 							rp_a_registrar.Rp.DatosSolicitud.Expedida = true

@@ -347,14 +347,14 @@ func (this *DisponibilidadController) Post() {
 				if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:102,FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &responsable_pres); err == nil {
 					if responsable_pres != nil {
 						disponibilidad = models.Disponibilidad{
-							UnidadEjecutora:      &models.UnidadEjecutora{Id: solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.UnidadEjecutora},
+							//UnidadEjecutora:      &models.UnidadEjecutora{Id: solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.UnidadEjecutora},
 							Vigencia:             solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.Vigencia,
 							NumeroDisponibilidad: numero_asignado_disponibilidad,
-							NumeroOficio:         strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero),
-							FechaRegistro:        time.Now().Local(),
-							Estado:               &models.EstadoDisponibilidad{Id: 1},
-							Solicitud:            solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id,
-							Responsable:          responsable_pres[0].TerceroId,
+							//NumeroOficio:         strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero),
+							FechaRegistro: time.Now().Local(),
+							Estado:        &models.EstadoDisponibilidad{Id: 1},
+							Solicitud:     solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id,
+							Responsable:   responsable_pres[0].TerceroId,
 						}
 						solicitudes_disponibilidad[i].SolicitudDisponibilidad.Expedida = true
 
