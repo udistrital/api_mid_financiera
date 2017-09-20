@@ -296,7 +296,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 // CargueMasivoPr ...
 // @Title CargueMasivoPr
 // @Description create RegistroPresupuestal
-// @Param	body		body 	[]models.DatosRegistroPresupuestal	true		"body for DatosRegistroPresupuestal content"
+// @Param	body		body 	models.DatosRegistroPresupuestal	true		"body for DatosRegistroPresupuestal content"
 // @Success 200 {object} models.Alert
 // @Failure 403 body is empty
 // @router /CargueMasivoPr [post]
