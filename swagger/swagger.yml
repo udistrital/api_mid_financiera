@@ -351,7 +351,7 @@ paths:
         description: body for DatosRegistroPresupuestal content
         required: true
         schema:
-          $ref: '#/definitions/.DatosRegistroPresupuestal'
+          $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
         "200":
           description: ""
@@ -414,8 +414,6 @@ paths:
 definitions:
   .Apropiacion:
     type: object
-  .DatosRegistroPresupuestal:
-    type: object
   .Orden_pago_planta:
     type: object
   .Partidadoble:
@@ -431,11 +429,41 @@ definitions:
     type: object
     properties:
       Body:
-        $ref: '#/definitions/13758.0xc420343da0.false'
+        $ref: '#/definitions/13758.0xc420383f50.false'
       Code:
         type: string
       Type:
         type: string
+  models.Apropiacion:
+    title: Apropiacion
+    type: object
+    properties:
+      DocumentoFecha:
+        type: string
+        format: string
+      DocumentoNumero:
+        type: string
+      Estado:
+        $ref: '#/definitions/models.EstadoApropiacion'
+      Id:
+        type: integer
+        format: int64
+      Rubro:
+        $ref: '#/definitions/models.Rubro'
+      TipoDocumento:
+        type: string
+      UnidadEjecutora:
+        type: integer
+        format: int64
+      Valor:
+        type: number
+        format: double
+      ValorRezago:
+        type: number
+        format: double
+      Vigencia:
+        type: number
+        format: double
   models.CategoriaCompromiso:
     title: CategoriaCompromiso
     type: object
@@ -472,6 +500,38 @@ definitions:
       UnidadEjecutora:
         $ref: '#/definitions/models.UnidadEjecutora'
       Vigencia:
+        type: number
+        format: double
+  models.DatosRegistroPresupuestal:
+    title: DatosRegistroPresupuestal
+    type: object
+    properties:
+      Rp:
+        $ref: '#/definitions/models.RegistroPresupuestal'
+      Rubros:
+        type: array
+        items:
+          $ref: '#/definitions/models.DatosRubroRegistroPresupuestal'
+  models.DatosRubroRegistroPresupuestal:
+    title: DatosRubroRegistroPresupuestal
+    type: object
+    properties:
+      Apropiacion:
+        $ref: '#/definitions/models.Apropiacion'
+      Disponibilidad:
+        $ref: '#/definitions/models.Disponibilidad'
+      FuenteFinanciacion:
+        $ref: '#/definitions/models.FuenteFinanciacion'
+      Id:
+        type: integer
+        format: int64
+      Saldo:
+        type: number
+        format: double
+      Valor:
+        type: number
+        format: double
+      ValorAsignado:
         type: number
         format: double
   models.Dependencia:
@@ -519,6 +579,28 @@ definitions:
       Vigencia:
         type: number
         format: double
+  models.Entidad:
+    title: Entidad
+    type: object
+    properties:
+      CodigoEntidad:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.EstadoApropiacion:
+    title: EstadoApropiacion
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
   models.EstadoCompromiso:
     title: EstadoCompromiso
     type: object
@@ -540,6 +622,28 @@ definitions:
         type: integer
         format: int64
       Nombre:
+        type: string
+  models.EstadoRegistroPresupuestal:
+    title: EstadoRegistroPresupuestal
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Nombre:
+        type: string
+  models.FuenteFinanciacion:
+    title: FuenteFinanciacion
+    type: object
+    properties:
+      Descripcion:
+        type: string
+      Id:
+        type: integer
+        format: int64
+      Sigla:
         type: string
   models.InfoSolDisp:
     title: InfoSolDisp
@@ -649,6 +753,61 @@ definitions:
         format: int64
       ValorParametro:
         type: string
+  models.RegistroPresupuestal:
+    title: RegistroPresupuestal
+    type: object
+    properties:
+      Beneficiario:
+        type: integer
+        format: int64
+      Compromiso:
+        $ref: '#/definitions/models.Compromiso'
+      DatosSolicitud:
+        $ref: '#/definitions/models.SolicitudRp'
+      Estado:
+        $ref: '#/definitions/models.EstadoRegistroPresupuestal'
+      FechaRegistro:
+        type: string
+        format: string
+      Id:
+        type: integer
+        format: int64
+      NumeroRegistroPresupuestal:
+        type: integer
+        format: int64
+      Responsable:
+        type: integer
+        format: int64
+      Solicitud:
+        type: integer
+        format: int64
+      Vigencia:
+        type: number
+        format: double
+  models.Rubro:
+    title: Rubro
+    type: object
+    properties:
+      Administracion:
+        type: string
+      Codigo:
+        type: string
+      Descripcion:
+        type: string
+      Entidad:
+        $ref: '#/definitions/models.Entidad'
+      Estado:
+        type: integer
+        format: int32
+      Id:
+        type: integer
+        format: int64
+      TipoPlan:
+        type: integer
+        format: int32
+      Vigencia:
+        type: number
+        format: double
   models.SolicitudDisponibilidad:
     title: SolicitudDisponibilidad
     type: object
@@ -700,7 +859,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/6887.0xc420342d80.false'
+          $ref: '#/definitions/6887.0xc420382f30.false'
       Vigencia:
         type: integer
         format: int64
