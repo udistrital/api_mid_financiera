@@ -23,7 +23,7 @@ paths:
         description: body for Apropiacion  content
         required: true
         schema:
-          $ref: '#/definitions/models.Apropiacion'
+          $ref: '#/definitions/.Apropiacion'
       responses:
         "201":
           description: '{int} models.InfoSolDisp'
@@ -99,9 +99,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.interface{}'
-        "403": {}
+        "403":
+          description: ""
   /disponibilidadSolicitudById/{id}:
     get:
       tags:
@@ -136,9 +138,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.InfoSolDisp'
-        "403": {}
+        "403":
+          description: ""
   /disponibilidadSolicitudes/:
     get:
       tags:
@@ -173,9 +177,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.InfoSolDisp'
-        "403": {}
+        "403":
+          description: ""
   /orden_pago_nomina/:
     post:
       tags:
@@ -191,6 +197,27 @@ paths:
           $ref: '#/definitions/.Orden_pago_planta'
       responses:
         "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/.Orden_pago_planta'
+        "403":
+          description: body is empty
+  /orden_pago_nominaCrearOPSeguridadSocial:
+    post:
+      tags:
+      - orden_pago_nomina
+      description: create Orden Pago Seguridad Social
+      operationId: OrdenPagoNominaController.CrearOPSeguridadSocial
+      parameters:
+      - in: body
+        name: body
+        description: body for Orden_pago_planta content
+        required: true
+        schema:
+          $ref: '#/definitions/.Orden_pago_planta'
+      responses:
+        "201":
+          description: ""
           schema:
             $ref: '#/definitions/.Orden_pago_planta'
         "403":
@@ -229,9 +256,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
-        "403": {}
+        "403":
+          description: ""
     post:
       tags:
       - partida_doble
@@ -246,6 +275,7 @@ paths:
           $ref: '#/definitions/.Partidadoble'
       responses:
         "201":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
         "403":
@@ -264,6 +294,7 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
         "403":
@@ -287,6 +318,7 @@ paths:
           $ref: '#/definitions/.Partidadoble'
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
         "403":
@@ -307,25 +339,6 @@ paths:
           description: '{string} delete success!'
         "403":
           description: id is empty
-  /registro_presupuestal/:
-    post:
-      tags:
-      - registro_presupuestal
-      description: create RegistroPresupuestal
-      operationId: RegistroPresupuestalController.Create
-      parameters:
-      - in: body
-        name: body
-        description: body for DatosRegistroPresupuestal content
-        required: true
-        schema:
-          $ref: '#/definitions/models.DatosRegistroPresupuestal'
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.DatosRegistroPresupuestal'
-        "403":
-          description: body is empty
   /registro_presupuestal/CargueMasivoPr:
     post:
       tags:
@@ -338,32 +351,14 @@ paths:
         description: body for DatosRegistroPresupuestal content
         required: true
         schema:
-          $ref: '#/definitions/models.DatosRegistroPresupuestal'
+          $ref: '#/definitions/.DatosRegistroPresupuestal'
       responses:
         "200":
+          description: ""
           schema:
-            $ref: '#/definitions/models.DatosRegistroPresupuestal'
+            $ref: '#/definitions/models.Alert'
         "403":
           description: body is empty
-  /registro_presupuestal/GetSaldoRp:
-    get:
-      tags:
-      - registro_presupuestal
-      description: get saldo rp by apropiacion
-      operationId: RegistroPresupuestalController.GetSaldoRp
-      parameters:
-      - in: body
-        name: body
-        description: body for DatosRegistroPresupuestal content
-        required: true
-        schema:
-          $ref: '#/definitions/models.DatosRegistroPresupuestal'
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.RegistroPresupuestal'
-        "403":
-          description: :id is empty
   /registro_presupuestal/GetSolicitudesRp:
     get:
       tags:
@@ -372,6 +367,7 @@ paths:
       operationId: RegistroPresupuestalController.GetSolicitudesRp
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.SolicitudRp'
         "403":
@@ -390,6 +386,7 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.SolicitudRp'
         "403":
@@ -409,10 +406,16 @@ paths:
           $ref: '#/definitions/.interface{}'
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.interface{}'
-        "403": {}
+        "403":
+          description: ""
 definitions:
+  .Apropiacion:
+    type: object
+  .DatosRegistroPresupuestal:
+    type: object
   .Orden_pago_planta:
     type: object
   .Partidadoble:
@@ -423,36 +426,16 @@ definitions:
     type: object
   .map[string]interface{}:
     type: object
-  models.Apropiacion:
-    title: Apropiacion
+  models.Alert:
+    title: Alert
     type: object
     properties:
-      DocumentoFecha:
+      Body:
+        $ref: '#/definitions/13758.0xc420343da0.false'
+      Code:
         type: string
-        format: string
-      DocumentoNumero:
+      Type:
         type: string
-      Estado:
-        $ref: '#/definitions/models.EstadoApropiacion'
-      Id:
-        type: integer
-        format: int64
-      Rubro:
-        $ref: '#/definitions/models.Rubro'
-      TipoDocumento:
-        type: string
-      UnidadEjecutora:
-        type: integer
-        format: int64
-      Valor:
-        type: number
-        format: double
-      ValorRezago:
-        type: number
-        format: double
-      Vigencia:
-        type: number
-        format: double
   models.CategoriaCompromiso:
     title: CategoriaCompromiso
     type: object
@@ -491,38 +474,6 @@ definitions:
       Vigencia:
         type: number
         format: double
-  models.DatosRegistroPresupuestal:
-    title: DatosRegistroPresupuestal
-    type: object
-    properties:
-      Rp:
-        $ref: '#/definitions/models.RegistroPresupuestal'
-      Rubros:
-        type: array
-        items:
-          $ref: '#/definitions/models.DatosRubroRegistroPresupuestal'
-  models.DatosRubroRegistroPresupuestal:
-    title: DatosRubroRegistroPresupuestal
-    type: object
-    properties:
-      Apropiacion:
-        $ref: '#/definitions/models.Apropiacion'
-      Disponibilidad:
-        $ref: '#/definitions/models.Disponibilidad'
-      FuenteFinanciacion:
-        $ref: '#/definitions/models.FuenteFinanciacion'
-      Id:
-        type: integer
-        format: int64
-      Saldo:
-        type: number
-        format: double
-      Valor:
-        type: number
-        format: double
-      ValorAsignado:
-        type: number
-        format: double
   models.Dependencia:
     title: Dependencia
     type: object
@@ -548,9 +499,6 @@ definitions:
     properties:
       DatosNecesidad:
         $ref: '#/definitions/models.Necesidad'
-      Destino:
-        type: integer
-        format: int64
       Estado:
         $ref: '#/definitions/models.EstadoDisponibilidad'
       FechaRegistro:
@@ -562,44 +510,15 @@ definitions:
       NumeroDisponibilidad:
         type: number
         format: double
-      NumeroOficio:
-        type: string
       Responsable:
-        type: integer
-        format: int64
-      Solicitante:
         type: integer
         format: int64
       Solicitud:
         type: integer
         format: int64
-      UnidadEjecutora:
-        $ref: '#/definitions/models.UnidadEjecutora'
       Vigencia:
         type: number
         format: double
-  models.Entidad:
-    title: Entidad
-    type: object
-    properties:
-      CodigoEntidad:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      Nombre:
-        type: string
-  models.EstadoApropiacion:
-    title: EstadoApropiacion
-    type: object
-    properties:
-      Descripcion:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      Nombre:
-        type: string
   models.EstadoCompromiso:
     title: EstadoCompromiso
     type: object
@@ -621,28 +540,6 @@ definitions:
         type: integer
         format: int64
       Nombre:
-        type: string
-  models.EstadoRegistroPresupuestal:
-    title: EstadoRegistroPresupuestal
-    type: object
-    properties:
-      Descripcion:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      Nombre:
-        type: string
-  models.FuenteFinanciacion:
-    title: FuenteFinanciacion
-    type: object
-    properties:
-      Descripcion:
-        type: string
-      Id:
-        type: integer
-        format: int64
-      Sigla:
         type: string
   models.InfoSolDisp:
     title: InfoSolDisp
@@ -752,63 +649,6 @@ definitions:
         format: int64
       ValorParametro:
         type: string
-  models.RegistroPresupuestal:
-    title: RegistroPresupuestal
-    type: object
-    properties:
-      Beneficiario:
-        type: integer
-        format: int64
-      Compromiso:
-        $ref: '#/definitions/models.Compromiso'
-      DatosSolicitud:
-        $ref: '#/definitions/models.SolicitudRp'
-      Estado:
-        $ref: '#/definitions/models.EstadoRegistroPresupuestal'
-      FechaMovimiento:
-        type: string
-        format: string
-      Id:
-        type: integer
-        format: int64
-      NumeroRegistroPresupuestal:
-        type: integer
-        format: int64
-      Responsable:
-        type: integer
-        format: int64
-      Solicitud:
-        type: integer
-        format: int64
-      UnidadEjecutora:
-        $ref: '#/definitions/models.UnidadEjecutora'
-      Vigencia:
-        type: number
-        format: double
-  models.Rubro:
-    title: Rubro
-    type: object
-    properties:
-      Administracion:
-        type: string
-      Codigo:
-        type: string
-      Descripcion:
-        type: string
-      Entidad:
-        $ref: '#/definitions/models.Entidad'
-      Estado:
-        type: integer
-        format: int32
-      Id:
-        type: integer
-        format: int64
-      TipoPlan:
-        type: integer
-        format: int32
-      Vigencia:
-        type: number
-        format: double
   models.SolicitudDisponibilidad:
     title: SolicitudDisponibilidad
     type: object
@@ -860,7 +700,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/24136.0xc420372090.false'
+          $ref: '#/definitions/6887.0xc420342d80.false'
       Vigencia:
         type: integer
         format: int64
