@@ -6,9 +6,8 @@ import (
 
 type RegistroPresupuestal struct {
 	Id                         int                         `orm:"auto;column(id);pk"`
-	UnidadEjecutora            *UnidadEjecutora            `orm:"column(unidad_ejecutora);rel(fk)"`
 	Vigencia                   float64                     `orm:"column(vigencia)"`
-	FechaMovimiento            time.Time                   `orm:"column(fecha_movimiento);type(date);null"`
+	FechaRegistro              time.Time                   `orm:"column(fecha_registro);type(date);null"`
 	Responsable                int                         `orm:"column(responsable);null"`
 	Estado                     *EstadoRegistroPresupuestal `orm:"column(estado);rel(fk)"`
 	NumeroRegistroPresupuestal int                         `orm:"column(numero_registro_presupuestal)"`
