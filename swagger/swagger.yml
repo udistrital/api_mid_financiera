@@ -23,7 +23,7 @@ paths:
         description: body for Apropiacion  content
         required: true
         schema:
-          $ref: '#/definitions/models.Apropiacion'
+          $ref: '#/definitions/.Apropiacion'
       responses:
         "201":
           description: '{int} models.InfoSolDisp'
@@ -99,9 +99,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.interface{}'
-        "403": {}
+        "403":
+          description: ""
   /disponibilidadSolicitudById/{id}:
     get:
       tags:
@@ -136,9 +138,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.InfoSolDisp'
-        "403": {}
+        "403":
+          description: ""
   /disponibilidadSolicitudes/:
     get:
       tags:
@@ -173,9 +177,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.InfoSolDisp'
-        "403": {}
+        "403":
+          description: ""
   /orden_pago_nomina/:
     post:
       tags:
@@ -191,6 +197,27 @@ paths:
           $ref: '#/definitions/.Orden_pago_planta'
       responses:
         "201":
+          description: ""
+          schema:
+            $ref: '#/definitions/.Orden_pago_planta'
+        "403":
+          description: body is empty
+  /orden_pago_nominaCrearOPSeguridadSocial:
+    post:
+      tags:
+      - orden_pago_nomina
+      description: create Orden Pago Seguridad Social
+      operationId: OrdenPagoNominaController.CrearOPSeguridadSocial
+      parameters:
+      - in: body
+        name: body
+        description: body for Orden_pago_planta content
+        required: true
+        schema:
+          $ref: '#/definitions/.Orden_pago_planta'
+      responses:
+        "201":
+          description: ""
           schema:
             $ref: '#/definitions/.Orden_pago_planta'
         "403":
@@ -248,9 +275,11 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
-        "403": {}
+        "403":
+          description: ""
     post:
       tags:
       - partida_doble
@@ -268,6 +297,7 @@ paths:
         items: {}
       responses:
         "201":
+          description: ""
           schema:
             type: boolean
         "403":
@@ -286,6 +316,7 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
         "403":
@@ -309,6 +340,7 @@ paths:
           $ref: '#/definitions/.Partidadoble'
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.Partidadoble'
         "403":
@@ -329,25 +361,6 @@ paths:
           description: '{string} delete success!'
         "403":
           description: id is empty
-  /registro_presupuestal/:
-    post:
-      tags:
-      - registro_presupuestal
-      description: create RegistroPresupuestal
-      operationId: RegistroPresupuestalController.Create
-      parameters:
-      - in: body
-        name: body
-        description: body for DatosRegistroPresupuestal content
-        required: true
-        schema:
-          $ref: '#/definitions/models.DatosRegistroPresupuestal'
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.DatosRegistroPresupuestal'
-        "403":
-          description: body is empty
   /registro_presupuestal/CargueMasivoPr:
     post:
       tags:
@@ -363,29 +376,11 @@ paths:
           $ref: '#/definitions/models.DatosRegistroPresupuestal'
       responses:
         "200":
+          description: ""
           schema:
-            $ref: '#/definitions/models.DatosRegistroPresupuestal'
+            $ref: '#/definitions/models.Alert'
         "403":
           description: body is empty
-  /registro_presupuestal/GetSaldoRp:
-    get:
-      tags:
-      - registro_presupuestal
-      description: get saldo rp by apropiacion
-      operationId: RegistroPresupuestalController.GetSaldoRp
-      parameters:
-      - in: body
-        name: body
-        description: body for DatosRegistroPresupuestal content
-        required: true
-        schema:
-          $ref: '#/definitions/models.DatosRegistroPresupuestal'
-      responses:
-        "200":
-          schema:
-            $ref: '#/definitions/models.RegistroPresupuestal'
-        "403":
-          description: :id is empty
   /registro_presupuestal/GetSolicitudesRp:
     get:
       tags:
@@ -394,6 +389,7 @@ paths:
       operationId: RegistroPresupuestalController.GetSolicitudesRp
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.SolicitudRp'
         "403":
@@ -412,6 +408,7 @@ paths:
         type: string
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/models.SolicitudRp'
         "403":
@@ -431,10 +428,14 @@ paths:
           $ref: '#/definitions/.interface{}'
       responses:
         "200":
+          description: ""
           schema:
             $ref: '#/definitions/.interface{}'
-        "403": {}
+        "403":
+          description: ""
 definitions:
+  .Apropiacion:
+    type: object
   .Orden_pago_planta:
     type: object
   .Partidadoble:
@@ -445,6 +446,7 @@ definitions:
     type: object
   .map[string]interface{}:
     type: object
+
   controllers.PDMovimientoContable:
     title: PDMovimientoContable
     type: object
@@ -457,6 +459,18 @@ definitions:
       Debito:
         type: integer
         format: int64
+
+  models.Alert:
+    title: Alert
+    type: object
+    properties:
+      Body:
+        $ref: '#/definitions/13758.0xc420383f50.false'
+      Code:
+        type: string
+      Type:
+        type: string
+
   models.Apropiacion:
     title: Apropiacion
     type: object
@@ -582,9 +596,6 @@ definitions:
     properties:
       DatosNecesidad:
         $ref: '#/definitions/models.Necesidad'
-      Destino:
-        type: integer
-        format: int64
       Estado:
         $ref: '#/definitions/models.EstadoDisponibilidad'
       FechaRegistro:
@@ -596,19 +607,12 @@ definitions:
       NumeroDisponibilidad:
         type: number
         format: double
-      NumeroOficio:
-        type: string
       Responsable:
-        type: integer
-        format: int64
-      Solicitante:
         type: integer
         format: int64
       Solicitud:
         type: integer
         format: int64
-      UnidadEjecutora:
-        $ref: '#/definitions/models.UnidadEjecutora'
       Vigencia:
         type: number
         format: double
@@ -799,7 +803,7 @@ definitions:
         $ref: '#/definitions/models.SolicitudRp'
       Estado:
         $ref: '#/definitions/models.EstadoRegistroPresupuestal'
-      FechaMovimiento:
+      FechaRegistro:
         type: string
         format: string
       Id:
@@ -814,8 +818,6 @@ definitions:
       Solicitud:
         type: integer
         format: int64
-      UnidadEjecutora:
-        $ref: '#/definitions/models.UnidadEjecutora'
       Vigencia:
         type: number
         format: double
@@ -894,7 +896,7 @@ definitions:
       Rubros:
         type: array
         items:
-          $ref: '#/definitions/23330.0xc8203aaa80.false'
+          $ref: '#/definitions/6887.0xc420382f30.false'
       Vigencia:
         type: integer
         format: int64
