@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/tools"
@@ -10,6 +12,13 @@ import (
 // PartidadobleController operations for Partidadoble
 type PartidadobleController struct {
 	beego.Controller
+}
+
+// PDMovimientoContable movimienos
+type PDMovimientoContable struct {
+	Debito               int64
+	Credito              int64
+	CodigoCuentaContable string
 }
 
 // URLMapping ...
@@ -23,15 +32,34 @@ func (c *PartidadobleController) URLMapping() {
 
 // Post ...
 // @Title Create
-// @Description create Partidadoble
-// @Param	body		body 	models.Partidadoble	true		"body for Partidadoble content"
-// @Success 201 {object} models.Partidadoble
+// @Description valida en base a los movimientos obtenidos si se cumple o no el principio de partida doble
+// @Param	body		body 	[]PDMovimientoContable	true		"cuerpo para el post del servicio, debe ser en un array"
+// @Success 201 {object} bool
 // @Failure 403 body is empty
 // @router / [post]
 func (c *PartidadobleController) Post() {
+	println("entro")
 	tool := tools.EntornoReglas{}
-	tool.Agregar_dominio("presupuesto")
-	c.Data["json"] = tool
+	//tool.Agregar_dominio("presupuesto")
+	var v []PDMovimientoContable
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		predicados := ``
+		tool.Agregar_dominio("Contabilidad_partida")
+
+		for _, mov := range v {
+			predicados += `mov_cuenta('` + mov.CodigoCuentaContable + `', ` + strconv.FormatInt(mov.Debito, 10) + `, ` + strconv.FormatInt(mov.Credito, 10) + `).`
+		}
+		tool.Agregar_dominio("Contabilidad")
+		tool.Agregar_predicado(predicados)
+
+		if resp := tool.Ejecutar_result("aplica_partida_doble(SD).", "SD"); resp == "1" {
+			c.Data["json"] = true
+		} else {
+			c.Data["json"] = false
+		}
+	} else {
+		c.Data["json"] = err.Error()
+	}
 	c.ServeJSON()
 }
 
