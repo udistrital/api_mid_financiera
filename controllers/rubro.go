@@ -534,3 +534,58 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	return
 }
+
+// InformacionAsignacionInicial ...
+// @Title InformacionAsignacionInicial
+// @Description Devuelve saldos iniciales antes de aprobar
+// @Param	Vigencia		query 	string	true		"vigencia a comprobar"
+// @Param	UnidadEjecutora		query 	string	true		"unidad ejecutora de los rubros a comprobar"
+// @Success 200 {string} resultado
+// @Failure 403
+// @router /InformacionAsignacionInicial/ [get]
+func (c *RubroController) InformacionAsignacionInicial() {
+	vigencia, err := c.GetInt("Vigencia")
+	if err == nil {
+		unidadejecutora, err := c.GetInt("UnidadEjecutora")
+		if err == nil {
+			fmt.Println(vigencia)
+			fmt.Println(unidadejecutora)
+			tool := new(tools.EntornoReglas)
+			tool.Agregar_dominio("Presupuesto")
+			var res []string
+			var infoSaldoInicial []map[string]interface{}
+			saldo := make(map[string]interface{})
+			utilidades.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
+			for _, rpadre := range res {
+				var apropiacion []models.Apropiacion
+				if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Rubro.Codigo:"+rpadre, &apropiacion); err == nil {
+					if apropiacion != nil {
+
+						if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.FormatInt(apropiacion[0].Rubro.Id, 10)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
+							if saldo != nil {
+								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": apropiacion[0].Id, "Codigo": rpadre, "Nombre": apropiacion[0].Rubro.Nombre, "SaldoInicial": saldo["original"]})
+							}
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+							c.ServeJSON()
+						}
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+						c.ServeJSON()
+					}
+
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+					c.ServeJSON()
+				}
+
+			}
+			c.Data["json"] = infoSaldoInicial
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+	c.ServeJSON()
+}
