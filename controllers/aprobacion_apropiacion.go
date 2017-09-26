@@ -3,9 +3,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-	"strconv"
+	"github.com/udistrital/api_mid_financiera/tools"
+	"github.com/udistrital/api_mid_financiera/utilidades"
 
 	"github.com/astaxie/beego"
 )
@@ -162,4 +165,133 @@ func comprobar_apropiacion(padre models.Apropiacion) string {
 	}
 
 	return regla
+}
+
+// InformacionAsignacionInicial ...
+// @Title InformacionAsignacionInicial
+// @Description Devuelve saldos iniciales antes de aprobar
+// @Param	Vigencia		query 	string	true		"vigencia a comprobar"
+// @Param	UnidadEjecutora		query 	string	true		"unidad ejecutora de los rubros a comprobar"
+// @Success 200 {string} resultado
+// @Failure 403
+// @router /InformacionAsignacionInicial/ [get]
+func (c *AprobacionController) InformacionAsignacionInicial() {
+	vigencia, err := c.GetInt("Vigencia")
+	if err == nil {
+		unidadejecutora, err := c.GetInt("UnidadEjecutora")
+		if err == nil {
+			fmt.Println(vigencia)
+			fmt.Println(unidadejecutora)
+			tool := new(tools.EntornoReglas)
+			tool.Agregar_dominio("Presupuesto")
+			var res []string
+			var infoSaldoInicial []map[string]interface{}
+			saldo := make(map[string]interface{})
+			utilidades.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
+			for _, rpadre := range res {
+				var apropiacion []models.Apropiacion
+				if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Rubro.Codigo:"+rpadre, &apropiacion); err == nil {
+					if apropiacion != nil {
+
+						if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.FormatInt(apropiacion[0].Rubro.Id, 10)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
+							if saldo != nil {
+								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": apropiacion[0].Id, "Codigo": rpadre, "Nombre": apropiacion[0].Rubro.Nombre, "SaldoInicial": saldo["original"]})
+							}
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+							c.ServeJSON()
+						}
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+						c.ServeJSON()
+					}
+
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+					c.ServeJSON()
+				}
+
+			}
+			for _, apr := range infoSaldoInicial {
+				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
+			}
+			if infoSaldoInicial != nil {
+				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["SaldoInicial"])+",Y).", "Y")
+				var comp string
+				err = utilidades.FillStruct(res, &comp)
+				if err == nil {
+					c.Data["json"] = map[string]interface{}{"Aprobado": res, "Data": infoSaldoInicial}
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+				}
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+
+			}
+
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+// AprobacionAsignacionInicial ...
+// @Title AprobacionAsignacionInicial
+// @Description aprueba la asignacion inicial de presupuesto
+// @Param	Vigencia		query 	string	true		"vigencia a comprobar"
+// @Param	UnidadEjecutora		query 	string	true		"unidad ejecutora de los rubros a comprobar"
+// @Success 200 {string} resultado
+// @Failure 403
+// @router /AprobacionAsignacionInicial/ [post]
+func (c *AprobacionController) AprobacionAsignacionInicial() {
+	var v []map[string]interface{}
+	vigencia, err := c.GetInt("Vigencia")
+	if err == nil {
+		unidadejecutora, err := c.GetInt("UnidadEjecutora")
+		if err == nil {
+			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+				tool := new(tools.EntornoReglas)
+				tool.Agregar_dominio("Presupuesto")
+				for _, apr := range v {
+					tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
+				}
+				if v != nil {
+					res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", v[0]["SaldoInicial"])+",Y).", "Y")
+					var aprobado string
+					err = utilidades.FillStruct(res, &aprobado)
+					if err == nil {
+						if aprobado == "1" {
+							var res interface{}
+							if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/AprobacionAsignacionInicial"+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &res); err == nil {
+								c.Data["json"] = res
+
+							} else {
+								c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+							}
+
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_AP003", Body: v, Type: "error"}
+						}
+
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+					}
+
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+				}
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+
+	c.ServeJSON()
 }
