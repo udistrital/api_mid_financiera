@@ -1,0 +1,6 @@
+language: go
+go:
+- 1.8.x
+script:
+- go test -v ./...
+- GOOS=linux GOARCH=amd64 go build -o api_mid_financiera main.go

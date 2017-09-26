@@ -6,10 +6,7 @@
         },
         {
             "path": "github.com/astaxie/beego"
-        },
-        {
-            "path": "github.com/miguelramirez93/midApiNix/routers"
-        },
+        },  
         {
             "path": "github.com/smartystreets/goconvey/convey"
         },
