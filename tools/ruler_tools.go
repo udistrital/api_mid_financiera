@@ -138,3 +138,14 @@ func (e *EntornoReglas) Ejecutar_result(regla string, variable string) (res inte
 	}
 	return
 }
+
+func (e *EntornoReglas) Ejecutar_all_result(regla string, variable string) (res []interface{}) {
+	f := NewMachine().Consult(e.predicados + e.base)
+	solutions := f.ProveAll(regla)
+	//fmt.Println(solutions)
+	for _, solution := range solutions {
+		res = append(res, fmt.Sprintf("%v", solution.ByName_(variable)))
+		//fmt.Printf("%s", solution.ByName_("R"))
+	}
+	return
+}
