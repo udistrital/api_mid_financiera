@@ -335,6 +335,36 @@
                 }
             }
         },
+        "/orden_pago_nominaCrearOPSeguridadSocial": {
+            "post": {
+                "tags": [
+                    "orden_pago_nomina"
+                ],
+                "description": "create Orden Pago Seguridad Social",
+                "operationId": "OrdenPagoNominaController.CrearOPSeguridadSocial",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for Orden_pago_planta content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/.Orden_pago_planta"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "schema": {
+                            "$ref": "#/definitions/.Orden_pago_planta"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
         "/partida_doble/": {
             "get": {
                 "tags": [
@@ -396,24 +426,26 @@
                 "tags": [
                     "partida_doble"
                 ],
-                "description": "create Partidadoble",
+                "description": "valida en base a los movimientos obtenidos si se cumple o no el principio de partida doble",
                 "operationId": "PartidadobleController.Create",
                 "parameters": [
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "body for Partidadoble content",
+                        "description": "cuerpo para el post del servicio, debe ser en un array",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
-                        }
+                            "$ref": "#/definitions/controllers.PDMovimientoContable"
+                        },
+                        "type": "array",
+                        "items": {}
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
+                            "type": "boolean"
                         }
                     },
                     "403": {
@@ -642,6 +674,24 @@
         ".map[string]interface{}": {
             "type": "object"
         },
+
+        "controllers.PDMovimientoContable": {
+            "title": "PDMovimientoContable",
+            "type": "object",
+            "properties": {
+                "CodigoCuentaContable": {
+                    "type": "string"
+                },
+                "Credito": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "Debito": {
+                    "type": "integer",
+                    "format": "int64"
+                }
+            }
+        },
         "models.Alert": {
             "title": "Alert",
             "type": "object",
@@ -654,6 +704,7 @@
                 },
                 "Type": {
                     "type": "string"
+
                 }
             }
         },
