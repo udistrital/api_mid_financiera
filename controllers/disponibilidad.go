@@ -303,10 +303,10 @@ func (this *DisponibilidadController) Post() {
 				reglasBase := CargarReglasBase("Presupuesto")
 				for j := 0; j < len(rubros_solicitud); j++ {
 
-					var saldo_aprop float64
+					var map_saldo_aprop map[string]float64
 					fmt.Println("aprop: ", rubros_solicitud[j].Apropiacion)
-					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &saldo_aprop); err == nil {
-						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(saldo_aprop, 'f', -1, 64) + ")."})
+					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &map_saldo_aprop); err == nil {
+						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
 					} else {
 						alertas[0] = "error"
 						alertas = append(alertas, "error al cargar saldo de la apropiacion ")
@@ -365,12 +365,12 @@ func (this *DisponibilidadController) Post() {
 							fmt.Println("err", respuesta_mod)
 							for j := 0; j < len(rubros_solicitud); j++ {
 
-								if rubros_solicitud[j].FuenteFinanciacion > 0 {
+								if rubros_solicitud[j].FuenteFinanciamiento > 0 {
 									disponibilidad_apropiacion := models.DisponibilidadApropiacion{
 										Apropiacion:          &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
 										Disponibilidad:       &respuesta, //&respuesta,
 										Valor:                rubros_solicitud[j].MontoParcial,
-										FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciacion},
+										FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciamiento},
 									}
 									sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
 								} else {
