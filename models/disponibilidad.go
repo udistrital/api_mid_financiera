@@ -19,4 +19,5 @@ type InfoSolDisp struct {
 	SolicitudDisponibilidad SolicitudDisponibilidad
 	DependenciaSolicitante  Dependencia
 	DependenciaDestino      Dependencia
+	Responsable             int
 }

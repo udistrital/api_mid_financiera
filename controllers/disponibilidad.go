@@ -9,6 +9,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
+	"github.com/udistrital/api_mid_financiera/tools"
 	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
@@ -277,8 +278,7 @@ func (this *DisponibilidadController) Post() {
 	var respuesta_mod interface{}
 	var respuesta_disponibilidad_rubro interface{}
 	var rubros_solicitud []models.FuenteFinanciacionRubroNecesidad
-	var alertas []string
-	alertas = append(alertas, "success")
+	var alertas []models.Alert
 	aprobada := true
 	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &solicitudes_disponibilidad); err == nil {
 		for i := 0; i < len(solicitudes_disponibilidad); i++ {
@@ -291,25 +291,23 @@ func (this *DisponibilidadController) Post() {
 				fmt.Println("numero: ", numero_asignado_disponibilidad)
 			} else {
 				fmt.Println("error1345: ", err.Error())
-				alertas[0] = "error"
-				alertas = append(alertas, "no se pudo caragar datos del servicio crud")
+				alertas = append(alertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 				this.Data["json"] = alertas
 				this.ServeJSON()
 			}
 
 			//comprobar apropiacion de los rubros
-			if err := getJson("http://"+beego.AppConfig.String("argoService")+"fuente_financiacion_rubro_necesidad?limit=0&query=SolicitudNecesidad.Id:"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.Id), &rubros_solicitud); err == nil {
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"fuente_financiacion_rubro_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.Id), &rubros_solicitud); err == nil {
 				fmt.Println("rubros: ", len(rubros_solicitud))
 				reglasBase := CargarReglasBase("Presupuesto")
 				for j := 0; j < len(rubros_solicitud); j++ {
 
-					var saldo_aprop float64
+					var map_saldo_aprop map[string]float64
 					fmt.Println("aprop: ", rubros_solicitud[j].Apropiacion)
-					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &saldo_aprop); err == nil {
-						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(saldo_aprop, 'f', -1, 64) + ")."})
+					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &map_saldo_aprop); err == nil {
+						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
 					} else {
-						alertas[0] = "error"
-						alertas = append(alertas, "error al cargar saldo de la apropiacion ")
+						alertas = append(alertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 						aprobada = false
 						fmt.Println("error2: ", err)
 					}
@@ -329,13 +327,10 @@ func (this *DisponibilidadController) Post() {
 					aprobada = res
 				} else {
 					aprobada = res
-					alertas[0] = "error"
-					alertas = append(alertas, "Expedición de CDP no aprobada, algunos valores superan el saldo de las APropiaciones.")
+					alertas = append(alertas, models.Alert{Code: "E_CDP001", Body: solicitudes_disponibilidad[i], Type: "error"})
 				}
 			} else {
-				alertas[0] = "error"
-				alertas = append(alertas, "No se pudo cargar los rubros de la solicitud "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
-
+				alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: err.Error(), Type: "error"})
 				aprobada = false
 				fmt.Println("error3: ", err)
 			}
@@ -343,67 +338,51 @@ func (this *DisponibilidadController) Post() {
 			//-----------------------------------
 			//realizar segunda peticion para los datos de la necesidad.
 			if aprobada { // si se aprueba la solicitud, se genera el cdp
-				var responsable_pres []models.JefeDependencia
-				if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:102,FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &responsable_pres); err == nil {
-					if responsable_pres != nil {
-						disponibilidad = models.Disponibilidad{
-							//UnidadEjecutora:      &models.UnidadEjecutora{Id: solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.UnidadEjecutora},
-							Vigencia:             solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.Vigencia,
-							NumeroDisponibilidad: numero_asignado_disponibilidad,
-							//NumeroOficio:         strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero),
-							FechaRegistro: time.Now().Local(),
-							Estado:        &models.EstadoDisponibilidad{Id: 1},
-							Solicitud:     solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id,
-							Responsable:   responsable_pres[0].TerceroId,
-						}
-						solicitudes_disponibilidad[i].SolicitudDisponibilidad.Expedida = true
 
-						err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &disponibilidad)
-						fmt.Println(respuesta)
-						if err == nil {
-							sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id), "PUT", &respuesta_mod, &solicitudes_disponibilidad[i].SolicitudDisponibilidad)
-							fmt.Println("err", respuesta_mod)
-							for j := 0; j < len(rubros_solicitud); j++ {
+				disponibilidad = models.Disponibilidad{
+					//UnidadEjecutora:      &models.UnidadEjecutora{Id: solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.UnidadEjecutora},
+					Vigencia:             solicitudes_disponibilidad[i].SolicitudDisponibilidad.Necesidad.Vigencia,
+					NumeroDisponibilidad: numero_asignado_disponibilidad,
+					//NumeroOficio:         strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero),
+					FechaRegistro: time.Now().Local(),
+					Estado:        &models.EstadoDisponibilidad{Id: 1},
+					Solicitud:     solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id,
+					Responsable:   solicitudes_disponibilidad[i].Responsable,
+				}
+				solicitudes_disponibilidad[i].SolicitudDisponibilidad.Expedida = true
 
-								if rubros_solicitud[j].FuenteFinanciacion > 0 {
-									disponibilidad_apropiacion := models.DisponibilidadApropiacion{
-										Apropiacion:          &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
-										Disponibilidad:       &respuesta, //&respuesta,
-										Valor:                rubros_solicitud[j].MontoParcial,
-										FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciacion},
-									}
-									sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
-								} else {
-									disponibilidad_apropiacion := models.DisponibilidadApropiacion{
-										Apropiacion:    &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
-										Disponibilidad: &respuesta, //&respuesta,
-										Valor:          rubros_solicitud[j].MontoParcial,
-									}
-									sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
-								}
+				err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &disponibilidad)
+				fmt.Println(respuesta)
+				if err == nil {
+					sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id), "PUT", &respuesta_mod, &solicitudes_disponibilidad[i].SolicitudDisponibilidad)
+					fmt.Println("err", respuesta_mod)
+					for j := 0; j < len(rubros_solicitud); j++ {
 
+						if rubros_solicitud[j].FuenteFinanciamiento > 0 {
+							disponibilidad_apropiacion := models.DisponibilidadApropiacion{
+								Apropiacion:          &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
+								Disponibilidad:       &respuesta, //&respuesta,
+								Valor:                rubros_solicitud[j].MontoParcial,
+								FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciamiento},
 							}
-							alertas = append(alertas, "se genero el CDP Con Consecutivo  No. "+strconv.FormatFloat(disponibilidad.NumeroDisponibilidad, 'f', -1, 64)+" para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
+							sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
 						} else {
-							alertas[0] = "error"
-							alertas = append(alertas, "Error al registrar el CDP para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero))
-							fmt.Println("err", err)
+							disponibilidad_apropiacion := models.DisponibilidadApropiacion{
+								Apropiacion:    &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
+								Disponibilidad: &respuesta, //&respuesta,
+								Valor:          rubros_solicitud[j].MontoParcial,
+							}
+							sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
 						}
-					} else {
-						//si no encuentra la informacion del responsable por dependencia.
-						alertas[0] = "error"
-						alertas = append(alertas, "Error al registrar el CDP para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero)+", No se encontro el responsable de Presupuesto.")
-						fmt.Println("err", err)
+
 					}
+					alertas = append(alertas, models.Alert{Code: "S_CDP001", Body: disponibilidad, Type: "success"})
 				} else {
-					//si hay error al consultar el responsable.
-					alertas[0] = "error"
-					alertas = append(alertas, "Error al registrar el CDP para la solicitud No "+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Numero)+", No se encontro el responsable de Presupuesto.")
+					alertas = append(alertas, models.Alert{Code: "E_0459", Body: solicitudes_disponibilidad[i], Type: "success"})
 					fmt.Println("err", err)
 				}
-
 			} else {
-
+				//si no fue aprobada.
 			}
 
 			aprobada = true
@@ -529,4 +508,95 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 
 		this.ServeJSON()
 	}*/
+}
+
+// ExpedirDisponibilidad ...
+// @Title ExpedirDisponibilidad
+// @Description create Disponibilidad
+// @Param	body		body 	map[string]string	true		"body for InfoSolDisp content"
+// @Success 201 {int} map[string]string
+// @Failure 403 body is empty
+// @router /ExpedirDisponibilidad [post]
+func (c *DisponibilidadController) ExpedirDisponibilidad() {
+	var infoSolicitudes []map[string]interface{}
+	var alertas []models.Alert
+	var rubrosSolicitud []map[string]interface{}
+	var mapSaldoApropiacion map[string]float64
+	disponibilidad := make(map[string]interface{})
+
+	infoDisponibilidad := make(map[string]interface{})
+	tool := new(tools.EntornoReglas)
+	aprobada := true
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &infoSolicitudes); err == nil {
+		//recorrer las solicitudes enviadas desde el cliente.
+		tool.Agregar_dominio("Presupuesto")
+		for _, solicitud := range infoSolicitudes {
+			var afectacion []interface{}
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"fuente_financiacion_rubro_necesidad?limit=-1&query=Necesidad.Id:"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64))), &rubrosSolicitud); err == nil {
+				//recorrer los rubros y/o fuentes solicitados
+				for _, infoRubro := range rubrosSolicitud {
+					//Solicitar el saldo de la apropiacion objetivo.
+					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &mapSaldoApropiacion); err == nil {
+						tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
+						tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					} else {
+						alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
+					}
+					var res string
+					//aqui condicion saldos fuentes.
+					err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_cdp("+strconv.Itoa(int(infoRubro["Apropiacion"].(float64)))+",Y).", "Y"), &res)
+					if err == nil {
+						if res == "1" {
+							//-----
+							disponibilidadApropiacion := make(map[string]interface{})
+							disponibilidadApropiacion["Apropiacion"] = map[string]interface{}{"Id": infoRubro["Apropiacion"]}
+							disponibilidadApropiacion["disponibilidad"] = disponibilidad
+							disponibilidadApropiacion["Valor"] = infoRubro["MontoParcial"].(float64)
+							disponibilidadApropiacion["FuenteFinanciamiento"] = map[string]interface{}{"Id": infoRubro["FuenteFinanciamiento"]}
+							afectacion = append(afectacion, disponibilidadApropiacion)
+
+						} else {
+							alertas = append(alertas, models.Alert{Code: "E_CDP001", Body: solicitud, Type: "error"})
+						}
+					} else {
+						//si hay error al consultar las reglas de negocio.
+						aprobada = false
+						alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
+					}
+				}
+				if aprobada {
+					disponibilidad["Vigencia"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64))
+					disponibilidad["FechaRegistro"] = time.Now().Local()
+					disponibilidad["Estado"] = map[string]interface{}{"Id": 1}
+					disponibilidad["Solicitud"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))
+					disponibilidad["Responsable"] = solicitud["Responsable"]
+					//----------------
+					infoDisponibilidad["Disponibilidad"] = disponibilidad
+					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion
+					var respuesta models.Alert
+					err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &infoDisponibilidad)
+					if err == nil {
+						var respuesta_mod interface{}
+						modsol := solicitud["SolicitudDisponibilidad"].(map[string]interface{})
+						modsol["Expedida"] = true
+						sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))), "PUT", &respuesta_mod, &modsol)
+						alertas = append(alertas, respuesta)
+					} else {
+						alertas = append(alertas, models.Alert{Code: "E_0458", Body: solicitud, Type: "error"})
+					}
+
+				}
+			} else {
+				//error al consumir los datos de la afectacion presupuestal definida en la solicitud.
+				alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
+			}
+			tool.Quitar_predicados()
+		}
+	} else {
+		//no se recibieron los datos del cliente correctamente. c.Data["json"] = alertas
+		alertas = append(alertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+
+	}
+	c.Data["json"] = alertas
+	c.ServeJSON()
 }
