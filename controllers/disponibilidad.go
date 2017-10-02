@@ -529,7 +529,6 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 	aprobada := true
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &infoSolicitudes); err == nil {
 		//recorrer las solicitudes enviadas desde el cliente.
-		fmt.Println(infoSolicitudes)
 		tool.Agregar_dominio("Presupuesto")
 		for _, solicitud := range infoSolicitudes {
 			var afectacion []interface{}
@@ -544,6 +543,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 						alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 					}
 					var res string
+					//aqui condicion saldos fuentes.
 					err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_cdp("+strconv.Itoa(int(infoRubro["Apropiacion"].(float64)))+",Y).", "Y"), &res)
 					if err == nil {
 						if res == "1" {
@@ -573,8 +573,18 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 					//----------------
 					infoDisponibilidad["Disponibilidad"] = disponibilidad
 					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion
+					var respuesta models.Alert
+					err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &infoDisponibilidad)
+					if err == nil {
+						var respuesta_mod interface{}
+						modsol := solicitud["SolicitudDisponibilidad"].(map[string]interface{})
+						modsol["Expedida"] = true
+						sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))), "PUT", &respuesta_mod, &modsol)
+						alertas = append(alertas, respuesta)
+					} else {
+						alertas = append(alertas, models.Alert{Code: "E_0458", Body: solicitud, Type: "error"})
+					}
 
-					alertas = append(alertas, models.Alert{Code: "S_CDP001", Body: infoDisponibilidad, Type: "success"})
 				}
 			} else {
 				//error al consumir los datos de la afectacion presupuestal definida en la solicitud.
