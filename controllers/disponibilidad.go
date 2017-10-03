@@ -559,7 +559,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 							alertas = append(alertas, models.Alert{Code: "E_CDP001", Body: solicitud, Type: "error"})
 						}
 					} else {
-						//si hay error al consultar las reglas de negocio.
+						//si hay error al consultar las reglas de negocio. protocolo dentro de la peticion
 						aprobada = false
 						alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 					}
@@ -570,6 +570,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 					disponibilidad["Estado"] = map[string]interface{}{"Id": 1}
 					disponibilidad["Solicitud"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))
 					disponibilidad["Responsable"] = solicitud["Responsable"]
+					disponibilidad["UnidadEjecutora"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["UnidadEjecutora"].(float64))
 					//----------------
 					infoDisponibilidad["Disponibilidad"] = disponibilidad
 					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion

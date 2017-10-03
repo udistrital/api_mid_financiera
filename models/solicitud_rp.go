@@ -11,11 +11,11 @@ type SolicitudRp struct {
 	Cdp                 int       `orm:"column(cdp)"`
 	Expedida            bool      `orm:"column(expedida)"`
 	NumeroContrato      string    `orm:"column(numero_contrato)"`
-	VigenciaContrato    string    `orm:"column(vigencia_contrato)"`
+	VigenciaContrato    int       `orm:"column(vigencia_contrato)"`
 	Compromiso          int       `orm:"column(compromiso)"`
-	Masivo							bool
+	Masivo              bool
 	DatosDisponibilidad *Disponibilidad
 	DatosProveedor      *InformacionProveedor
 	DatosCompromiso     *Compromiso
-	Rubros							[]interface{}
+	Rubros              []interface{}
 }
