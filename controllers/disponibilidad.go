@@ -570,7 +570,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 					disponibilidad["Estado"] = map[string]interface{}{"Id": 1}
 					disponibilidad["Solicitud"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))
 					disponibilidad["Responsable"] = solicitud["Responsable"]
-					disponibilidad["UnidadEjecutora"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["UnidadEjecutora"].(float64))
+					disponibilidad["UnidadEjecutora"] = int(solicitud["Afectacion"].([]interface{})[0].(map[string]interface{})["Apropiacion"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64))
 					//----------------
 					infoDisponibilidad["Disponibilidad"] = disponibilidad
 					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion
