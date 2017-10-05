@@ -576,7 +576,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion
 					var respuesta models.Alert
 					err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &infoDisponibilidad)
-					if err == nil {
+					if err == nil && respuesta.Type != "error" {
 						var respuesta_mod interface{}
 						modsol := solicitud["SolicitudDisponibilidad"].(map[string]interface{})
 						modsol["Expedida"] = true
