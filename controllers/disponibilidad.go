@@ -570,7 +570,7 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 					disponibilidad["Estado"] = map[string]interface{}{"Id": 1}
 					disponibilidad["Solicitud"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))
 					disponibilidad["Responsable"] = solicitud["Responsable"]
-					disponibilidad["UnidadEjecutora"] = int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["UnidadEjecutora"].(float64))
+					disponibilidad["UnidadEjecutora"] = int(solicitud["Afectacion"].([]interface{})[0].(map[string]interface{})["Apropiacion"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64))
 					//----------------
 					infoDisponibilidad["Disponibilidad"] = disponibilidad
 					infoDisponibilidad["DisponibilidadApropiacion"] = afectacion
@@ -599,5 +599,91 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 
 	}
 	c.Data["json"] = alertas
+	c.ServeJSON()
+}
+
+// ValorDisponibilidadesFuenteRubroDependencia ...
+// @Title ValorDisponibilidadesFuenteRubroDependencia
+// @Description Obtener el valor total de las disponibilidades expediadas a una determinada dependencia por una fuente y apropiacion especifica
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorDisponibilidadesFuenteRubroDependencia [get]
+func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia() {
+	var res []interface{}
+	if idfuente, err := c.GetInt("idfuente"); err == nil {
+		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
+			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
+				var apropiacion map[string]interface{}
+				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/"+strconv.Itoa(idapropiacion), &apropiacion); err == nil {
+					if apropiacion != nil {
+						var dependencias []map[string]interface{}
+						fechaconsulta := time.Date(int(apropiacion["Vigencia"].(float64)), 1, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+
+						if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?query=DependenciaId:"+strconv.Itoa(iddependencia)+",FechaInicio__lte:"+fechaconsulta+",FechaFin__gt:"+fechaconsulta+"&sortby=Id&order=desc", &dependencias); err == nil {
+
+							for _, dependencia := range dependencias {
+								peticion := "solicitud_disponibilidad?"
+								peticion = peticion + "limit=-1&query=Necesidad.FuenteReversa.FuenteFinanciamiento:" + strconv.Itoa(idfuente) + ","
+								peticion = peticion + "Necesidad.FuenteReversa.Apropiacion:" + strconv.Itoa(idapropiacion) + ","
+								peticion = peticion + "Necesidad.DependenciaReversa.JefeDependenciaDestino:" + strconv.Itoa(int(dependencia["Id"].(float64))) + ","
+								peticion = peticion + "Expedida:true"
+								var solicitud_disponibilidades []map[string]interface{}
+								if err := getJson("http://"+beego.AppConfig.String("argoService")+peticion, &solicitud_disponibilidades); err == nil {
+									fmt.Println(solicitud_disponibilidades)
+									for _, solicitud_disponibilidad := range solicitud_disponibilidades {
+										var disponibilidades []map[string]interface{}
+										fmt.Println("/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:" + strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64))) + ",Apropiacion.Id:" + strconv.Itoa(idapropiacion))
+										if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:"+strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64)))+",Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamiento:"+strconv.Itoa(idfuente), &disponibilidades); err == nil {
+											if disponibilidades != nil {
+												for _, disponibilidad := range disponibilidades {
+													res = append(res, disponibilidad)
+												}
+											}
+										} else {
+											fmt.Println("err7  ", err.Error())
+											c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+										}
+									}
+								} else {
+									fmt.Println("err6 ", err.Error())
+									c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+								}
+							}
+							if res != nil {
+								var valorcdp float64
+								valorcdp = 0
+								for _, row := range res {
+									valorcdp = valorcdp + row.(map[string]interface{})["Valor"].(float64)
+								}
+								c.Data["json"] = map[string]interface{}{"valor": valorcdp}
+							}
+						} else {
+							fmt.Println("err5 ", err.Error())
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+						}
+					} else {
+						fmt.Println("aqui")
+						c.Data["json"] = nil
+					}
+				} else {
+					fmt.Println("err4 ", err.Error())
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+			} else {
+				fmt.Println("err3 ", err.Error())
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		} else {
+			fmt.Println("err2 ", err.Error())
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		fmt.Println("err1 ", err.Error())
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+
 	c.ServeJSON()
 }
