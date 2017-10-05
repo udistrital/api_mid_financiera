@@ -658,7 +658,7 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 								for _, row := range res {
 									valorcdp = valorcdp + row.(map[string]interface{})["Valor"].(float64)
 								}
-								c.Data["json"] = valorcdp
+								c.Data["json"] = map[string]interface{}{"valor": valorcdp}
 							}
 						} else {
 							fmt.Println("err5 ", err.Error())
