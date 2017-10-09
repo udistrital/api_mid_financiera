@@ -22,6 +22,108 @@ func (c *DisponibilidadController) URLMapping() {
 	c.Mapping("Solicitudes", c.InfoSolicitudDisponibilidad)
 	c.Mapping("SolicitudById", c.InfoSolicitudDisponibilidadById)
 }
+func formatoListaCDP(disponibilidad interface{}) (res interface{}) {
+	var solicitud []models.SolicitudDisponibilidad
+	row := disponibilidad.(map[string]interface{})
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(disponibilidad.(map[string]interface{})["Solicitud"].(float64), 'f', -1, 64), &solicitud); err == nil {
+
+		for _, resultado := range solicitud {
+
+			var depNes []models.DependenciaNecesidad
+			var jefe_dep_sol []models.JefeDependencia
+			var depSol []models.Dependencia
+			var depDest []models.Dependencia
+			var necesidad []models.Necesidad
+			//var temp models.InfoSolDisp
+			//temp.SolicitudDisponibilidad = &resultado
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(resultado.Necesidad.Id), &necesidad); err == nil {
+				necesidadaux := necesidad[0]
+				resultado.Necesidad = &necesidadaux
+
+				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
+					//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
+					if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+						//temp.DependenciaSolicitante = &depSol[0]
+						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+							//temp.DependenciaDestino = &depDest[0]
+						} else {
+							return
+						}
+						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+							//temp.DependenciaSolicitante = &depSol[0]
+
+						} else {
+							return
+						}
+						fmt.Println(depNes[0].OrdenadorGasto)
+						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
+							//temp.DependenciaSolicitante = &depSol[0]
+
+						} else {
+							return
+						}
+						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
+							//temp.DependenciaDestino = &depDest[0]
+						} else {
+							return
+						}
+					} else {
+						return
+					}
+
+					if depSol == nil {
+						depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
+					}
+					if depDest == nil {
+						depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
+					}
+					temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
+					row["Solicitud"] = temp
+
+				} else {
+					return
+				}
+			} else {
+				return
+			}
+		}
+
+	} else {
+	}
+
+	return row
+}
+
+// ListaDisponibilidades ...
+// @Title ListaDisponibilidades
+// @Description get Disponibilidad by vigencia
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Success 200 {object} models.Disponibilidad
+// @Failure 403
+// @router ListaDisponibilidades/:vigencia [get]
+func (c *DisponibilidadController) ListaDisponibilidades() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	var disponibilidades []interface{}
+	var respuesta []map[string]interface{}
+	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=-1&query=Vigencia:"+strconv.Itoa(vigencia), &disponibilidades); err == nil {
+		if disponibilidades != nil {
+			done := make(chan interface{})
+			defer close(done)
+			resch := utilidades.GenChanInterface(disponibilidades...)
+			chdisponibilidades := utilidades.Digest(done, formatoListaCDP, resch)
+			for disponibilidad := range chdisponibilidades {
+				respuesta = append(respuesta, disponibilidad.(map[string]interface{}))
+			}
+			c.Data["json"] = respuesta
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+	c.ServeJSON()
+}
 
 // DisponibilidadByNecesidad ...
 // @Title DisponibilidadByNecesidad

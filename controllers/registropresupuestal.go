@@ -145,32 +145,39 @@ func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
 // GetSolicitudesRp ...
 // @Title GetSolicitudesRp
 // @Description get saldo rp by apropiacion
+// @Param	vigencia		path 	int 	true		"vigencia de las solicitudes a consultar"
 // @Success 200 {object} models.SolicitudRp
-// @Failure 403 :id is empty
-// @router /GetSolicitudesRp [get]
+// @Failure 403 :vigencia is empty
+// @router /GetSolicitudesRp/:vigencia [get]
 func (c *RegistroPresupuestalController) GetSolicitudesRp() {
-	var solicitudes_rp []interface{}
-	var respuesta []models.SolicitudRp
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false&sortby=Id&order=desc", &solicitudes_rp); err == nil {
-		if solicitudes_rp != nil {
-			//encontrar datos del CDP objetivo del RP Solicitado
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	if err == nil {
+		var solicitudes_rp []interface{}
+		var respuesta []models.SolicitudRp
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
+			if solicitudes_rp != nil {
+				//encontrar datos del CDP objetivo del RP Solicitado
 
-			done := make(chan interface{})
-			defer close(done)
-			resch := utilidades.GenChanInterface(solicitudes_rp...)
-			chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch)
-			for solicitud := range chsolicitud {
-				respuesta = append(respuesta, solicitud.(models.SolicitudRp))
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(solicitudes_rp...)
+				chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch)
+				for solicitud := range chsolicitud {
+					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
+				}
+				c.Data["json"] = respuesta
+			} else {
+				//si no hay datos de solicitudes
+				c.Data["json"] = "sin datos"
 			}
-			c.Data["json"] = respuesta
 		} else {
-			//si no hay datos de solicitudes
-			c.Data["json"] = "sin datos"
+			//si ocurre error al traer las solicitudes
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			fmt.Println(err.Error())
 		}
 	} else {
-		//si ocurre error al traer las solicitudes
-		c.Data["json"] = err
-		fmt.Println(err.Error())
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 	}
 	c.ServeJSON()
 }
