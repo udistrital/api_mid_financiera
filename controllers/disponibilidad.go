@@ -110,6 +110,9 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 	var respuesta []map[string]interface{}
 	var limit int64 = 10
 	var offset int64
+	var startrange string
+	var endrange string
+	var query string
 	// limit: 10 (default is 10)
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
@@ -118,7 +121,20 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 	if v, err := c.GetInt64("offset"); err == nil {
 		offset = v
 	}
-	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia), &disponibilidades); err == nil {
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	}
+	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &disponibilidades); err == nil {
 		if disponibilidades != nil {
 			done := make(chan interface{})
 			defer close(done)
