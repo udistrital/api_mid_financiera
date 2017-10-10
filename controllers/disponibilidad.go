@@ -47,28 +47,28 @@ func formatoListaCDP(disponibilidad interface{}) (res interface{}) {
 						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
 							//temp.DependenciaDestino = &depDest[0]
 						} else {
-							return
+
 						}
 						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
 							//temp.DependenciaSolicitante = &depSol[0]
 
 						} else {
-							return
+
 						}
 						fmt.Println(depNes[0].OrdenadorGasto)
 						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
 							//temp.DependenciaSolicitante = &depSol[0]
 
 						} else {
-							return
+
 						}
 						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
 							//temp.DependenciaDestino = &depDest[0]
 						} else {
-							return
+
 						}
 					} else {
-						return
+
 					}
 
 					if depSol == nil {
@@ -98,6 +98,8 @@ func formatoListaCDP(disponibilidad interface{}) (res interface{}) {
 // @Title ListaDisponibilidades
 // @Description get Disponibilidad by vigencia
 // @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Success 200 {object} models.Disponibilidad
 // @Failure 403
 // @router ListaDisponibilidades/:vigencia [get]
@@ -106,7 +108,17 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 	vigencia, err := strconv.Atoi(vigenciaStr)
 	var disponibilidades []interface{}
 	var respuesta []map[string]interface{}
-	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=-1&query=Vigencia:"+strconv.Itoa(vigencia), &disponibilidades); err == nil {
+	var limit int64 = 10
+	var offset int64
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia), &disponibilidades); err == nil {
 		if disponibilidades != nil {
 			done := make(chan interface{})
 			defer close(done)
