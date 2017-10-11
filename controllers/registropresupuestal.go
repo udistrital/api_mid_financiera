@@ -142,6 +142,80 @@ func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
 	return solicitud
 }
 
+//funcion para recopilar datos externos de los rp a listar
+func FormatoListaRP(rpintfc interface{}) (res interface{}) {
+	rp := rpintfc.(map[string]interface{})
+	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]map[string]interface{})[0]["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
+	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
+
+	if err == nil {
+		rp["SolicitudDisponibilidad"] = solicituddisp
+		return rp
+	}
+	return nil
+}
+
+// ListaRp ...
+// @Title ListaRp
+// @Description get RP by vigencia
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Success 200 {object} models.RegistroPresupuestal
+// @Failure 403
+// @router ListaRp/:vigencia [get]
+func (c *RegistroPresupuestalController) ListaRp() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	var rpresupuestal []interface{}
+	var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	}
+	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &rpresupuestal); err == nil {
+		if rpresupuestal != nil {
+			done := make(chan interface{})
+			defer close(done)
+			resch := utilidades.GenChanInterface(rpresupuestal...)
+			chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch)
+			for rp := range chrpresupuestal {
+				respuesta = append(respuesta, rp.(map[string]interface{}))
+			}
+			c.Data["json"] = respuesta
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+	c.ServeJSON()
+}
+
 // GetSolicitudesRp ...
 // @Title GetSolicitudesRp
 // @Description get saldo rp by apropiacion
