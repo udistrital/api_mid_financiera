@@ -145,11 +145,11 @@ func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
 //funcion para recopilar datos externos de los rp a listar
 func FormatoListaRP(rpintfc interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
-	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]map[string]interface{})[0]["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
+	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
 	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
 	if err == nil {
-		rp["SolicitudDisponibilidad"] = solicituddisp
+		rp["InfoSolicitudDisponibilidad"] = solicituddisp
 		return rp
 	}
 	return nil

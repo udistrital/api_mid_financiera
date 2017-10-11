@@ -37,54 +37,68 @@ func formatoListaCDP(disponibilidad interface{}) (res interface{}) {
 			//var temp models.InfoSolDisp
 			//temp.SolicitudDisponibilidad = &resultado
 			if err := getJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(resultado.Necesidad.Id), &necesidad); err == nil {
-				necesidadaux := necesidad[0]
-				resultado.Necesidad = &necesidadaux
+				if necesidad != nil {
+					necesidadaux := necesidad[0]
+					resultado.Necesidad = &necesidadaux
+					fmt.Println(necesidadaux)
+					if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
+						//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
+						if depNes != nil {
+							if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+								//temp.DependenciaSolicitante = &depSol[0]
+								if jefe_dep_sol != nil {
+									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+										//temp.DependenciaDestino = &depDest[0]
+									} else {
 
-				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
-					//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
-					if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-						//temp.DependenciaSolicitante = &depSol[0]
-						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
-							//temp.DependenciaDestino = &depDest[0]
+									}
+									if depSol != nil {
+										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+											//temp.DependenciaSolicitante = &depSol[0]
+
+										} else {
+
+										}
+										fmt.Println(depNes[0].OrdenadorGasto)
+										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
+											//temp.DependenciaSolicitante = &depSol[0]
+
+										} else {
+
+										}
+										if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
+											//temp.DependenciaDestino = &depDest[0]
+										} else {
+
+										}
+									}
+								} else {
+
+								}
+							} else {
+								fmt.Println(err)
+							}
 						} else {
 
 						}
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
-							//temp.DependenciaSolicitante = &depSol[0]
 
-						} else {
-
+						if depSol == nil {
+							depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
 						}
-						fmt.Println(depNes[0].OrdenadorGasto)
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
-							//temp.DependenciaSolicitante = &depSol[0]
-
-						} else {
-
+						if depDest == nil {
+							depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
 						}
-						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
-							//temp.DependenciaDestino = &depDest[0]
-						} else {
+						temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
+						row["Solicitud"] = temp
 
-						}
 					} else {
 
 					}
-
-					if depSol == nil {
-						depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
-					}
-					if depDest == nil {
-						depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
-					}
-					temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
-					row["Solicitud"] = temp
-
 				} else {
-					return
+
 				}
 			} else {
-				return
+
 			}
 		}
 
@@ -313,7 +327,6 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 // @router SolicitudById/:id [get]
 func (this *DisponibilidadController) InfoSolicitudDisponibilidadById() {
 	var solicitud []models.SolicitudDisponibilidad
-	var res []models.InfoSolDisp
 	idStr := this.Ctx.Input.Param(":id")
 	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+idStr, &solicitud); err == nil {
 
@@ -327,68 +340,81 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidadById() {
 			//var temp models.InfoSolDisp
 			//temp.SolicitudDisponibilidad = &resultado
 			if err := getJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(resultado.Necesidad.Id), &necesidad); err == nil {
-				necesidadaux := necesidad[0]
-				resultado.Necesidad = &necesidadaux
+				if necesidad != nil {
+					necesidadaux := necesidad[0]
+					resultado.Necesidad = &necesidadaux
+					fmt.Println(necesidadaux)
+					if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
+						//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
+						if depNes != nil {
+							if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+								//temp.DependenciaSolicitante = &depSol[0]
+								if jefe_dep_sol != nil {
+									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+										//temp.DependenciaDestino = &depDest[0]
+									} else {
+										this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+									}
+									if depSol != nil {
+										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+											//temp.DependenciaSolicitante = &depSol[0]
 
-				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
-					//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
-					if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-						//temp.DependenciaSolicitante = &depSol[0]
-						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
-							//temp.DependenciaDestino = &depDest[0]
-						} else {
-							this.Data["json"] = err.Error()
-							fmt.Println("error4: ", err)
-						}
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
-							//temp.DependenciaSolicitante = &depSol[0]
+										} else {
+											this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 
-						} else {
-							this.Data["json"] = err.Error()
-							fmt.Println("error5: ", err)
-						}
-						fmt.Println(depNes[0].OrdenadorGasto)
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
-							//temp.DependenciaSolicitante = &depSol[0]
+										}
+										fmt.Println(depNes[0].OrdenadorGasto)
+										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
+											//temp.DependenciaSolicitante = &depSol[0]
 
+										} else {
+											this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
+										}
+										if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
+											//temp.DependenciaDestino = &depDest[0]
+										} else {
+											this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
+										}
+									}
+								} else {
+									this.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+								}
+							} else {
+								fmt.Println(err)
+							}
 						} else {
-							this.Data["json"] = err.Error()
-							fmt.Println("error5: ", err)
+							this.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+
 						}
-						if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
-							//temp.DependenciaDestino = &depDest[0]
-						} else {
-							this.Data["json"] = err.Error()
-							fmt.Println("error4: ", err)
+
+						if depSol == nil {
+							depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
 						}
+						if depDest == nil {
+							depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
+						}
+						temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
+						this.Data["json"] = temp
+
 					} else {
-						this.Data["json"] = err.Error()
-						fmt.Println("error5: ", err)
-					}
+						this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 
-					if depSol == nil {
-						depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
 					}
-					if depDest == nil {
-						depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
-					}
-					temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
-					res = append(res, temp)
 				} else {
-					this.Data["json"] = err.Error()
-					fmt.Println("error3: ", err)
+					this.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+
 				}
 			} else {
-				this.Data["json"] = err.Error()
-				fmt.Println("error2: ", err)
+				this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
 			}
 		}
 
-		this.Data["json"] = res
-		fmt.Println("solicitud: ", solicitud)
 	} else {
-		this.Data["json"] = err.Error()
-		fmt.Println("error1: ", err)
+		this.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
 	}
 	this.ServeJSON()
 }
@@ -404,55 +430,69 @@ func DetalleSolicitudDisponibilidadById(idStr string) (res models.InfoSolDisp, e
 		var necesidad []models.Necesidad
 		//var temp models.InfoSolDisp
 		//temp.SolicitudDisponibilidad = &resultado
-		if err = getJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(resultado.Necesidad.Id), &necesidad); err == nil {
-			necesidadaux := necesidad[0]
-			resultado.Necesidad = &necesidadaux
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(resultado.Necesidad.Id), &necesidad); err == nil {
+			if necesidad != nil {
+				necesidadaux := necesidad[0]
+				resultado.Necesidad = &necesidadaux
+				fmt.Println(necesidadaux)
+				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
+					//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
+					if depNes != nil {
+						if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
+							//temp.DependenciaSolicitante = &depSol[0]
+							if jefe_dep_sol != nil {
+								if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+									//temp.DependenciaDestino = &depDest[0]
+								} else {
 
-			if err = getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
-				//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
-				if err = getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-					//temp.DependenciaSolicitante = &depSol[0]
-					if err = getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
-						//temp.DependenciaDestino = &depDest[0]
-					} else {
-						return
-					}
-					if err = getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
-						//temp.DependenciaSolicitante = &depSol[0]
+								}
+								if depSol != nil {
+									if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+										//temp.DependenciaSolicitante = &depSol[0]
 
-					} else {
-						return
-					}
-					fmt.Println(depNes[0].OrdenadorGasto)
-					if err = getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
-						//temp.DependenciaSolicitante = &depSol[0]
+									} else {
 
+									}
+									fmt.Println(depNes[0].OrdenadorGasto)
+									if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
+										//temp.DependenciaSolicitante = &depSol[0]
+
+									} else {
+
+									}
+									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
+										//temp.DependenciaDestino = &depDest[0]
+									} else {
+
+									}
+								}
+							} else {
+
+							}
+						} else {
+							fmt.Println(err)
+						}
 					} else {
-						return
+
 					}
-					if err = getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
-						//temp.DependenciaDestino = &depDest[0]
-					} else {
-						return
+
+					if depSol == nil {
+						depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
 					}
+					if depDest == nil {
+						depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
+					}
+					temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
+					return temp, nil
+
 				} else {
 
 				}
-
-				if depSol == nil {
-					depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
-				}
-				if depDest == nil {
-					depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
-				}
-				temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: depSol[0], DependenciaDestino: depDest[0]}
-				return temp, nil
-
 			} else {
-				return
+
 			}
 		} else {
-			return
+
 		}
 
 	} else {
