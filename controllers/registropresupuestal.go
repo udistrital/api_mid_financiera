@@ -142,35 +142,116 @@ func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
 	return solicitud
 }
 
-// GetSolicitudesRp ...
-// @Title GetSolicitudesRp
-// @Description get saldo rp by apropiacion
-// @Success 200 {object} models.SolicitudRp
-// @Failure 403 :id is empty
-// @router /GetSolicitudesRp [get]
-func (c *RegistroPresupuestalController) GetSolicitudesRp() {
-	var solicitudes_rp []interface{}
-	var respuesta []models.SolicitudRp
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false&sortby=Id&order=desc", &solicitudes_rp); err == nil {
-		if solicitudes_rp != nil {
-			//encontrar datos del CDP objetivo del RP Solicitado
+//funcion para recopilar datos externos de los rp a listar
+func FormatoListaRP(rpintfc interface{}) (res interface{}) {
+	rp := rpintfc.(map[string]interface{})
+	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
+	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
+	if err == nil {
+		rp["InfoSolicitudDisponibilidad"] = solicituddisp
+		return rp
+	}
+	return nil
+}
+
+// ListaRp ...
+// @Title ListaRp
+// @Description get RP by vigencia
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Success 200 {object} models.RegistroPresupuestal
+// @Failure 403
+// @router ListaRp/:vigencia [get]
+func (c *RegistroPresupuestalController) ListaRp() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	var rpresupuestal []interface{}
+	var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	}
+	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &rpresupuestal); err == nil {
+		if rpresupuestal != nil {
 			done := make(chan interface{})
 			defer close(done)
-			resch := utilidades.GenChanInterface(solicitudes_rp...)
-			chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch)
-			for solicitud := range chsolicitud {
-				respuesta = append(respuesta, solicitud.(models.SolicitudRp))
+			resch := utilidades.GenChanInterface(rpresupuestal...)
+			chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch)
+			for rp := range chrpresupuestal {
+				respuesta = append(respuesta, rp.(map[string]interface{}))
 			}
 			c.Data["json"] = respuesta
 		} else {
-			//si no hay datos de solicitudes
-			c.Data["json"] = "sin datos"
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 		}
 	} else {
-		//si ocurre error al traer las solicitudes
-		c.Data["json"] = err
-		fmt.Println(err.Error())
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+// GetSolicitudesRp ...
+// @Title GetSolicitudesRp
+// @Description get saldo rp by apropiacion
+// @Param	vigencia		path 	int 	true		"vigencia de las solicitudes a consultar"
+// @Success 200 {object} models.SolicitudRp
+// @Failure 403 :vigencia is empty
+// @router /GetSolicitudesRp/:vigencia [get]
+func (c *RegistroPresupuestalController) GetSolicitudesRp() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	if err == nil {
+		var solicitudes_rp []interface{}
+		var respuesta []models.SolicitudRp
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
+			if solicitudes_rp != nil {
+				//encontrar datos del CDP objetivo del RP Solicitado
+
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(solicitudes_rp...)
+				chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch)
+				for solicitud := range chsolicitud {
+					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
+				}
+				c.Data["json"] = respuesta
+			} else {
+				//si no hay datos de solicitudes
+				c.Data["json"] = "sin datos"
+			}
+		} else {
+			//si ocurre error al traer las solicitudes
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			fmt.Println(err.Error())
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 	}
 	c.ServeJSON()
 }
@@ -389,6 +470,107 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 		dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 	}
 	c.Data["json"] = dataAlertas //respuesta de las alertas generadas durante el proceso.
+	c.ServeJSON()
+
+}
+
+func ListaNecesidadesByRp(solicitudintfc interface{}) (res interface{}) {
+	solicitud, e := solicitudintfc.(map[string]interface{})
+	var rp []map[string]interface{}
+	if e {
+		idSol, e := solicitud["Id"].(float64)
+		if e {
+			if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Disponibilidad.Solicitud:"+strconv.Itoa(int(idSol)), &rp); err == nil {
+				if rp != nil {
+					solicitud["InfoRp"] = rp[0]
+					return solicitud
+				} else {
+					return nil
+				}
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+}
+
+// ListaNecesidadesByRp ...
+// @Title ListaNecesidadesByRp
+// @Description Lsta de las necesidades origen de los rp registrados
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	tipoNecesidad	query	string	false	"tipo de la necesidad origen del rp"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /ListaNecesidadesByRp/:vigencia [get]
+func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	var solicitudNecesidad []interface{}
+	var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	var tipoNecesidad string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
+
+	}
+	if r := c.GetString("tipoNecesidad"); r != "" {
+		tipoNecesidad = r
+		//peticion a los rp expedidos
+		if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+",Necesidad.TipoNecesidad.CodigoAbreviacion:"+tipoNecesidad+query, &solicitudNecesidad); err == nil {
+			if solicitudNecesidad != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(solicitudNecesidad...)
+				chsolicitud := utilidades.Digest(done, ListaNecesidadesByRp, resch)
+				for solicitud := range chsolicitud {
+					if solicitud != nil {
+						respuesta = append(respuesta, solicitud.(map[string]interface{}))
+					}
+				}
+				c.Data["json"] = respuesta
+			} else {
+				//si no encuentra solicitudes...
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
+		} else {
+			//si ocurre error al traer las solicitudes
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			fmt.Println(err.Error())
+		}
+
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "TipoNecesidad lost", Type: "error"}
+	}
+
 	c.ServeJSON()
 
 }
