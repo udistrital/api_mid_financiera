@@ -44,15 +44,7 @@ func (c *OrdenPagoNominaController) MidCrearOPNomina() {
 			c.ServeJSON()
 			return
 		}
-		Preliquidacion, e := m["Preliquidacion"].(float64)
-		if e != true {
-			alerta.Type = "error"
-			alerta.Code = "E_OPN_01_2"
-			alerta.Body = err.Error()
-			c.Data["json"] = alerta
-			c.ServeJSON()
-			return
-		}
+		Preliquidacion := OrdenPago["Liquidacion"].(float64)
 		Usuario, e := m["Usuario"].(map[string]interface{})
 		if e != true {
 			alerta.Type = "error"
