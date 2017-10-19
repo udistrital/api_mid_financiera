@@ -21,23 +21,32 @@ func (c *OrdenPagoNominaController) URLMapping() {
 
 }
 
-// Post ...
+// MidCrearOPNomina ...
 // @Title Create
 // @Description create Orden_pago_planta
 // @Param	body		body 	models.Orden_pago_planta	true		"body for Orden_pago_planta content"
 // @Success 201 {object} models.Orden_pago_planta
 // @Failure 403 body is empty
-// @router / [post]
-func (c *OrdenPagoNominaController) Post() {
+// @router MidCrearOPNomina [post]
+func (c *OrdenPagoNominaController) MidCrearOPNomina() {
 	var alerta models.Alert
 	var v interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		m := v.(map[string]interface{})
-		var detalle []interface{}
-		var idLiquidacion int
-		//
-		err = utilidades.FillStruct(m["Liquidacion"], &idLiquidacion)
-		if err != nil {
+		var DetallePreliquidacion []interface{}
+
+		OrdenPago, e := m["OrdenPago"].(map[string]interface{})
+		if e != true {
+			alerta.Type = "error"
+			alerta.Code = "E_OPN_01_2"
+			alerta.Body = err.Error()
+			c.Data["json"] = alerta
+			c.ServeJSON()
+			return
+		}
+		Preliquidacion := OrdenPago["Liquidacion"].(float64)
+		Usuario, e := m["Usuario"].(map[string]interface{})
+		if e != true {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_2"
 			alerta.Body = err.Error()
@@ -46,7 +55,7 @@ func (c *OrdenPagoNominaController) Post() {
 			return
 		}
 		// get data titan
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_liquidacion?query=Liquidacion:"+strconv.Itoa(idLiquidacion)+"&sortby=Concepto&order=desc", &detalle); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+strconv.FormatFloat(Preliquidacion, 'f', 0, 64)+"&sortby=Concepto&order=desc", &DetallePreliquidacion); err == nil {
 		} else {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_3"
@@ -56,7 +65,7 @@ func (c *OrdenPagoNominaController) Post() {
 			return
 		}
 		// Control si no existe detalle de liquidacion
-		if len(detalle) == 0 {
+		if len(DetallePreliquidacion) == 0 {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_4"
 			alerta.Body = ""
@@ -68,11 +77,12 @@ func (c *OrdenPagoNominaController) Post() {
 		type Send struct {
 			OrdenPago          interface{}
 			DetalleLiquidacion []interface{}
+			Usuario            interface{}
 		}
-		total := Send{OrdenPago: m, DetalleLiquidacion: detalle}
+		sendData2Kronos := Send{OrdenPago: OrdenPago, DetalleLiquidacion: DetallePreliquidacion, Usuario: Usuario}
 		var outputData interface{}
 		//Envia data to kronos
-		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpNomina", "POST", &outputData, &total); err == nil {
+		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/RegistrarOpNomina", "POST", &outputData, &sendData2Kronos); err == nil {
 		} else {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_5"
