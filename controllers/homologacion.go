@@ -21,13 +21,14 @@ func (c *HomologacionController) URLMapping() {
 // @Title MidHomologacionLiquidacion
 // @Description homologa conceptos de titan con conceptos kronos
 // @Param	idPreliquidacion	identificador de la liquidación de titan
+// @Param	vigencia	vigencia para realizar la homologacion
 // @Success 201 {object} models.Conceptos
 // @Failure 403 body is empty
-// @router /MidHomologacionLiquidacion/:idPreliquidacion [get]
+// @router /MidHomologacionLiquidacion/:idPreliquidacion/:vigencia [get]
 func (c *HomologacionController) MidHomologacionLiquidacion() {
 	idPreliquidacionStr := c.Ctx.Input.Param(":idPreliquidacion")
-	idPreliquidacion, _ := strconv.Atoi(idPreliquidacionStr)
-	fmt.Println(idPreliquidacion)
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, _ := strconv.Atoi(vigenciaStr)
 	var DetallePreliquidacion []interface{}
 	var outputData interface{}
 
@@ -45,9 +46,16 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 		return
 	}
 
+	// estructura para enviar data a kronos
+	type Send struct {
+		DetalleLiquidacion []interface{}
+		Vigencia            int
+	}
+	sendData2Kronos := Send{DetalleLiquidacion: DetallePreliquidacion, Vigencia: vigencia}
+
 	fmt.Println("Para Kronos")
 	//Envia data to kronos
-	if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto/HomolgacionConceptosTitan/", "POST", &outputData, &DetallePreliquidacion); err == nil {
+	if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto/HomolgacionConceptosTitan/", "POST", &outputData, &sendData2Kronos); err == nil {
 	} else {
 		fmt.Println("AAAAAA")
 		fmt.Println(err.Error())
