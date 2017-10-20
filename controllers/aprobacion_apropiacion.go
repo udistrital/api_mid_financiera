@@ -110,11 +110,11 @@ func comprobar_apropiacion(padre models.Apropiacion) string {
 	var regla string
 	var apropiacion_hijo []models.Apropiacion
 	var hoja int
-	getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.FormatInt(padre.Rubro.Id, 10)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubro_hijo)
+	getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.Itoa(padre.Rubro.Id)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubro_hijo)
 	if rubro_hijo != nil {
 		for i := 0; i < len(rubro_hijo); i++ {
 
-			getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.FormatInt(rubro_hijo[i].RubroHijo.Id, 10)+"", &apropiacion_hijo)
+			getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.Itoa(rubro_hijo[i].RubroHijo.Id)+"", &apropiacion_hijo)
 			if apropiacion_hijo != nil {
 				hoja = 0
 				for i := 0; i < len(apropiacion_hijo); i++ {
@@ -189,26 +189,24 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 			saldo := make(map[string]interface{})
 			utilidades.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
 			for _, rpadre := range res {
-				var apropiacion []models.Apropiacion
-				if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Rubro.Codigo:"+rpadre, &apropiacion); err == nil {
-					if apropiacion != nil {
+				var rubro []models.Rubro
+				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro?query=Rubro.Codigo:" + rpadre)
+				if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro?query=Codigo:"+rpadre, &rubro); err == nil {
+					if rubro != nil {
 
-						if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.FormatInt(apropiacion[0].Rubro.Id, 10)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
+						if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.Itoa(rubro[0].Id)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
 							if saldo != nil {
-								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": apropiacion[0].Id, "Codigo": rpadre, "Nombre": apropiacion[0].Rubro.Nombre, "SaldoInicial": saldo["original"]})
+								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": rubro[0].Id, "Codigo": rpadre, "Nombre": rubro[0].Nombre, "SaldoInicial": saldo["original"]})
 							}
 						} else {
-							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-							c.ServeJSON()
+							fmt.Println(err)
 						}
 					} else {
-						c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-						c.ServeJSON()
+
 					}
 
 				} else {
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-					c.ServeJSON()
+					fmt.Println(err)
 				}
 
 			}
@@ -222,17 +220,20 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 				if err == nil {
 					c.Data["json"] = map[string]interface{}{"Aprobado": res, "Data": infoSaldoInicial}
 				} else {
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+					fmt.Println("nil2")
+
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
 			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 
 			}
 
 		} else {
+			fmt.Println(err)
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
 	} else {
+		fmt.Println(err)
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 	}
 	c.ServeJSON()
