@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/models"
 )
 
 // HomologacionController operations for homologation fo liquidation of titan
@@ -26,27 +26,33 @@ func (c *HomologacionController) URLMapping() {
 // @Failure 403 body is empty
 // @router /MidHomologacionLiquidacion/:idPreliquidacion/:vigencia [get]
 func (c *HomologacionController) MidHomologacionLiquidacion() {
+	var alerta models.Alert
 	idPreliquidacionStr := c.Ctx.Input.Param(":idPreliquidacion")
 	vigenciaStr := c.Ctx.Input.Param(":vigencia")
 	vigencia, _ := strconv.Atoi(vigenciaStr)
 	var DetallePreliquidacion []interface{}
 	var outputData interface{}
 
+	fmt.Print(Preliquidacion)
 	// get data titan
 	if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+idPreliquidacionStr+"&sortby=Concepto&order=desc&limit=-1", &DetallePreliquidacion); err == nil {
 	} else {
-		c.Data["json"] = err.Error()
+		alerta.Type = "error"
+		alerta.Code = "E_OPN_01_3"
+		alerta.Body = err.Error()
+		c.Data["json"] = alerta
 		c.ServeJSON()
 		return
 	}
 	// Control si no existe detalle de liquidacion
 	if len(DetallePreliquidacion) == 0 {
-		c.Data["json"] = "No existe DetallePreliquidacion"
+		alerta.Type = "error"
+		alerta.Code = "E_OPN_01_4"
+		alerta.Body = ""
+		c.Data["json"] = alerta
 		c.ServeJSON()
 		return
 	}
-
-	fmt.Println("Tamaño detalle preliquidacion: ", len(DetallePreliquidacion))
 
 	// estructura para enviar data a kronos
 	type Send struct {
@@ -54,15 +60,13 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 		Vigencia            int
 	}
 	sendData2Kronos := Send{DetalleLiquidacion: DetallePreliquidacion, Vigencia: vigencia}
-
-	fmt.Println("Para Kronos")
 	//Envia data to kronos
 	if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto/HomolgacionConceptosTitan/", "POST", &outputData, &sendData2Kronos); err == nil {
 	} else {
-		fmt.Println("AAAAAA")
-		fmt.Println(err.Error())
-		fmt.Println("AAAAAA")
-		c.Data["json"] = err.Error()
+		alerta.Type = "error"
+		alerta.Code = "E_OPN_01_5"
+		alerta.Body = "[POST] /homologacion_concepto/HomolgacionConceptosTitan/"
+		c.Data["json"] = alerta
 		c.ServeJSON()
 		return
 	}
