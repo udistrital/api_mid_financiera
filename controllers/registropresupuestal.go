@@ -168,7 +168,7 @@ func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}
 // @router ListaRp/:vigencia [get]
 func (c *RegistroPresupuestalController) ListaRp() {
 	vigenciaStr := c.Ctx.Input.Param(":vigencia")
-	vigencia, err := strconv.Atoi(vigenciaStr)
+	vigencia, err1 := strconv.Atoi(vigenciaStr)
 	var rpresupuestal []interface{}
 	var respuesta []map[string]interface{}
 	var limit int64 = 10
@@ -197,22 +197,28 @@ func (c *RegistroPresupuestalController) ListaRp() {
 		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
 
 	}
-	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &rpresupuestal); err == nil {
-		if rpresupuestal != nil {
-			done := make(chan interface{})
-			defer close(done)
-			resch := utilidades.GenChanInterface(rpresupuestal...)
-			chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch, nil)
-			for rp := range chrpresupuestal {
-				respuesta = append(respuesta, rp.(map[string]interface{}))
+	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
+	if err1 == nil && err2 == nil {
+		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora:"+strconv.Itoa(UnidadEjecutora)+",Vigencia:"+strconv.Itoa(vigencia)+query, &rpresupuestal); err == nil {
+			if rpresupuestal != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(rpresupuestal...)
+				chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch, nil)
+				for rp := range chrpresupuestal {
+					respuesta = append(respuesta, rp.(map[string]interface{}))
+				}
+				c.Data["json"] = respuesta
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
-			c.Data["json"] = respuesta
 		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
+
 	c.ServeJSON()
 }
 
