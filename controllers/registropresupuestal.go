@@ -219,17 +219,51 @@ func (c *RegistroPresupuestalController) ListaRp() {
 // GetSolicitudesRp ...
 // @Title GetSolicitudesRp
 // @Description get saldo rp by apropiacion
-// @Param	vigencia		path 	int 	true		"vigencia de las solicitudes a consultar"
+// @Param	vigencia	query	string	false	"vigencia de las solicitudes a consultar"
+// @Param	UnidadEjecutora	query	string	false	"unidad ejecutora de las solicitudes a consultar"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
 // @Success 200 {object} models.SolicitudRp
 // @Failure 403 :vigencia is empty
 // @router /GetSolicitudesRp/:vigencia [get]
 func (c *RegistroPresupuestalController) GetSolicitudesRp() {
+
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
+
+	}
 	vigenciaStr := c.Ctx.Input.Param(":vigencia")
-	vigencia, err := strconv.Atoi(vigenciaStr)
-	if err == nil {
+	vigencia, err1 := strconv.Atoi(vigenciaStr)
+	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
+	fmt.Println(UnidadEjecutora)
+	if err1 == nil && err2 == nil {
 		var solicitudes_rp []interface{}
 		var respuesta []models.SolicitudRp
-		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
 			if solicitudes_rp != nil {
 				//encontrar datos del CDP objetivo del RP Solicitado
 
@@ -243,7 +277,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 				c.Data["json"] = respuesta
 			} else {
 				//si no hay datos de solicitudes
-				c.Data["json"] = "sin datos"
+				c.Data["json"] = nil
 			}
 		} else {
 			//si ocurre error al traer las solicitudes
@@ -251,7 +285,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 			fmt.Println(err.Error())
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
 	c.ServeJSON()
 }

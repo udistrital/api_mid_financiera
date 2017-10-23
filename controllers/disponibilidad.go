@@ -291,6 +291,8 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 // @Param	UnidadEjecutora	query	string	false	"unidad ejecutora de las solicitudes a consultar"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
 // @Success 200 {object} models.InfoSolDisp
 // @Failure 403
 // @router Solicitudes/:vigencia [get]
