@@ -112,6 +112,7 @@ func formatoListaCDP(disponibilidad interface{}, params ...interface{}) (res int
 // @Title ListaDisponibilidades
 // @Description get Disponibilidad by vigencia
 // @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	UnidadEjecutora	query	string	false	"unidad ejecutora de las solicitudes a consultar"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
@@ -120,8 +121,6 @@ func formatoListaCDP(disponibilidad interface{}, params ...interface{}) (res int
 // @Failure 403
 // @router ListaDisponibilidades/:vigencia [get]
 func (c *DisponibilidadController) ListaDisponibilidades() {
-	vigenciaStr := c.Ctx.Input.Param(":vigencia")
-	vigencia, err := strconv.Atoi(vigenciaStr)
 	var disponibilidades []interface{}
 	var respuesta []map[string]interface{}
 	var limit int64 = 10
@@ -150,22 +149,30 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
 
 	}
-	if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &disponibilidades); err == nil {
-		if disponibilidades != nil {
-			done := make(chan interface{})
-			defer close(done)
-			resch := utilidades.GenChanInterface(disponibilidades...)
-			chdisponibilidades := utilidades.Digest(done, formatoListaCDP, resch, nil)
-			for disponibilidad := range chdisponibilidades {
-				respuesta = append(respuesta, disponibilidad.(map[string]interface{}))
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err1 := strconv.Atoi(vigenciaStr)
+	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
+	if err1 == nil && err2 == nil {
+		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+",DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora:"+strconv.Itoa(UnidadEjecutora)+query, &disponibilidades); err == nil {
+			if disponibilidades != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(disponibilidades...)
+				chdisponibilidades := utilidades.Digest(done, formatoListaCDP, resch, nil)
+				for disponibilidad := range chdisponibilidades {
+					respuesta = append(respuesta, disponibilidad.(map[string]interface{}))
+				}
+				c.Data["json"] = respuesta
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
-			c.Data["json"] = respuesta
 		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
+
 	c.ServeJSON()
 }
 
