@@ -24,7 +24,7 @@ func (c *RegistroPresupuestalController) URLMapping() {
 	c.Mapping("GetSolicitudesRpById", c.GetSolicitudesRpById)
 }
 
-func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
+func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
 	//recuperar datos del CDP objetivo de la solicitud
 	var rubros []interface{}
 	solicitud := models.SolicitudRp{}
@@ -143,7 +143,7 @@ func formatoSolicitudRP(solicitudintfc interface{}) (res interface{}) {
 }
 
 //funcion para recopilar datos externos de los rp a listar
-func FormatoListaRP(rpintfc interface{}) (res interface{}) {
+func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
 	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
 	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
@@ -202,7 +202,7 @@ func (c *RegistroPresupuestalController) ListaRp() {
 			done := make(chan interface{})
 			defer close(done)
 			resch := utilidades.GenChanInterface(rpresupuestal...)
-			chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch)
+			chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch, nil)
 			for rp := range chrpresupuestal {
 				respuesta = append(respuesta, rp.(map[string]interface{}))
 			}
@@ -236,7 +236,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(solicitudes_rp...)
-				chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch)
+				chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
 				for solicitud := range chsolicitud {
 					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
 				}
@@ -474,7 +474,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 
 }
 
-func ListaNecesidadesByRp(solicitudintfc interface{}) (res interface{}) {
+func ListaNecesidadesByRp(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
 	solicitud, e := solicitudintfc.(map[string]interface{})
 	var rp []map[string]interface{}
 	if e {
@@ -550,7 +550,7 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(solicitudNecesidad...)
-				chsolicitud := utilidades.Digest(done, ListaNecesidadesByRp, resch)
+				chsolicitud := utilidades.Digest(done, ListaNecesidadesByRp, resch, nil)
 				for solicitud := range chsolicitud {
 					if solicitud != nil {
 						respuesta = append(respuesta, solicitud.(map[string]interface{}))

@@ -90,7 +90,7 @@ func init() {
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"],
 		beego.ControllerComments{
 			Method: "InfoSolicitudDisponibilidad",
-			Router: `Solicitudes/`,
+			Router: `Solicitudes/:vigencia`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
