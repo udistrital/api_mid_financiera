@@ -33,7 +33,6 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 	var DetallePreliquidacion []interface{}
 	var outputData interface{}
 
-	fmt.Print(Preliquidacion)
 	// get data titan
 	if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+idPreliquidacionStr+"&sortby=Concepto&order=desc&limit=-1", &DetallePreliquidacion); err == nil {
 	} else {
