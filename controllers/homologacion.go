@@ -33,7 +33,7 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 	var outputData interface{}
 
 	// get data titan
-	if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+idPreliquidacionStr+"&sortby=Concepto&order=desc", &DetallePreliquidacion); err == nil {
+	if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+idPreliquidacionStr+"&sortby=Concepto&order=desc&limit=-1", &DetallePreliquidacion); err == nil {
 	} else {
 		c.Data["json"] = err.Error()
 		c.ServeJSON()
@@ -45,6 +45,8 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 		c.ServeJSON()
 		return
 	}
+
+	fmt.Println("Tamaño detalle preliquidacion: ", len(DetallePreliquidacion))
 
 	// estructura para enviar data a kronos
 	type Send struct {
