@@ -197,3 +197,61 @@ func (c *OrdenPagoNominaController) CrearOPSeguridadSocial() {
 		return
 	}
 }
+
+func formatoListaLiquidacion(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
+	row, e := dataLiquidacion.(map[string]interface{})
+	var infoPersona interface{}
+	if e {
+		if err := getJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
+			row["infoPersona"] = infoPersona
+			return row
+		} else {
+			return
+		}
+	} else {
+		return
+	}
+
+	return
+}
+
+// ListaLiquidacionNominaHomologada ...
+// @Title ListaLiquidacionNominaHomologada
+// @Description lista liquidaciones para ordenes de pago masivas.
+// @Param	idNomina	query	string	false	"nomina a listar"
+// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
+// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /ListaLiquidacionNominaHomologada [get]
+func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
+	idNomina, err1 := c.GetInt("idNomina")
+	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
+	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
+	if err1 == nil && err2 == nil && err3 == nil {
+		var respuesta []map[string]interface{}
+		var listaLiquidacion []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &listaLiquidacion); err == nil {
+			if listaLiquidacion != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(listaLiquidacion...)
+				chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
+				for dataLiquidacion := range chlistaLiquidacion {
+					if dataLiquidacion != nil {
+						respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+					}
+				}
+				c.Data["json"] = respuesta
+			} else {
+
+			}
+			c.Data["json"] = listaLiquidacion
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	c.ServeJSON()
+}
