@@ -206,7 +206,10 @@ func (c *RegistroPresupuestalController) ListaRp() {
 				resch := utilidades.GenChanInterface(rpresupuestal...)
 				chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch, nil)
 				for rp := range chrpresupuestal {
-					respuesta = append(respuesta, rp.(map[string]interface{}))
+					if rp != nil {
+						respuesta = append(respuesta, rp.(map[string]interface{}))
+					}
+					
 				}
 				c.Data["json"] = respuesta
 			} else {
