@@ -282,13 +282,20 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 					if dataLiquidacion != nil {
 						existe := false
 						for _, comp := range respuesta {
-							if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
-								comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
-								existe = true
+							fmt.Println(dataLiquidacion)
+							if comp["Concepto"] != nil {
+								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
+									comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+									existe = true
+								}
 							}
+
 						}
 						if !existe {
-							respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+							if dataLiquidacion.(map[string]interface{})["Concepto"] != nil {
+
+								respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+							}
 
 						}
 					}
