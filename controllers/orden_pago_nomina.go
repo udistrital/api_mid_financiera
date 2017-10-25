@@ -230,11 +230,12 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
 		var respuesta []map[string]interface{}
-		var listaLiquidacion []interface{}
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &listaLiquidacion); err == nil {
-			if listaLiquidacion != nil {
+		var liquidacion interface{}
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil {
 				done := make(chan interface{})
 				defer close(done)
+				listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
 				resch := utilidades.GenChanInterface(listaLiquidacion...)
 				chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
 				for dataLiquidacion := range chlistaLiquidacion {
@@ -242,9 +243,11 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 						respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
 					}
 				}
-				c.Data["json"] = respuesta
+				res := liquidacion.(map[string]interface{})
+				res["Contratos_por_preliq"] = respuesta
+				c.Data["json"] = res
 			} else {
-				c.Data["json"] = listaLiquidacion
+				c.Data["json"] = liquidacion
 			}
 
 		} else {
