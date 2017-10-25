@@ -152,7 +152,7 @@ func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}
 		rp["InfoSolicitudDisponibilidad"] = solicituddisp
 		return rp
 	}
-	return nil
+	return rp
 }
 
 // ListaRp ...

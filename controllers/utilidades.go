@@ -31,6 +31,24 @@ func sendJson(urlp string, trequest string, target interface{}, datajson interfa
 	return json.NewDecoder(r.Body).Decode(target)
 }
 
+func getJsonWSO2(urlp string, target interface{}) error {
+	b := new(bytes.Buffer)
+	//proxyUrl, err := url.Parse("http://10.20.4.15:3128")
+	//http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", urlp, b)
+	req.Header.Set("Accept", "application/json")
+	r, err := client.Do(req)
+	//r, err := http.Post(url, "application/json; charset=utf-8", b)
+	if err != nil {
+		beego.Error("error", err)
+		return err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Decode(target)
+}
+
 func getJson(urlp string, target interface{}) error {
 	//proxyUrl, err := url.Parse("http://10.20.4.15:3128")
 	//http.DefaultTransport = &http.Transport{Proxy: http.ProxyURL(proxyUrl)}
