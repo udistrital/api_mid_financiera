@@ -244,9 +244,9 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 				}
 				c.Data["json"] = respuesta
 			} else {
-
+				c.Data["json"] = listaLiquidacion
 			}
-			c.Data["json"] = listaLiquidacion
+
 		} else {
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
@@ -254,4 +254,81 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
 	c.ServeJSON()
+}
+
+// ListaConceptosNominaHomologados ...
+// @Title ListaConceptosNominaHomologados
+// @Description lista liquidaciones para ordenes de pago masivas.
+// @Param	nContrato	query	string	false	"nomina a listar"
+// @Param	vigenciaContrato	query	string	false	"mes de la liquidacion a listar"
+// @Param	idLiquidacion	query	string	false	"anio de la liquidacion a listar"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /ListaConceptosNominaHomologados [get]
+func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
+	nContrato := c.GetString("nContrato")
+	vigenciaContrato, err2 := c.GetInt("vigenciaContrato")
+	idLiquidacion, err3 := c.GetInt("idLiquidacion")
+	if nContrato != "" && err2 == nil && err3 == nil {
+		var respuesta []map[string]interface{}
+		var listaDetalles []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(idLiquidacion)+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(vigenciaContrato), &listaDetalles); err == nil {
+			if listaDetalles != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(listaDetalles...)
+				chlistaDetalles := utilidades.Digest(done, homologacionConceptos, resch, nil)
+				for dataLiquidacion := range chlistaDetalles {
+					if dataLiquidacion != nil {
+						existe := false
+						for _, comp := range respuesta {
+							if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
+								comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+								existe = true
+							}
+						}
+						if !existe {
+							respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+
+						}
+					}
+				}
+				c.Data["json"] = respuesta
+			} else {
+				c.Data["json"] = nil
+			}
+
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+func homologacionConceptos(dataConcepto interface{}, params ...interface{}) (res interface{}) {
+	dataConceptoAhomologar, e := dataConcepto.(map[string]interface{})
+	out := make(map[string]interface{})
+	if e {
+		var homologacion []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))), &homologacion); err == nil {
+
+			for _, conceptoKronos := range homologacion {
+				row, e := conceptoKronos.(map[string]interface{})
+				if e {
+					out["Concepto"] = row["ConceptoKronos"]
+					out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
+				} else {
+					return nil
+				}
+
+			}
+		} else {
+			return nil
+		}
+		return out
+	} else {
+		return nil
+	}
 }
