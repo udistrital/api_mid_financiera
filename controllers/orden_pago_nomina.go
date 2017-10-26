@@ -203,8 +203,15 @@ func formatoListaLiquidacion(dataLiquidacion interface{}, params ...interface{})
 	var infoPersona interface{}
 	if e {
 		if err := getJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
-			row["infoPersona"] = infoPersona
-			return row
+			row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]
+			fmt.Println(row["infoPersona"])
+			if e {
+				return row
+			} else {
+				fmt.Println("e")
+				return
+			}
+
 		} else {
 			return
 		}
@@ -235,17 +242,22 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 			if liquidacion != nil {
 				done := make(chan interface{})
 				defer close(done)
-				listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-				resch := utilidades.GenChanInterface(listaLiquidacion...)
-				chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
-				for dataLiquidacion := range chlistaLiquidacion {
-					if dataLiquidacion != nil {
-						respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+				if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+					listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+					resch := utilidades.GenChanInterface(listaLiquidacion...)
+					chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
+					for dataLiquidacion := range chlistaLiquidacion {
+						if dataLiquidacion != nil {
+							respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+						}
 					}
+					res := liquidacion.(map[string]interface{})
+					res["Contratos_por_preliq"] = respuesta
+					c.Data["json"] = res
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 				}
-				res := liquidacion.(map[string]interface{})
-				res["Contratos_por_preliq"] = respuesta
-				c.Data["json"] = res
+
 			} else {
 				c.Data["json"] = liquidacion
 			}
@@ -341,4 +353,128 @@ func homologacionConceptos(dataConcepto interface{}, params ...interface{}) (res
 	} else {
 		return nil
 	}
+}
+
+// CargueMasivoOp ...
+// @Title CargueMasivoOp
+// @Description lista liquidaciones para ordenes de pago masivas.
+// @Param	idNomina	query	string	false	"nomina a listar"
+// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
+// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
+// @Param   OrdenPago       map[string]string	true		"body for OrdenPago content"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /CargueMasivoOp [post]
+func (c *OrdenPagoNominaController) CargueMasivoOp() {
+	idNomina, err1 := c.GetInt("idNomina")
+	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
+	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
+	if err1 == nil && err2 == nil && err3 == nil {
+		var respuesta []interface{}
+		var liquidacion interface{}
+		infoOpGeneral := make(map[string]interface{})
+		//leer json con info general de la op
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &infoOpGeneral); err == nil {
+			if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+				if liquidacion != nil {
+					done := make(chan interface{})
+					defer close(done)
+					if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+						listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+						resch := utilidades.GenChanInterface(listaLiquidacion...)
+						var params []interface{}
+						params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+						chlistaLiquidacion := utilidades.Digest(done, formatoRegistroOp, resch, params)
+						for dataLiquidacion := range chlistaLiquidacion {
+							if dataLiquidacion != nil {
+								respuesta = append(respuesta, dataLiquidacion)
+							}
+						}
+						c.Data["json"] = respuesta
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+					}
+
+				}
+			} else {
+				//error consumo de servicio titan. Lista contratos por liqu
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		} else {
+			//error al recibir datos genrales de la op
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+		fmt.Println(idNomina, mesLiquidacion, anioLiquidacion)
+	} else {
+		//no se enviaron los parametros necesarios
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+func formatoRegistroOp(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
+	idLiquidacion, e := params[0].(float64)
+	if e {
+		var respuesta []map[string]interface{}
+		var listaDetalles []interface{}
+		var valorTotal float64
+		valorTotal = 0
+		nContrato, e := dataLiquidacion.(map[string]interface{})["NumeroContrato"].(string)
+		if !e {
+			return nil
+		}
+		vigenciaContrato, e := dataLiquidacion.(map[string]interface{})["VigenciaContrato"].(float64)
+		if !e {
+			return nil
+		}
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
+			if listaDetalles != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(listaDetalles...)
+				chlistaDetalles := utilidades.Digest(done, homologacionConceptos, resch, nil)
+				for dataLiquidacion := range chlistaDetalles {
+					if dataLiquidacion != nil {
+						existe := false
+
+						for _, comp := range respuesta {
+
+							if comp["Concepto"] != nil {
+								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
+									comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+									existe = true
+									valorTotal = valorTotal + comp["Valor"].(float64)
+								}
+							}
+
+						}
+						if !existe {
+							if dataLiquidacion.(map[string]interface{})["Concepto"] != nil {
+								valorTotal = valorTotal + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+								respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+							}
+
+						}
+					}
+				}
+				res := make(map[string]interface{})
+				res["ValorBase"] = valorTotal
+				filtrorp := formatoListaLiquidacion(dataLiquidacion, nil)
+				if filtrorp != nil {
+					res["FiltroRp"], e = filtrorp.(map[string]interface{})["infoPersona"].(map[string]interface{})["Documento"].(map[string]interface{})["numero"]
+				}
+				res["Conceptos"] = respuesta
+				return res
+			} else {
+				return nil
+			}
+
+		} else {
+			return nil
+		}
+	} else {
+		fmt.Println("err")
+		return nil
+	}
+	return
 }
