@@ -292,12 +292,13 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(listaDetalles...)
-				chlistaDetalles := utilidades.Digest(done, homologacionConceptos, resch, nil)
+				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
+				chlistaDetalles := utilidades.Digest(done, f, resch, nil)
 				for dataLiquidacion := range chlistaDetalles {
 					if dataLiquidacion != nil {
 						existe := false
 						for _, comp := range respuesta {
-							fmt.Println(dataLiquidacion)
+
 							if comp["Concepto"] != nil {
 								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
 									comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
@@ -329,11 +330,26 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 	c.ServeJSON()
 }
 
-func homologacionConceptos(dataConcepto interface{}, params ...interface{}) (res interface{}) {
+func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (res interface{}) {
 	dataConceptoAhomologar, e := dataConcepto.(map[string]interface{})
 	out := make(map[string]interface{})
+	//var idPersona float64
+	if params != nil {
+		idPersona, e := params[0].(string)
+		fmt.Println(idPersona)
+		if !e {
+			fmt.Println("e1")
+			return nil
+		}
+	} else {
+		fmt.Println("e2")
+		return nil
+	}
 	if e {
 		var homologacion []interface{}
+		//var infoVinculacion []interface{}
+		//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
+		//if err := getJsonWSO2("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?limit=1&query=IdPersona:"+strconv.Itoa(int(idPersona)), &infoVinculacion); err == nil {
 		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))), &homologacion); err == nil {
 
 			for _, conceptoKronos := range homologacion {
@@ -347,10 +363,16 @@ func homologacionConceptos(dataConcepto interface{}, params ...interface{}) (res
 
 			}
 		} else {
+
 			return nil
 		}
+		/*} else {
+			return nil
+		}*/
+
 		return out
 	} else {
+		fmt.Println("e")
 		return nil
 	}
 }
@@ -384,13 +406,20 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 						resch := utilidades.GenChanInterface(listaLiquidacion...)
 						var params []interface{}
 						params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
-						chlistaLiquidacion := utilidades.Digest(done, formatoRegistroOp, resch, params)
-						for dataLiquidacion := range chlistaLiquidacion {
-							if dataLiquidacion != nil {
-								respuesta = append(respuesta, dataLiquidacion)
+						f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+
+						if f != nil {
+
+							chlistaLiquidacion := utilidades.Digest(done, f, resch, params)
+							for dataLiquidacion := range chlistaLiquidacion {
+								if dataLiquidacion != nil {
+									respuesta = append(respuesta, dataLiquidacion)
+								}
 							}
+							c.Data["json"] = respuesta
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 						}
-						c.Data["json"] = respuesta
 					} else {
 						c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 					}
@@ -404,7 +433,7 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 			//error al recibir datos genrales de la op
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
-		fmt.Println(idNomina, mesLiquidacion, anioLiquidacion)
+
 	} else {
 		//no se enviaron los parametros necesarios
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
@@ -412,12 +441,13 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 	c.ServeJSON()
 }
 
-func formatoRegistroOp(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
+func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
 	idLiquidacion, e := params[0].(float64)
 	if e {
 		var respuesta []map[string]interface{}
 		var listaDetalles []interface{}
 		var valorTotal float64
+		var params []interface{}
 		valorTotal = 0
 		nContrato, e := dataLiquidacion.(map[string]interface{})["NumeroContrato"].(string)
 		if !e {
@@ -432,39 +462,46 @@ func formatoRegistroOp(dataLiquidacion interface{}, params ...interface{}) (res 
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(listaDetalles...)
-				chlistaDetalles := utilidades.Digest(done, homologacionConceptos, resch, nil)
-				for dataLiquidacion := range chlistaDetalles {
-					if dataLiquidacion != nil {
-						existe := false
+				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
+				if f != nil {
+					infoContrato := formatoListaLiquidacion(dataLiquidacion, nil)
+					idProveedor, e := infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"]
+					if e {
+						params = append(params, idProveedor)
+					}
+					chlistaDetalles := utilidades.Digest(done, f, resch, params)
+					for dataLiquidacion := range chlistaDetalles {
+						if dataLiquidacion != nil {
+							existe := false
 
-						for _, comp := range respuesta {
+							for _, comp := range respuesta {
 
-							if comp["Concepto"] != nil {
-								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
-									comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
-									existe = true
-									valorTotal = valorTotal + comp["Valor"].(float64)
+								if comp["Concepto"] != nil {
+									if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
+										comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+										existe = true
+										valorTotal = valorTotal + comp["Valor"].(float64)
+									}
 								}
-							}
 
-						}
-						if !existe {
-							if dataLiquidacion.(map[string]interface{})["Concepto"] != nil {
-								valorTotal = valorTotal + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
-								respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
 							}
+							if !existe {
+								if dataLiquidacion.(map[string]interface{})["Concepto"] != nil {
+									valorTotal = valorTotal + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+									respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+								}
 
+							}
 						}
 					}
+					res := make(map[string]interface{})
+					res["ValorBase"] = valorTotal
+					res["id_proveedor"], e = infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"]
+					res["Conceptos"] = respuesta
+					return res
+				} else {
+					return nil
 				}
-				res := make(map[string]interface{})
-				res["ValorBase"] = valorTotal
-				filtrorp := formatoListaLiquidacion(dataLiquidacion, nil)
-				if filtrorp != nil {
-					res["FiltroRp"], e = filtrorp.(map[string]interface{})["infoPersona"].(map[string]interface{})["Documento"].(map[string]interface{})["numero"]
-				}
-				res["Conceptos"] = respuesta
-				return res
 			} else {
 				return nil
 			}
@@ -477,4 +514,25 @@ func formatoRegistroOp(dataLiquidacion interface{}, params ...interface{}) (res 
 		return nil
 	}
 	return
+}
+
+func homologacionFunctionDispatcher(tipo string) (f func(data interface{}, params ...interface{}) interface{}) {
+	switch os := tipo; os {
+	case "HCS":
+		return homologacionConceptosHC
+	case "HCH":
+		return nil
+	default:
+		return nil
+	}
+}
+func formatoRegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params ...interface{}) interface{}) {
+	switch os := tipo; os {
+	case "HCS":
+		return formatoRegistroOpHC
+	case "HCH":
+		return nil
+	default:
+		return nil
+	}
 }

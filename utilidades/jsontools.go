@@ -123,6 +123,13 @@ func Digest(done <-chan interface{}, f func(interface{}, ...interface{}) interfa
 	wg.Add(numDigesters)
 	for i := 0; i < numDigesters; i++ {
 		go func() {
+			defer func() {
+				// recover from panic if one occured. Set err to nil otherwise.
+				if recover() != nil {
+					wg.Done()
+
+				}
+			}()
 			digester(done, f, params, in, out)
 			wg.Done()
 		}()
