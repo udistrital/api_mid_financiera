@@ -204,7 +204,7 @@ func formatoListaLiquidacion(dataLiquidacion interface{}, params ...interface{})
 	if e {
 		if err := getJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
 			row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]
-			fmt.Println(row["infoPersona"])
+			//fmt.Println(row["infoPersona"])
 			if e {
 				return row
 			} else {
@@ -332,7 +332,14 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 
 func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (res interface{}) {
 	dataConceptoAhomologar, e := dataConcepto.(map[string]interface{})
+	if !e {
+		fmt.Println("e1")
+		return nil
+	}
+	//fmt.Println(dataConceptoAhomologar)
 	out := make(map[string]interface{})
+	var numContrato string
+	var vigContrato float64
 	//var idPersona float64
 	if params != nil {
 		idPersona, e := params[0].(string)
@@ -341,40 +348,61 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 			fmt.Println("e1")
 			return nil
 		}
-	} else {
-		fmt.Println("e2")
-		return nil
-	}
-	if e {
-		var homologacion []interface{}
-		//var infoVinculacion []interface{}
-		//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
-		//if err := getJsonWSO2("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?limit=1&query=IdPersona:"+strconv.Itoa(int(idPersona)), &infoVinculacion); err == nil {
-		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))), &homologacion); err == nil {
+		numContrato, e = params[1].(string)
+		//fmt.Println(numContrato)
+		if !e {
+			fmt.Println("e3")
+			return nil
+		}
+		vigContrato, e = params[2].(float64)
+		//fmt.Println(vigContrato)
+		if !e {
+			fmt.Println("e3")
+			return nil
+		}
+		if e {
+			var homologacion []interface{}
+			//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
+			var infoVinculacion []interface{}
+			//fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
+				if infoVinculacion != nil {
+					//fmt.Println("Facultad: ", infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"], "Proyecto: ", infoVinculacion[0].(map[string]interface{})["IdProyectoCurricular"])
+					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))), &homologacion); err == nil {
 
-			for _, conceptoKronos := range homologacion {
-				row, e := conceptoKronos.(map[string]interface{})
-				if e {
-					out["Concepto"] = row["ConceptoKronos"]
-					out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
+						for _, conceptoKronos := range homologacion {
+							row, e := conceptoKronos.(map[string]interface{})
+							if e {
+								out["Concepto"] = row["ConceptoKronos"]
+								out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
+							} else {
+								return nil
+							}
+
+						}
+					} else {
+
+						return nil
+					}
 				} else {
 					return nil
 				}
 
+			} else {
+				fmt.Println(err.Error())
+				return nil
 			}
-		} else {
 
+			return out
+		} else {
+			fmt.Println("e")
 			return nil
 		}
-		/*} else {
-			return nil
-		}*/
-
-		return out
 	} else {
-		fmt.Println("e")
+		fmt.Println("e2")
 		return nil
 	}
+
 }
 
 // CargueMasivoOp ...
@@ -468,6 +496,20 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					idProveedor, e := infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"]
 					if e {
 						params = append(params, idProveedor)
+					} else {
+						return nil
+					}
+					numContrato, e := infoContrato.(map[string]interface{})["NumeroContrato"]
+					if e {
+						params = append(params, numContrato)
+					} else {
+						return nil
+					}
+					vigContrato, e := infoContrato.(map[string]interface{})["VigenciaContrato"]
+					if e {
+						params = append(params, vigContrato)
+					} else {
+						return nil
 					}
 					chlistaDetalles := utilidades.Digest(done, f, resch, params)
 					for dataLiquidacion := range chlistaDetalles {
@@ -496,7 +538,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
-					res["id_proveedor"], e = infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"]
+					res["id_proveedor"], err = strconv.Atoi(infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"].(string))
 					res["Conceptos"] = respuesta
 					return res
 				} else {
