@@ -283,35 +283,42 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 // @router /ListaConceptosNominaHomologados [get]
 func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 	nContrato := c.GetString("nContrato")
-	vigenciaContrato, err2 := c.GetInt("vigenciaContrato")
+	vigenciaContrato, err2 := c.GetFloat("vigenciaContrato")
 	idLiquidacion, err3 := c.GetInt("idLiquidacion")
 	if nContrato != "" && err2 == nil && err3 == nil {
 		var respuesta []map[string]interface{}
 		var listaDetalles []interface{}
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(idLiquidacion)+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(vigenciaContrato), &listaDetalles); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(idLiquidacion)+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
 			if listaDetalles != nil {
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(listaDetalles...)
 				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
-				chlistaDetalles := utilidades.Digest(done, f, resch, nil)
-				for dataLiquidacion := range chlistaDetalles {
-					if dataLiquidacion != nil {
+				var params []interface{}
+				params = append(params, "persona")
+				params = append(params, nContrato)
+				params = append(params, vigenciaContrato)
+				chConcHomologados := utilidades.Digest(done, f, resch, params)
+				for conceptoHomologadoint := range chConcHomologados {
+					conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
+					if e {
 						existe := false
 						for _, comp := range respuesta {
-
-							if comp["Concepto"] != nil {
-								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == dataLiquidacion.(map[string]interface{})["Concepto"].(map[string]interface{})["Id"].(float64) {
-									comp["Valor"] = comp["Valor"].(float64) + dataLiquidacion.(map[string]interface{})["Valor"].(float64)
+							if comp["Concepto"] != nil && conceptoHomologado["Concepto"] != nil {
+								if comp["Concepto"].(map[string]interface{})["Id"].(float64) == conceptoHomologado["Concepto"].(map[string]interface{})["Id"].(float64) {
+									comp["Valor"] = comp["Valor"].(float64) + conceptoHomologado["Valor"].(float64)
 									existe = true
+									//valorTotal = valorTotal + comp["Valor"].(float64)
 								}
 							}
 
 						}
 						if !existe {
-							if dataLiquidacion.(map[string]interface{})["Concepto"] != nil {
-
-								respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+							if conceptoHomologado["Concepto"] != nil {
+								//valorTotal = valorTotal + conceptoHomologado["Valor"].(float64)
+								movcont := formatoMovimientosContablesOp(conceptoHomologado)
+								conceptoHomologado["MovimientoContable"] = movcont
+								respuesta = append(respuesta, conceptoHomologado)
 							}
 
 						}
@@ -353,7 +360,7 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 		numContrato, e = params[1].(string)
 		//fmt.Println(numContrato)
 		if !e {
-			fmt.Println("e3")
+			fmt.Println("e2")
 			return nil
 		}
 		vigContrato, e = params[2].(float64)
@@ -551,7 +558,11 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 							}
 						}
 					}
-					movimientosContables := movimientosContablesOp(respuesta)
+					var movimientosContables []interface{}
+					for _, concepto := range respuesta {
+						movimientoContable := formatoMovimientosContablesOp(concepto)
+						movimientosContables = append(movimientosContables, movimientoContable)
+					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
 					res["id_proveedor"], err = strconv.Atoi(infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"].(string))
@@ -576,33 +587,32 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 	return
 }
 
-func movimientosContablesOp(conceptos []map[string]interface{}) (res interface{}) {
+func formatoMovimientosContablesOp(concepto interface{}) (res interface{}) {
 	var out []map[string]interface{}
-	for _, conceptoint := range conceptos {
-		cuentaContable, e := conceptoint["Concepto"].(map[string]interface{})["ConceptoCuentaContable"].([]interface{})
-		if !e {
-			fmt.Println(conceptoint)
-			fmt.Println("1")
-			return nil
-		}
-		if len(cuentaContable) == 2 {
-			for _, cuentaComp := range cuentaContable {
-				fmt.Println(cuentaComp)
-				if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
-					out = append(out, map[string]interface{}{"Debito": conceptoint["Valor"], "Credito": 0,
-						"Concepto":       conceptoint["Concepto"],
-						"CuentaContable": cuentaComp})
-				} else {
-					out = append(out, map[string]interface{}{"Debito": 0, "Credito": conceptoint["Valor"],
-						"Concepto":       conceptoint["Concepto"],
-						"CuentaContable": cuentaComp})
-				}
-
-			}
-		} else {
-			return nil
-		}
+	cuentaContable, e := concepto.(map[string]interface{})["Concepto"].(map[string]interface{})["ConceptoCuentaContable"].([]interface{})
+	if !e {
+		fmt.Println(concepto)
+		fmt.Println("1")
+		return nil
 	}
+	if len(cuentaContable) == 2 {
+		for _, cuentaComp := range cuentaContable {
+			fmt.Println(cuentaComp)
+			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
+				out = append(out, map[string]interface{}{"Debito": concepto.(map[string]interface{})["Valor"], "Credito": 0,
+					"Concepto":       concepto.(map[string]interface{})["Concepto"],
+					"CuentaContable": cuentaComp})
+			} else {
+				out = append(out, map[string]interface{}{"Debito": 0, "Credito": concepto.(map[string]interface{})["Valor"],
+					"Concepto":       concepto.(map[string]interface{})["Concepto"],
+					"CuentaContable": cuentaComp})
+			}
+
+		}
+	} else {
+		return nil
+	}
+
 	return out
 }
 
