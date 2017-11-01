@@ -591,7 +591,7 @@ func formatoMovimientosContablesOp(concepto interface{}) (res interface{}) {
 	var out []map[string]interface{}
 	cuentaContable, e := concepto.(map[string]interface{})["Concepto"].(map[string]interface{})["ConceptoCuentaContable"].([]interface{})
 	if !e {
-		fmt.Println(concepto)
+		//fmt.Println(concepto)
 		fmt.Println("1")
 		return nil
 	}
