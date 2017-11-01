@@ -126,6 +126,7 @@ func Digest(done <-chan interface{}, f func(interface{}, ...interface{}) interfa
 			defer func() {
 				// recover from panic if one occured. Set err to nil otherwise.
 				if recover() != nil {
+					fmt.Println("defer launch")
 					wg.Done()
 
 				}
