@@ -509,11 +509,27 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 	if err1 == nil && err2 == nil && err3 == nil {
 		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
 		if pagosAgrupados != nil {
-			fmt.Println(pagosAgrupados)
-			done := make(chan interface{})
-			defer close(done)
+			c.Data["json"] = pagosAgrupados
 
-			c.Data["json"] = "hola"
+			// fmt.Println(pagosAgrupados)
+			// done := make(chan interface{})
+			// defer close(done)
+			// if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+			// 	listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+			// 	resch := utilidades.GenChanInterface(listaLiquidacion...)
+			// 	chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
+			// 	for dataLiquidacion := range chlistaLiquidacion {
+			// 		if dataLiquidacion != nil {
+			// 			respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
+			// 		}
+			// 	}
+			// 	res := liquidacion.(map[string]interface{})
+			// 	res["Contratos_por_preliq"] = respuesta
+			// 	c.Data["json"] = res
+			// } else {
+			// 	c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			// }
+
 		} else {
 			c.Data["json"] = nil
 		}
