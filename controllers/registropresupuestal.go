@@ -614,3 +614,142 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 	c.ServeJSON()
 
 }
+
+// SolicitudesRpByDependencia ...
+// @Title SolicitudesRpByDependencia
+// @Description Lsta de las necesidades origen de los rp registrados
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	idDependencia	query	string	false	"tipo de la necesidad origen del rp"
+// @Param	tipoNecesidad	query	string	false	"tipo de la necesidad origen del rp"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SolicitudesRpByDependencia/:vigencia [get]
+func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	//var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	var idDependencia int64
+	var tipoNecesidad string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+		fmt.Println(limit)
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+		fmt.Println(offset)
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = "FechaInicio__gte:" + startrange + ",FechaFin__lte:" + endrange
+
+	}
+	if tipoNecesidad = c.GetString("tipoNecesidad"); tipoNecesidad != "" {
+		if idDependencia, err = c.GetInt64("idDependencia"); err == nil {
+			var jefeDependenciaInfo []interface{}
+			if query == "" {
+				//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
+				//si no se establece un rango de fechas.
+				//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
+				fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
+				query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
+			}
+			//consulta del servicio para determinar el filtro de la necesidad.
+			//fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:" + strconv.FormatInt(idDependencia, 10) + "," + query)
+			if err = getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:"+strconv.FormatInt(idDependencia, 10)+","+query, &jefeDependenciaInfo); err == nil && jefeDependenciaInfo != nil {
+				//consulta sobre necesidades expedidas
+				//solicitud_disponibilidad?query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante:
+				inQuery := ""
+				for i, jefeDep := range jefeDependenciaInfo {
+					jefeDepmap, e := jefeDep.(map[string]interface{})
+					if e {
+						if idJefeDep, e := jefeDepmap["Id"].(float64); e {
+							if i == len(jefeDependenciaInfo)-1 {
+								inQuery = inQuery + strconv.Itoa(int(idJefeDep))
+							} else {
+								inQuery = inQuery + strconv.Itoa(int(idJefeDep)) + "|"
+							}
+
+						}
+
+					}
+
+				}
+				var solicitudNecesidad []map[string]interface{}
+				fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_disponibilidad?limit=-1&query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:" + inQuery)
+				if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=-1&query=Expedida:true,JustificacionRechazo:,Necesidad.TipoNecesidad.CodigoAbreviacion:"+tipoNecesidad+",Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:"+inQuery, &solicitudNecesidad); err == nil && solicitudNecesidad != nil {
+					inQuery = ""
+					for i, solicitud := range solicitudNecesidad {
+						if idSolicitud, e := solicitud["Id"].(float64); e {
+							if i == len(solicitudNecesidad)-1 {
+								inQuery = inQuery + strconv.Itoa(int(idSolicitud))
+							} else {
+								inQuery = inQuery + strconv.Itoa(int(idSolicitud)) + "|"
+							}
+						}
+					}
+					//consulta de los CDP expedidos a las necesidades filtradas
+					var Disponibilidades []map[string]interface{}
+					if err = getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?limit=-1&query=Solicitud__in:"+inQuery, &Disponibilidades); err == nil && Disponibilidades != nil {
+						inQuery = ""
+						for i, disponibilidad := range Disponibilidades {
+							if idDisponibilidad, e := disponibilidad["Id"].(float64); e {
+								if i == len(Disponibilidades)-1 {
+									inQuery = inQuery + strconv.Itoa(int(idDisponibilidad))
+								} else {
+									inQuery = inQuery + strconv.Itoa(int(idDisponibilidad)) + "|"
+								}
+							}
+						}
+						var solicitudRp []interface{}
+						var respuesta []interface{}
+						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery, &solicitudRp); err == nil && solicitudRp != nil {
+							done := make(chan interface{})
+							defer close(done)
+							resch := utilidades.GenChanInterface(solicitudRp...)
+							chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
+							for solicitud := range chsolicitud {
+								respuesta = append(respuesta, solicitud)
+							}
+							c.Data["json"] = respuesta
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Solicitud RP lost", Type: "error"}
+						}
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: "Disponibilidad lost", Type: "error"}
+
+					}
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: "Solicitud Necesidad Lost", Type: "error"}
+				}
+
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: "jefe dependencia lost", Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: "idDependencia lost", Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "tipoNecesidad lost", Type: "error"}
+	}
+
+	c.ServeJSON()
+}
