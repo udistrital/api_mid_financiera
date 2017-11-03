@@ -494,7 +494,7 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 }
 
 // ListaPagoSsPorPersona ...
-// @Title ListaPagoSsPorPersona
+// @Title ListaPagoSsPorPersonaAllDetalle
 // @Description lista pagos de seguridad socila por persona.
 // @Param	idNomina	query	string	false	"nomina a listar"
 // @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
@@ -506,14 +506,27 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 	idNomina, err1 := c.GetInt("idNomina")
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
+	if err1 == nil && err2 == nil && err3 == nil {
+		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
+		if pagosAgrupados != nil {
+			fmt.Println("a")
+			c.Data["json"] = pagosAgrupados
+		} else {
+			c.Data["json"] = nil
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	//c.Data["json"] = allData
+	c.ServeJSON()
+}
+
+func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp interface{}) {
 	var liquidacion interface{}
 	var periodoPago []interface{}
 	var pagosPorDetalle []interface{}
 	allData := make(map[string]interface{})
-	if err1 == nil && err2 == nil && err3 == nil {
-		allData["MesLiquidacion"] = mesLiquidacion
-		allData["AnioLiquidacion"] = anioLiquidacion
-		allData["IdNomina"] = idNomina
+	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		// get id preliquidacion
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
 			if liquidacion != nil {
@@ -526,7 +539,7 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 				allData["IdPreliquidacion"] = nil
 			}
 		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			return nil
 		}
 		// get periodo pago
 		if allData["IdPreliquidacion"] != nil {
@@ -542,12 +555,11 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 					allData["PeriodoPago"] = nil
 				}
 			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				return nil
 			}
 		}
 		//get pagos por persona
 		if allData["PeriodoPago"] != nil {
-			fmt.Println("http://" + beego.AppConfig.String("SsService") + "pago/PagosPorPeriodoPago?idPeriodoPago=" + strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64))
 			if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64), &pagosPorDetalle); err == nil {
 				if pagosPorDetalle != nil {
 					allData["Pagos"] = pagosPorDetalle
@@ -555,18 +567,12 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 					allData["Pagos"] = nil
 				}
 			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				return nil
 			}
 		}
-
-		//
-	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		dataOutp = allData
 	}
-
-	c.Data["json"] = allData
-
-	c.ServeJSON()
+	return
 }
 
 func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
