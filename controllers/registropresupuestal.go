@@ -614,3 +614,70 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 	c.ServeJSON()
 
 }
+
+// SolicitudesRpByDependencia ...
+// @Title SolicitudesRpByDependencia
+// @Description Lsta de las necesidades origen de los rp registrados
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	idDependencia	query	string	false	"tipo de la necesidad origen del rp"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SolicitudesRpByDependencia/:vigencia [get]
+func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	//var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	var idDependencia int64
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+		fmt.Println(limit)
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+		fmt.Println(offset)
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = "FechaInicio__gte:" + startrange + ",FechaFin__lte:" + endrange
+
+	}
+	if idDependencia, err = c.GetInt64("idDependencia"); err == nil {
+		var jefeDependenciaInfo []interface{}
+		if query == "" {
+			//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
+			//si no se establece un rango de fechas.
+			//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
+			fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
+		}
+		//consulta del servicio para determinar el filtro de la necesidad.
+		fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:" + strconv.FormatInt(idDependencia, 10) + "," + query)
+		if err = getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:"+strconv.FormatInt(idDependencia, 10)+","+query, &jefeDependenciaInfo); err == nil {
+			c.Data["json"] = jefeDependenciaInfo
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "idDependencia lost", Type: "error"}
+	}
+	c.ServeJSON()
+}
