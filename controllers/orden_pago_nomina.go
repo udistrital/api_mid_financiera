@@ -3,10 +3,11 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
+
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/api_mid_financiera/utilidades"
-	"strconv"
 )
 
 // OrdenPagoNominaController operations for Orden_pago_planta
@@ -489,6 +490,82 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 		//no se enviaron los parametros necesarios
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
+	c.ServeJSON()
+}
+
+// ListaPagoSsPorPersona ...
+// @Title ListaPagoSsPorPersona
+// @Description lista pagos de seguridad socila por persona.
+// @Param	idNomina	query	string	false	"nomina a listar"
+// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
+// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /ListaPagoSsPorPersona [get]
+func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
+	idNomina, err1 := c.GetInt("idNomina")
+	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
+	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
+	var liquidacion interface{}
+	var periodoPago []interface{}
+	var pagosPorDetalle []interface{}
+	allData := make(map[string]interface{})
+	if err1 == nil && err2 == nil && err3 == nil {
+		allData["MesLiquidacion"] = mesLiquidacion
+		allData["AnioLiquidacion"] = anioLiquidacion
+		allData["IdNomina"] = idNomina
+		// get id preliquidacion
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil {
+				if liquidacion.(map[string]interface{})["Id_Preliq"] != nil {
+					allData["IdPreliquidacion"] = liquidacion.(map[string]interface{})["Id_Preliq"]
+				} else {
+					allData["IdPreliquidacion"] = nil
+				}
+			} else {
+				allData["IdPreliquidacion"] = nil
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+		// get periodo pago
+		if allData["IdPreliquidacion"] != nil {
+			idPeriodoLiquidacion := allData["IdPreliquidacion"].(float64)
+			if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.FormatFloat(idPeriodoLiquidacion, 'f', -1, 64)+"&limit:1", &periodoPago); err == nil {
+				if periodoPago != nil {
+					if periodoPago[0].(map[string]interface{})["Id"] != nil {
+						allData["PeriodoPago"] = periodoPago[0].(map[string]interface{})["Id"]
+					} else {
+						allData["PeriodoPago"] = nil
+					}
+				} else {
+					allData["PeriodoPago"] = nil
+				}
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		}
+		//get pagos por persona
+		if allData["PeriodoPago"] != nil {
+			fmt.Println("http://" + beego.AppConfig.String("SsService") + "pago/PagosPorPeriodoPago?idPeriodoPago=" + strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64))
+			if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64), &pagosPorDetalle); err == nil {
+				if pagosPorDetalle != nil {
+					allData["Pagos"] = pagosPorDetalle
+				} else {
+					allData["Pagos"] = nil
+				}
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		}
+
+		//
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+
+	c.Data["json"] = allData
+
 	c.ServeJSON()
 }
 
