@@ -509,8 +509,11 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 	if err1 == nil && err2 == nil && err3 == nil {
 		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
 		if pagosAgrupados != nil {
-			fmt.Println("a")
-			c.Data["json"] = pagosAgrupados
+			fmt.Println(pagosAgrupados)
+			done := make(chan interface{})
+			defer close(done)
+
+			c.Data["json"] = "hola"
 		} else {
 			c.Data["json"] = nil
 		}
