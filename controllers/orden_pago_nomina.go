@@ -507,28 +507,43 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
+		var respuestaCV []map[string]interface{}
+		//var respuesta []map[string]interface{}
 		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
 		if pagosAgrupados != nil {
-			c.Data["json"] = pagosAgrupados
+			// por cada detalle liquidacion obtenemos Ncontrato y vigencia
+			done := make(chan interface{})
+			defer close(done)
+			if pagosAgrupados.(map[string]interface{})["Pagos"] != nil {
+				listaPagos := pagosAgrupados.(map[string]interface{})["Pagos"].([]interface{})
+				fmt.Println(listaPagos)
+				resch := utilidades.GenChanInterface(listaPagos...)
+				chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
+				for datalistaPagos := range chlistaPagos {
+					if datalistaPagos != nil {
+						respuestaCV = append(respuestaCV, datalistaPagos.(map[string]interface{}))
+					}
+				}
+				//por cada detalle liquidacion con Ncontrato y vigencia obteemos infoPersona
+				// if len(respuestaCV) > 0 {
+				// 	done := make(chan interface{})
+				// 	defer close(done)
+				// 	resch := utilidades.GenChanInterface(respuestaCV...)
+				// 	chlistaPagosInfoPersonas := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
+				// 	for datalistaPagosInfoPersonas := range chlistaPagosInfoPersonas {
+				// 		if datalistaPagos != nil {
+				// 			respuesta = append(respuesta, datalistaPagosInfoPersonas.(map[string]interface{}))
+				// 		}
+				// 	}
+				// }
 
-			// fmt.Println(pagosAgrupados)
-			// done := make(chan interface{})
-			// defer close(done)
-			// if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
-			// 	listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-			// 	resch := utilidades.GenChanInterface(listaLiquidacion...)
-			// 	chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
-			// 	for dataLiquidacion := range chlistaLiquidacion {
-			// 		if dataLiquidacion != nil {
-			// 			respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
-			// 		}
-			// 	}
-			// 	res := liquidacion.(map[string]interface{})
-			// 	res["Contratos_por_preliq"] = respuesta
-			// 	c.Data["json"] = res
-			// } else {
-			// 	c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
-			// }
+				res := pagosAgrupados.(map[string]interface{})
+				res["Pagos"] = respuestaCV
+				c.Data["json"] = res
+
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
 
 		} else {
 			c.Data["json"] = nil
@@ -538,6 +553,27 @@ func (c *OrdenPagoNominaController) ListaPagoSsPorPersona() {
 	}
 	//c.Data["json"] = allData
 	c.ServeJSON()
+}
+
+func getContratoVigenciaDetalleLiquidacion (idsLiquidacionDesdePagos interface{}, params ...interface{}) (res interface{}) {
+	row, e := idsLiquidacionDesdePagos.(map[string]interface{})
+	var infoDetallePreliquidacion []interface{}
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion/?query=Id:"+ strconv.FormatFloat(row["DetalleLiquidacion"].(float64), 'f', 0, 64)+"&limit=1", &infoDetallePreliquidacion); err == nil {
+			row["NumeroContrato"] , e = infoDetallePreliquidacion[0].(map[string]interface{})["NumeroContrato"]
+			row["VigenciaContrato"],  e = infoDetallePreliquidacion[0].(map[string]interface{})["VigenciaContrato"]
+			if e {
+				return row
+			}else{
+				return nil
+			}
+		} else {
+			return nil
+		}
+	}else {
+		return nil
+	}
+	return
 }
 
 func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp interface{}) {
