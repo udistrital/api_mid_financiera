@@ -40,6 +40,11 @@ func init() {
 				&controllers.OrdenPagoNominaController{},
 			),
 		),
+		beego.NSNamespace("/orden_pago_ss",
+			beego.NSInclude(
+				&controllers.OrdenPagoSsController{},
+			),
+		),
 		beego.NSNamespace("/rubro",
 			beego.NSInclude(
 				&controllers.RubroController{},
