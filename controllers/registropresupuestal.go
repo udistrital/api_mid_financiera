@@ -128,16 +128,17 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		fmt.Println(err.Error())
 	}
 	//cargar datos del compromiso de la solicitud de rp
-	var compromiso_rp []models.Compromiso
+	var compromiso_rp []interface{}
 	if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.Compromiso), &compromiso_rp); err == nil {
 		if compromiso_rp != nil {
-			solicitud.DatosCompromiso = &compromiso_rp[0]
+			solicitud.DatosCompromiso = compromiso_rp[0]
 		} else {
 			//si no encuentra los datos del compromiso
 
 		}
 	} else {
 		//si hay error al cargar el compromiso del rp
+		fmt.Println(err.Error())
 	}
 	return solicitud
 }
@@ -269,7 +270,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 	if err1 == nil && err2 == nil {
 		var solicitudes_rp []interface{}
 		var respuesta []models.SolicitudRp
-		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Masivo:false,Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
 			if solicitudes_rp != nil {
 				//encontrar datos del CDP objetivo del RP Solicitado
 
@@ -442,7 +443,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	var dataRpRegistro []models.DatosRegistroPresupuestal
 	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
 	var saldoCDP map[string]float64
-	var comprobacion models.DatosRegistroPresupuestal
+
 	tool := new(tools.EntornoReglas)
 	var respuestaServices interface{}
 	//------------------------------------------------------
@@ -481,6 +482,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 				if err == nil { //
 					if res == "1" { // si se aprueba la solicitud
 						rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
+						var comprobacion models.DatosRegistroPresupuestal
 						if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
 							dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
 							rp_a_registrar.Rp.DatosSolicitud.Expedida = true
@@ -637,6 +639,7 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 	var startrange string
 	var endrange string
 	var query string
+	var queryF string
 	var idDependencia int64
 	var tipoNecesidad string
 	// limit: 10 (default is 10)
@@ -659,19 +662,20 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 
 	}
 	if startrange != "" && endrange != "" {
-		query = "FechaInicio__gte:" + startrange + ",FechaFin__lte:" + endrange
+		queryF = ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
 
 	}
 	if tipoNecesidad = c.GetString("tipoNecesidad"); tipoNecesidad != "" {
 		if idDependencia, err = c.GetInt64("idDependencia"); err == nil {
 			var jefeDependenciaInfo []interface{}
-			if query == "" {
-				//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
-				//si no se establece un rango de fechas.
-				//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
-				fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
-				query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
-			}
+
+			//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
+			//si no se establece un rango de fechas.
+			//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
+			fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
+
+			fmt.Println(query)
 			//consulta del servicio para determinar el filtro de la necesidad.
 			//fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:" + strconv.FormatInt(idDependencia, 10) + "," + query)
 			if err = getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:"+strconv.FormatInt(idDependencia, 10)+","+query, &jefeDependenciaInfo); err == nil && jefeDependenciaInfo != nil {
@@ -694,7 +698,7 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 
 				}
 				var solicitudNecesidad []map[string]interface{}
-				fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_disponibilidad?limit=-1&query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:" + inQuery)
+				//fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_disponibilidad?limit=-1&query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:" + inQuery)
 				if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=-1&query=Expedida:true,JustificacionRechazo:,Necesidad.TipoNecesidad.CodigoAbreviacion:"+tipoNecesidad+",Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:"+inQuery, &solicitudNecesidad); err == nil && solicitudNecesidad != nil {
 					inQuery = ""
 					for i, solicitud := range solicitudNecesidad {
@@ -721,15 +725,42 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 						}
 						var solicitudRp []interface{}
 						var respuesta []interface{}
-						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery, &solicitudRp); err == nil && solicitudRp != nil {
+						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Masivo:true,Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery+queryF, &solicitudRp); err == nil && solicitudRp != nil {
 							done := make(chan interface{})
 							defer close(done)
 							resch := utilidades.GenChanInterface(solicitudRp...)
 							chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
+							var rubrosAfectados []map[string]interface{}
 							for solicitud := range chsolicitud {
+								if solicitudmap, e := solicitud.(models.SolicitudRp); e {
+
+									rubrosint := solicitudmap.Rubros
+									for _, afectacion := range rubrosint {
+										row := make(map[string]interface{})
+										if afectacionmap, e := afectacion.(map[string]interface{}); e {
+
+											existe := false
+											for _, rubro := range rubrosAfectados {
+												if rubro["Apropiacion"].(map[string]interface{})["Id"].(float64) == afectacionmap["Apropiacion"].(map[string]interface{})["Id"].(float64) && rubro["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64) == afectacionmap["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64) {
+													rubro["Valor"] = rubro["Valor"].(float64) + afectacionmap["ValorAsignado"].(float64)
+													existe = true
+												}
+
+											}
+											if !existe {
+												row["Apropiacion"] = afectacionmap["Apropiacion"]
+												row["FuenteFinanciamiento"] = afectacionmap["FuenteFinanciamiento"]
+												row["Valor"] = afectacionmap["ValorAsignado"]
+												rubrosAfectados = append(rubrosAfectados, row)
+											}
+
+										}
+									}
+
+								}
 								respuesta = append(respuesta, solicitud)
 							}
-							c.Data["json"] = respuesta
+							c.Data["json"] = map[string]interface{}{"InformacionRp": respuesta, "ResumenCargueRp": rubrosAfectados}
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Solicitud RP lost", Type: "error"}
 						}
