@@ -53,12 +53,15 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 								var valorcdp float64
 								valorcdp = 0
 								valorcdp = res[0].(float64)
-
 								for _, rowfuente := range resfuente {
 									valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
 								}
 
-								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor}
+								var valordisponible float64
+								valordisponible = 0
+								valordisponible = valor - valorcdp
+
+								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valordisponible, "ValorGastado": valorcdp , "ValorTotal": valor}
 							  }
 							}
 						}
