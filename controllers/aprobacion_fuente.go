@@ -64,6 +64,16 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valordisponible, "ValorGastado": valorcdp , "ValorTotal": valor}
 							  }
 							}
+						}else{
+
+							var valor float64
+							valor = 0
+							for _, rowfuente := range resfuente {
+								valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+							}
+
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": valor}
+
 						}
 						}else {
 							fmt.Println("err5 ", err.Error())
