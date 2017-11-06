@@ -320,8 +320,10 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 	if e {
 		var respuesta []map[string]interface{}
 		var listaDetalles []interface{}
+
 		var valorTotal float64
 		var params []interface{}
+
 		valorTotal = 0
 		nContrato, e := dataLiquidacion.(map[string]interface{})["NumeroContrato"].(string)
 		if !e {
@@ -331,6 +333,9 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		if !e {
 			return nil
 		}
+		//consulta del rp asociado al contrato de la persona... strconv.Itoa(int(vigenciaContrato)) ... strconv.Itoa(int(solicitudrp))
+		desagregacionrp := formatoInfoRp(nContrato, vigenciaContrato)
+		//fin consulta del rp ...
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
 			if listaDetalles != nil {
 				done := make(chan interface{})
@@ -343,20 +348,11 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					if e {
 						params = append(params, idProveedor)
 					} else {
-						return nil
+						//return nil
+						params = append(params, "0")
 					}
-					numContrato, e := infoContrato.(map[string]interface{})["NumeroContrato"]
-					if e {
-						params = append(params, numContrato)
-					} else {
-						return nil
-					}
-					vigContrato, e := infoContrato.(map[string]interface{})["VigenciaContrato"]
-					if e {
-						params = append(params, vigContrato)
-					} else {
-						return nil
-					}
+					params = append(params, nContrato)
+					params = append(params, vigenciaContrato)
 					chConcHomologados := utilidades.Digest(done, f, resch, params)
 					for conceptoHomologadoint := range chConcHomologados {
 						conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
@@ -388,7 +384,8 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
-					res["id_proveedor"], err = strconv.Atoi(infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"].(string))
+					res["ResumenRp"] = desagregacionrp
+					//res["id_proveedor"], err = strconv.Atoi(infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"].(string))
 					res["Conceptos"] = respuesta
 					res["Contrato"] = nContrato
 					res["MovimientoContable"] = movimientosContables
@@ -437,6 +434,55 @@ func formatoMovimientosContablesOp(concepto interface{}) (res interface{}) {
 	}
 
 	return out
+}
+
+func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp []map[string]interface{}) {
+	var rp []interface{}
+	var saldoRp map[string]float64
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
+		if rpmap, e := rp[0].(map[string]interface{}); e {
+			if solicitudrp, e := rpmap["Id"].(float64); e {
+				fmt.Println("sol rp : ", solicitudrp)
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+"307", &rp); err == nil && rp != nil {
+					rpmap = nil
+					if rpmap, e = rp[0].(map[string]interface{}); e {
+						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
+							for _, infopresrp := range desagregacionpresrp {
+								row := make(map[string]interface{})
+								if info, e := infopresrp.(map[string]interface{}); e {
+									if dispoap, e := info["DisponibilidadApropiacion"].(map[string]interface{}); e {
+										row["RegistroPresupuestalDisponibilidadApropiacion"] = map[string]interface{}{"Id": dispoap["Id"]}
+										row["Rp"] = rp[0]
+										row["Apropiacion"] = dispoap["Apropiacion"]
+										row["FuenteFinanciacion"] = dispoap["FuenteFinanciamiento"]
+										if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, row); err == nil && rp != nil {
+											row["Saldo"] = saldoRp["saldo"]
+										}
+
+										desagregacionrp = append(desagregacionrp, row)
+									}
+
+								}
+							}
+							return
+						} else {
+							return nil
+						}
+					} else {
+						return nil
+					}
+				} else {
+					return nil
+				}
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
 }
 
 func homologacionFunctionDispatcher(tipo string) (f func(data interface{}, params ...interface{}) interface{}) {
