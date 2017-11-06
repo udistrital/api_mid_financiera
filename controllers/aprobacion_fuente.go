@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
+	"github.com/udistrital/api_mid_financiera/golog"
 )
 
-// AprobacionFuenteController operations for homologation fo liquidation of titan
 type AprobacionFuenteController struct {
 	beego.Controller
 }
@@ -17,20 +17,12 @@ func (c *AprobacionFuenteController) URLMapping() {
 	c.Mapping("AprobacionFuente", c.ValorMovimientoFuente)
 }
 
-
-// @Title MidAprobacionFuenteLiquidacion
-// @Description homologa conceptos de titan con conceptos kronos
-// @Param	idPreliquidacion	identificador de la liquidación de titan
-// @Param	body		body 	models.IdLiquidacion, models.RegistroPresupuestal	"body for AprobacionFuente content"
-// @Success 201 {object} models.Conceptos
-// @Failure 403 body is empty
-// @router MidAprobacionFuenteLiquidacion [post]
-
 //http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:38&FuenteFinanciamientoApropiacion.Apropiacion.Id:256&FuenteFinanciamientoApropiacion.Dependencia:95
 
 func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	var res []interface{}
 	var resfuente []interface{}
+	var predicados []models.Predicado
 	if idfuente, err := c.GetInt("idfuente"); err == nil {
 		fmt.Println(idfuente)
 		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
@@ -64,7 +56,19 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 								for _, rowfuente := range resfuente {
 									valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
 								}
-								c.Data["json"] = map[string]interface{}{"valorTotal": valor , "valorGastado": valorcdp}
+								//reglas
+								reglasBase := CargarReglasBase("FuenteFinanciamiento")
+
+								predicados = append(predicados, models.Predicado{Nombre: "movimientofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valor, 'f', -1, 64) +")."})
+								predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valorcdp, 'f', -1, 64) +")."})
+
+								reglas := FormatoReglas(predicados) + reglasBase
+								fmt.Println("reglas: ", reglas)
+								resp := golog.GetBoolean(reglas, "total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).", "Y")
+								fmt.Println("RESP: ", resp)
+								//m := NewMachine().Consult(reglasBase)
+
+								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor}
 							  }
 							}
 						}
