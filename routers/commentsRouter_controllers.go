@@ -235,7 +235,7 @@ func init() {
 			beego.ControllerComments{
 				Method: "ValorMovimientoFuente",
 				Router: `/ValorMovimientoFuente`,
-				AllowHTTPMethods: []string{"post"},
+				AllowHTTPMethods: []string{"get"},
 				MethodParams: param.Make(),
 				Params: nil})
 

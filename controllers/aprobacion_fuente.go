@@ -30,61 +30,45 @@ func (c *AprobacionFuenteController) URLMapping() {
 
 func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	var res []interface{}
+	var resfuente []interface{}
 	if idfuente, err := c.GetInt("idfuente"); err == nil {
+		fmt.Println(idfuente)
 		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
 			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
 
 				var Movimiento []map[string]interface{}
-				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+"&FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+"&FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
+				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
 					if Movimiento != nil {
-						fmt.Println(Movimiento)
+
+						for _, Movimientos := range Movimiento {
+							resfuente = append(resfuente, Movimientos)
+						}
+
 
 						var valorGastado map[string]interface{}
-						if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
-							fmt.Println(Movimiento)
-
-							for _, valor := range valorGastado {
-								res = append(res, valor)
+						if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"&iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
+							fmt.Println(valorGastado)
+							if valorGastado != nil {
+							for _, valores := range valorGastado {
+								res = append(res, valores)
 							}
 
-							/*
-							for _, dependencia := range dependencias {
-								peticion := "solicitud_disponibilidad?"
-								peticion = peticion + "limit=-1&query=Necesidad.FuenteReversa.FuenteFinanciamiento:" + strconv.Itoa(idfuente) + ","
-								peticion = peticion + "Necesidad.FuenteReversa.Apropiacion:" + strconv.Itoa(idapropiacion) + ","
-								peticion = peticion + "Necesidad.DependenciaReversa.JefeDependenciaDestino:" + strconv.Itoa(int(dependencia["Id"].(float64))) + ","
-								peticion = peticion + "Expedida:true"
-								var solicitud_disponibilidades []map[string]interface{}
-								if err := getJson("http://"+beego.AppConfig.String("argoService")+peticion, &solicitud_disponibilidades); err == nil {
-									fmt.Println(solicitud_disponibilidades)
-									for _, solicitud_disponibilidad := range solicitud_disponibilidades {
-										var disponibilidades []map[string]interface{}
-										fmt.Println("/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:" + strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64))) + ",Apropiacion.Id:" + strconv.Itoa(idapropiacion))
-										if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:"+strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64)))+",Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamiento:"+strconv.Itoa(idfuente), &disponibilidades); err == nil {
-											if disponibilidades != nil {
-												for _, disponibilidad := range disponibilidades {
-													res = append(res, disponibilidad)
-												}
-											}
-										} else {
-											fmt.Println("err7  ", err.Error())
-											c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-										}
-									}
-								} else {
-									fmt.Println("err6 ", err.Error())
-									c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-								}
-							}
-							if res != nil {
+							if resfuente != nil{
+								if res != nil{
+								var valor float64
+								valor = 0
 								var valorcdp float64
 								valorcdp = 0
-								for _, row := range res {
-									valorcdp = valorcdp + row.(map[string]interface{})["Valor"].(float64)
+								valorcdp = res[0].(float64)
+
+								for _, rowfuente := range resfuente {
+									valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
 								}
-								c.Data["json"] = map[string]interface{}{"valor": valorcdp}
+								c.Data["json"] = map[string]interface{}{"valorTotal": valor , "valorGastado": valorcdp}
+							  }
 							}
-						*/}else {
+						}
+						}else {
 							fmt.Println("err5 ", err.Error())
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 						}
