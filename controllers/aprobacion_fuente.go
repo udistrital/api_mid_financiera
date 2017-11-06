@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/golog"
+	. "github.com/mndrix/golog"
 )
 
 type AprobacionFuenteController struct {
@@ -17,7 +17,6 @@ func (c *AprobacionFuenteController) URLMapping() {
 	c.Mapping("AprobacionFuente", c.ValorMovimientoFuente)
 }
 
-//http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:38&FuenteFinanciamientoApropiacion.Apropiacion.Id:256&FuenteFinanciamientoApropiacion.Dependencia:95
 
 func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	var res []interface{}
@@ -27,6 +26,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 		fmt.Println(idfuente)
 		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
 			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
+				if valortraslado, err := c.GetFloat("traslado"); err == nil {
 
 				var Movimiento []map[string]interface{}
 				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
@@ -61,12 +61,19 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 
 								predicados = append(predicados, models.Predicado{Nombre: "movimientofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valor, 'f', -1, 64) +")."})
 								predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valorcdp, 'f', -1, 64) +")."})
-
+								//valor que se va a transladar
+								predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valortraslado, 'f', -1, 64) +")."})
 								reglas := FormatoReglas(predicados) + reglasBase
+
+								m := NewMachine().Consult(reglas)
+								resultados := m.ProveAll("total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).")
+								var resp string
+								for _, solution := range resultados {
+									resp = fmt.Sprintf("%s", solution.ByName_("Y"))
+								}
+
 								fmt.Println("reglas: ", reglas)
-								resp := golog.GetBoolean(reglas, "total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).", "Y")
 								fmt.Println("RESP: ", resp)
-								//m := NewMachine().Consult(reglasBase)
 
 								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor}
 							  }
@@ -82,6 +89,10 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 					}
 				} else {
 					fmt.Println("err4 ", err.Error())
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+				} else {
+					fmt.Println("err3.5 ", err.Error())
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
 			} else {
