@@ -508,15 +508,15 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 		if auxmap, e := apRp["Apropiacion"].(map[string]interface{}); e {
 			if auxmap, e = auxmap["Rubro"].(map[string]interface{}); e {
 				if idrbRp, e := auxmap["Id"].(float64); e {
-					fmt.Println(idrbRp)
-					if acumConceptos[35644] != nil {
+					fmt.Println(35644)
+					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
-						fmt.Println("acum. ", 35644)
-						if valor := acumConceptos[35644]["Valor"].(float64); true && saldorp <= valor {
+						fmt.Println("acum. ", idrbRp)
+						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
 							comp = true
-							acumConceptos[35644]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
-							acumConceptos[35644]["Apropiacion"] = apRp["Apropiacion"]
-							res = append(res, acumConceptos[35644])
+							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
+							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
+							res = append(res, acumConceptos[idrbRp])
 						} else {
 							comp = false
 							code = "OP_E002"
