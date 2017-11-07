@@ -248,57 +248,117 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 	var resfuente []models.MovimientoFuenteFinanciamientoApropiacion
 
 			var Movimiento []models.MovimientoFuenteFinanciamientoApropiacion
-				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1", &Movimiento); err == nil {
-					if Movimiento != nil {
 
-						for _, Movimientos := range Movimiento {
+			 if idfuente, err := c.GetInt("idfuente"); err == nil {
 
-							var valorGastado map[string]interface{}
-							if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
-								if valorGastado != nil {
-								for _, valores := range valorGastado {
-									res = append(res, valores)
-								}
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
+					 if Movimiento != nil {
 
-									if res != nil{
+						 for _, Movimientos := range Movimiento {
 
-									var valorcdp float64
-									valorcdp = 0
-									valorcdp = res[0].(float64)
+							 var valorGastado map[string]interface{}
+							 if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+								 if valorGastado != nil {
+								 for _, valores := range valorGastado {
+									 res = append(res, valores)
+								 }
 
-									Movimientos.ValorGastado = valorcdp
-									Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
-									}
+									 if res != nil{
 
-									}else{
+									 var valorcdp float64
+									 valorcdp = 0
+									 valorcdp = res[0].(float64)
 
-										Movimientos.ValorGastado = 0
-										Movimientos.ValorDisponible = Movimientos.Valor
+									 Movimientos.ValorGastado = valorcdp
+									 Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
+									 }
 
-								}
+									 }else{
 
-							}else {
+										 Movimientos.ValorGastado = 0
+										 Movimientos.ValorDisponible = Movimientos.Valor
 
-								Movimientos.ValorGastado = 0
-								Movimientos.ValorDisponible = Movimientos.Valor
+								 }
 
-							}
+							 }else {
+								 Movimientos.ValorGastado = 0
+								 Movimientos.ValorDisponible = Movimientos.Valor
+							 }
 
-							//union := models.UnionMovimiento{ Movimientos}
-							resfuente = append(resfuente, Movimientos)
+							 resfuente = append(resfuente, Movimientos)
 
-						}
+						 }
 
-						c.Data["json"] = resfuente
+						 c.Data["json"] = resfuente
 
-					} else {
-						fmt.Println("aqui")
-						c.Data["json"] = nil
-					}
-				} else {
-					fmt.Println("err4 ", err.Error())
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-				}
+					 } else {
+						 fmt.Println("aqui")
+						 c.Data["json"] = nil
+					 }
+				 } else {
+					 fmt.Println("err4 ", err.Error())
+					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				 }
+
+
+
+			 }else{
+
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1", &Movimiento); err == nil {
+					 if Movimiento != nil {
+
+						 for _, Movimientos := range Movimiento {
+
+							 var valorGastado map[string]interface{}
+							 if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+								 if valorGastado != nil {
+								 for _, valores := range valorGastado {
+									 res = append(res, valores)
+								 }
+
+									 if res != nil{
+
+									 var valorcdp float64
+									 valorcdp = 0
+									 valorcdp = res[0].(float64)
+
+									 Movimientos.ValorGastado = valorcdp
+									 Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
+									 }
+
+									 }else{
+
+										 Movimientos.ValorGastado = 0
+										 Movimientos.ValorDisponible = Movimientos.Valor
+
+								 }
+
+							 }else {
+								 Movimientos.ValorGastado = 0
+								 Movimientos.ValorDisponible = Movimientos.Valor
+							 }
+
+							 resfuente = append(resfuente, Movimientos)
+
+						 }
+
+						 c.Data["json"] = resfuente
+
+					 } else {
+						 fmt.Println("aqui")
+						 c.Data["json"] = nil
+					 }
+				 } else {
+					 fmt.Println("err4 ", err.Error())
+					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				 }
+
+
+
+			 }
+
+
+
 
 
 	c.ServeJSON()
