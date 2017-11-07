@@ -20,6 +20,59 @@ func (c *OrdenPagoSsController) URLMapping() {
 
 }
 
+// DetalleListaPagoSsPorPersona ...
+// @Title DetalleListaPagoSsPorPersona
+// @Description lista pagos de seguridad socila por persona.
+// @Param	idPeriodoPago	query	string	false	"nomina a listar"
+// @Param	idDetalleLiquidacion	query	string	false	"mes de la liquidacion a listar"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /DetalleListaPagoSsPorPersona [get]
+func (c *OrdenPagoSsController) DetalleListaPagoSsPorPersona() {
+	idPeriodoPago, err1 := c.GetInt("idPeriodoPago")
+	idDetalleLiquidacion, err2 := c.GetInt("idDetalleLiquidacion")
+	if err1 == nil && err2 == nil {
+		var listaPagos []interface{}
+		var allData []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil {
+			if listaPagos != nil {
+				done := make(chan interface{})
+				defer close(done)
+				resch := utilidades.GenChanInterface(listaPagos...)
+				chlistaPagos := utilidades.Digest(done, getTipoPagoTitan, resch, nil)
+				for dataChlistaPagos := range chlistaPagos {
+					if dataChlistaPagos != nil {
+						allData = append(allData, dataChlistaPagos.(interface{}))
+					}
+				}
+				c.Data["json"] = allData
+			} else {
+				c.Data["json"] = nil
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+func getTipoPagoTitan(listaPagos interface{}, params ...interface{}) (res interface{}) {
+	row, e := listaPagos.(map[string]interface{})
+	var tipoPago []interface{}
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"concepto_nomina/?query=Id:"+strconv.FormatFloat(row["TipoPago"].(float64), 'f', 0, 64)+"&limit=1", &tipoPago); err == nil {
+			row["TipoPago"] = tipoPago[0].(map[string]interface{})
+			return row
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+}
+
 // ListaPagoSsPorPersona ...
 // @Title ListaPagoSsPorPersonaAllDetalle
 // @Description lista pagos de seguridad socila por persona.
