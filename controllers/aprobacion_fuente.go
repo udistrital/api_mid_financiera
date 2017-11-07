@@ -76,8 +76,13 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 
 						}
 						}else {
-							fmt.Println("err5 ", err.Error())
-							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
+							var valor float64
+							valor = 0
+							for _, rowfuente := range resfuente {
+								valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+							}
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": valor}
 						}
 					} else {
 						fmt.Println("aqui")
@@ -173,10 +178,42 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor, "ValorRestante": restante, "Trasladar": trasladar }
 							  }
 							}
+						}else{
+
+							var valor float64
+							valor = 0
+							for _, rowfuente := range resfuente {
+								valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+							}
+							valor = valor - valortraslado
+
+							var trasladar bool
+							if valor >= 0 {
+								trasladar = true
+							}else {
+								trasladar = false
+							}
+
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
+
 						}
+
 						}else {
-							fmt.Println("err5 ", err.Error())
-							c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+							var valor float64
+							valor = 0
+							for _, rowfuente := range resfuente {
+								valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+							}
+							valor = valor - valortraslado
+
+							var trasladar bool
+							if valor >= 0 {
+								trasladar = true
+							}else {
+								trasladar = false
+							}
+
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
 						}
 					} else {
 						fmt.Println("aqui")
@@ -208,7 +245,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 
 func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 	var res []interface{}
-	var resfuente []models.UnionMovimiento
+	var resfuente []models.MovimientoFuenteFinanciamientoApropiacion
 
 			var Movimiento []models.MovimientoFuenteFinanciamientoApropiacion
 				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1", &Movimiento); err == nil {
@@ -237,7 +274,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 										Movimientos.ValorGastado = 0
 										Movimientos.ValorDisponible = Movimientos.Valor
-										
+
 								}
 
 							}else {
@@ -247,8 +284,8 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 							}
 
-							union := models.UnionMovimiento{Movimiento: Movimientos}
-							resfuente = append(resfuente, union)
+							//union := models.UnionMovimiento{ Movimientos}
+							resfuente = append(resfuente, Movimientos)
 
 						}
 

@@ -16,7 +16,3 @@ type MovimientoFuenteFinanciamientoApropiacion struct {
 	ValorDisponible                           float64
 	ValorGastado															float64
 }
-
-type UnionMovimiento struct {
-	Movimiento 				 MovimientoFuenteFinanciamientoApropiacion
-}
