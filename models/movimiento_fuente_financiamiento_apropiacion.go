@@ -12,5 +12,11 @@ type MovimientoFuenteFinanciamientoApropiacion struct {
 	Descripcion                               string                           `orm:"column(descripcion);null"`
 	FuenteFinanciamientoApropiacion           *FuenteFinanciamientoApropiacion `orm:"column(fuente_financiamiento_apropiacion);rel(fk)"`
 	MovimientoFuenteFinanciamientoApropiacion int                              `orm:"column(movimiento_fuente_financiamiento_apropiacion);null"`
-	TipoDocumento                             int         			   `orm:"column(tipo_documento)"`
+	TipoDocumento                             int         			   						 `orm:"column(tipo_documento)"`
+	ValorDisponible                           float64
+	ValorGastado															float64
+}
+
+type UnionMovimiento struct {
+	Movimiento 				 MovimientoFuenteFinanciamientoApropiacion
 }

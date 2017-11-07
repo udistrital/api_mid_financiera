@@ -247,4 +247,12 @@ func init() {
 					MethodParams: param.Make(),
 					Params: nil})
 
+				beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"],
+					beego.ControllerComments{
+						Method: "ValorMovimientoFuenteLista",
+						Router: `/ValorMovimientoFuenteLista`,
+						AllowHTTPMethods: []string{"get"},
+						MethodParams: param.Make(),
+						Params: nil})
+
 }

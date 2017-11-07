@@ -205,3 +205,64 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 
 	c.ServeJSON()
 }
+
+func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
+	var res []interface{}
+	var resfuente []models.UnionMovimiento
+
+			var Movimiento []models.MovimientoFuenteFinanciamientoApropiacion
+				if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1", &Movimiento); err == nil {
+					if Movimiento != nil {
+
+						for _, Movimientos := range Movimiento {
+
+							var valorGastado map[string]interface{}
+							if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+								if valorGastado != nil {
+								for _, valores := range valorGastado {
+									res = append(res, valores)
+								}
+
+									if res != nil{
+
+									var valorcdp float64
+									valorcdp = 0
+									valorcdp = res[0].(float64)
+
+									Movimientos.ValorGastado = valorcdp
+									Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
+									}
+
+									}else{
+
+										Movimientos.ValorGastado = 0
+										Movimientos.ValorDisponible = Movimientos.Valor
+										
+								}
+
+							}else {
+
+								Movimientos.ValorGastado = 0
+								Movimientos.ValorDisponible = Movimientos.Valor
+
+							}
+
+							union := models.UnionMovimiento{Movimiento: Movimientos}
+							resfuente = append(resfuente, union)
+
+						}
+
+						c.Data["json"] = resfuente
+
+					} else {
+						fmt.Println("aqui")
+						c.Data["json"] = nil
+					}
+				} else {
+					fmt.Println("err4 ", err.Error())
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+
+
+	c.ServeJSON()
+}
