@@ -112,6 +112,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	fmt.Println("sol ", solicitud.NumeroContrato)
 	if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 		if info_contrato != nil {
+			fmt.Println("http://" + beego.AppConfig.String("agoraService") + "informacion_proveedor?limit=1&query=NumDocumento:" + strconv.Itoa(info_contrato[0].Contratista))
 			if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
 				solicitud.DatosProveedor = &contratista[0]
 			} else {
