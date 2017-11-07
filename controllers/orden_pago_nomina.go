@@ -246,8 +246,8 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 
 }
 
-// CargueMasivoOp ...
-// @Title CargueMasivoOp
+// PreviewCargueMasivoOp ...
+// @Title PreviewCargueMasivoOp
 // @Description lista liquidaciones para ordenes de pago masivas.
 // @Param	idNomina	query	string	false	"nomina a listar"
 // @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
@@ -255,8 +255,8 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 // @Param   OrdenPago       map[string]string	true		"body for OrdenPago content"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /CargueMasivoOp [post]
-func (c *OrdenPagoNominaController) CargueMasivoOp() {
+// @router /PreviewCargueMasivoOp [post]
+func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 	idNomina, err1 := c.GetInt("idNomina")
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
@@ -287,7 +287,8 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 										respuesta = append(respuesta, dataLiquidacion)
 									}
 								}
-								c.Data["json"] = respuesta
+								resultado := formatoResumenCargueOp(respuesta)
+								c.Data["json"] = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado}
 							} else {
 								c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 							}
@@ -315,10 +316,71 @@ func (c *OrdenPagoNominaController) CargueMasivoOp() {
 	c.ServeJSON()
 }
 
+func formatoResumenCargueOp(infoDetalleCargue []interface{}) (resumen interface{}) {
+	resRubr := make(map[float64]map[string]interface{})
+	var res []map[string]interface{}
+	//resMov := make(map[float64]map[string]interface{})
+	for _, detalle := range infoDetalleCargue {
+		if detallemap, e := detalle.(map[string]interface{}); e {
+			if auxbool, e := detallemap["Aprobado"].(bool); e {
+				if auxbool {
+					if copmap, e := detallemap["ConceptoOrdenPago"].([]map[string]interface{}); e {
+						for _, conceptoOp := range copmap {
+
+							if auxmap, e := conceptoOp["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{}); e {
+								if auxmap, e := auxmap["DisponibilidadApropiacion"].(map[string]interface{}); e {
+									if auxmap, e := auxmap["Apropiacion"].(map[string]interface{}); e {
+										if rubromap, e := auxmap["Rubro"].(map[string]interface{}); e {
+											idrbr := rubromap["Id"].(float64)
+											if resRubr[idrbr] != nil {
+												resRubr[idrbr] = map[string]interface{}{"Rubro": rubromap, "Afectacion": resRubr[idrbr]["Afectacion"].(float64) + detallemap["ValorBase"].(float64)}
+											} else {
+												resRubr[idrbr] = map[string]interface{}{"Rubro": rubromap, "Afectacion": detallemap["ValorBase"].(float64)}
+											}
+										} else {
+											fmt.Println("1")
+											return
+										}
+									} else {
+										fmt.Println("11")
+										return
+									}
+								} else {
+									fmt.Println("12")
+									return
+								}
+							} else {
+								fmt.Println("13")
+								return
+							}
+
+						}
+					} else {
+						fmt.Println("2")
+						return
+					}
+					fmt.Println("3")
+					for _, aux := range resRubr {
+						res = append(res, aux)
+					}
+					return map[string]interface{}{"ResumenPresupuestal": res, "ResumenContable": nil}
+				}
+			} else {
+				fmt.Println("4")
+				return
+			}
+		} else {
+			fmt.Println("5")
+			return
+		}
+	}
+	return
+}
+
 func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
 	idLiquidacion, e := params[0].(float64)
 	if e {
-		var respuesta []map[string]interface{}
+		var homologacionConceptos []map[string]interface{}
 		var listaDetalles []interface{}
 
 		var valorTotal float64
@@ -358,7 +420,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 						conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
 						if e {
 							existe := false
-							for _, comp := range respuesta {
+							for _, comp := range homologacionConceptos {
 								if comp["Concepto"] != nil && conceptoHomologado["Concepto"] != nil {
 									if comp["Concepto"].(map[string]interface{})["Id"].(float64) == conceptoHomologado["Concepto"].(map[string]interface{})["Id"].(float64) {
 										comp["Valor"] = comp["Valor"].(float64) + conceptoHomologado["Valor"].(float64)
@@ -371,24 +433,35 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 							if !existe {
 								if conceptoHomologado["Concepto"] != nil {
 									valorTotal = valorTotal + conceptoHomologado["Valor"].(float64)
-									respuesta = append(respuesta, conceptoHomologado)
+									homologacionConceptos = append(homologacionConceptos, conceptoHomologado)
 								}
 
 							}
 						}
 					}
 					var movimientosContables []interface{}
-					for _, concepto := range respuesta {
+					for _, concepto := range homologacionConceptos {
 						movimientoContable := formatoMovimientosContablesOp(concepto)
 						movimientosContables = append(movimientosContables, movimientoContable)
 					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
-					res["ResumenRp"] = desagregacionrp
-					//res["id_proveedor"], err = strconv.Atoi(infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"].(string))
-					res["Conceptos"] = respuesta
+					if rpint, e := desagregacionrp[0]["Rp"].(interface{}); e {
+						ordenPago := make(map[string]interface{})
+						ordenPago["RegistroPresupuestal"] = rpint
+						res["OrdenPago"] = ordenPago
+					} else {
+						ordenPago := make(map[string]interface{})
+						ordenPago["RegistroPresupuestal"] = nil
+						res["OrdenPago"] = ordenPago
+					}
+					if auxmap, e := infoContrato.(map[string]interface{}); e {
+						res["infoPersona"], e = auxmap["infoPersona"]
+					}
+					//res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
 					res["MovimientoContable"] = movimientosContables
+					res["ConceptoOrdenPago"], res["Aprobado"], res["Code"] = formatoConceptoOrdenPago(desagregacionrp, homologacionConceptos)
 					return res
 				} else {
 					return nil
@@ -407,7 +480,65 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 	return
 }
 
-func formatoMovimientosContablesOp(concepto interface{}) (res interface{}) {
+func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[string]interface{}) (res []map[string]interface{}, comp bool, code string) {
+	comp = false
+	code = "OP_S001"
+	acumConceptos := make(map[float64]map[string]interface{})
+	for _, concepto := range conceptos {
+		if auxconcp, e := concepto["Concepto"].(map[string]interface{}); e {
+			value := concepto["Valor"].(float64)
+			idConcepto := auxconcp["Id"].(float64)
+			if auxconcp, e = auxconcp["Rubro"].(map[string]interface{}); e {
+				key := auxconcp["Id"].(float64)
+				if acumConceptos[key] != nil {
+					acumConceptos[key] = map[string]interface{}{"Valor": acumConceptos[key]["Valor"].(float64) + value, "Concepto": map[string]interface{}{"Id": idConcepto}}
+				} else {
+					acumConceptos[key] = map[string]interface{}{"Valor": value, "Concepto": map[string]interface{}{"Id": idConcepto}}
+				}
+			}
+
+		} else {
+			comp = false
+			code = "OP_E001"
+			return
+		}
+
+	}
+	for _, apRp := range desgrRp {
+		if auxmap, e := apRp["Apropiacion"].(map[string]interface{}); e {
+			if auxmap, e = auxmap["Rubro"].(map[string]interface{}); e {
+				if idrbRp, e := auxmap["Id"].(float64); e {
+					fmt.Println(35644)
+					if acumConceptos[idrbRp] != nil {
+						saldorp := apRp["Saldo"].(float64)
+						fmt.Println("acum. ", idrbRp)
+						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
+							comp = true
+							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
+							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
+							res = append(res, acumConceptos[idrbRp])
+						} else {
+							comp = false
+							code = "OP_E002"
+						}
+					} else {
+						comp = false
+						code = "OP_E001"
+					}
+				} else {
+					code = "E_0458"
+				}
+			} else {
+				code = "E_0458"
+			}
+		} else {
+			code = "E_0458"
+		}
+	}
+	return
+}
+
+func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]interface{}) {
 	var out []map[string]interface{}
 	cuentaContable, e := concepto.(map[string]interface{})["Concepto"].(map[string]interface{})["ConceptoCuentaContable"].([]interface{})
 	if !e {
@@ -451,7 +582,7 @@ func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp 
 								row := make(map[string]interface{})
 								if info, e := infopresrp.(map[string]interface{}); e {
 									if dispoap, e := info["DisponibilidadApropiacion"].(map[string]interface{}); e {
-										row["RegistroPresupuestalDisponibilidadApropiacion"] = map[string]interface{}{"Id": dispoap["Id"]}
+										row["RegistroPresupuestalDisponibilidadApropiacion"] = info
 										row["Rp"] = rp[0]
 										row["Apropiacion"] = dispoap["Apropiacion"]
 										row["FuenteFinanciacion"] = dispoap["FuenteFinanciamiento"]

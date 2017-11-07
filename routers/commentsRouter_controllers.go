@@ -105,14 +105,6 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"],
 		beego.ControllerComments{
-			Method: "CargueMasivoOp",
-			Router: `/CargueMasivoOp`,
-			AllowHTTPMethods: []string{"post"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"],
-		beego.ControllerComments{
 			Method: "ListaConceptosNominaHomologados",
 			Router: `/ListaConceptosNominaHomologados`,
 			AllowHTTPMethods: []string{"get"},
@@ -124,6 +116,14 @@ func init() {
 			Method: "ListaLiquidacionNominaHomologada",
 			Router: `/ListaLiquidacionNominaHomologada`,
 			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoNominaController"],
+		beego.ControllerComments{
+			Method: "PreviewCargueMasivoOp",
+			Router: `/PreviewCargueMasivoOp`,
+			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
 
