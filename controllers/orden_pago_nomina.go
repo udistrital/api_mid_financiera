@@ -511,7 +511,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 
 func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[string]interface{}) (res []map[string]interface{}, comp bool, code string) {
 	comp = false
-	code = "OP_S001"
+	code = "OPM_S001"
 	acumConceptos := make(map[float64]map[string]interface{})
 	for _, concepto := range conceptos {
 		if auxconcp, e := concepto["Concepto"].(map[string]interface{}); e {
@@ -528,7 +528,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 
 		} else {
 			comp = false
-			code = "OP_E001"
+			code = "OPM_E001"
 			return
 		}
 
@@ -548,11 +548,11 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 							res = append(res, acumConceptos[idrbRp])
 						} else {
 							comp = false
-							code = "OP_E002"
+							code = "OPM_E002"
 						}
 					} else {
 						comp = false
-						code = "OP_E001"
+						code = "OPM_E001"
 					}
 				} else {
 					code = "E_0458"
