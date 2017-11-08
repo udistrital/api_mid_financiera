@@ -123,7 +123,7 @@ func init() {
 		beego.ControllerComments{
 			Method: "PreviewCargueMasivoOp",
 			Router: `/PreviewCargueMasivoOp`,
-			AllowHTTPMethods: []string{"post"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 

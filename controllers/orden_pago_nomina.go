@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -255,7 +254,7 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 // @Param   OrdenPago       map[string]string	true		"body for OrdenPago content"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /PreviewCargueMasivoOp [post]
+// @router /PreviewCargueMasivoOp [get]
 func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 	idNomina, err1 := c.GetInt("idNomina")
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
@@ -263,49 +262,42 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 	if err1 == nil && err2 == nil && err3 == nil {
 		var respuesta []interface{}
 		var liquidacion interface{}
-		infoOpGeneral := make(map[string]interface{})
-		//leer json con info general de la op
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &infoOpGeneral); err == nil {
-			if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
-				if liquidacion != nil {
-					done := make(chan interface{})
-					defer close(done)
-					_, e := liquidacion.(map[string]interface{})
-					if e {
-						if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
-							listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-							resch := utilidades.GenChanInterface(listaLiquidacion...)
-							var params []interface{}
-							params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
-							f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil {
+				done := make(chan interface{})
+				defer close(done)
+				_, e := liquidacion.(map[string]interface{})
+				if e {
+					if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+						listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+						resch := utilidades.GenChanInterface(listaLiquidacion...)
+						var params []interface{}
+						params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+						f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 
-							if f != nil {
+						if f != nil {
 
-								chlistaLiquidacion := utilidades.Digest(done, f, resch, params)
-								for dataLiquidacion := range chlistaLiquidacion {
-									if dataLiquidacion != nil {
-										respuesta = append(respuesta, dataLiquidacion)
-									}
+							chlistaLiquidacion := utilidades.Digest(done, f, resch, params)
+							for dataLiquidacion := range chlistaLiquidacion {
+								if dataLiquidacion != nil {
+									respuesta = append(respuesta, dataLiquidacion)
 								}
-								resultado := formatoResumenCargueOp(respuesta)
-								c.Data["json"] = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado}
-							} else {
-								c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 							}
+							resultado := formatoResumenCargueOp(respuesta)
+							c.Data["json"] = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado}
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 						}
 					} else {
 						c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 					}
-
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 				}
-			} else {
-				//error consumo de servicio titan. Lista contratos por liqu
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
 			}
 		} else {
-			//error al recibir datos genrales de la op
+			//error consumo de servicio titan. Lista contratos por liqu
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
 
@@ -318,12 +310,13 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 
 func formatoResumenCargueOp(infoDetalleCargue []interface{}) (resumen interface{}) {
 	resRubr := make(map[float64]map[string]interface{})
-	var res []map[string]interface{}
-	//resMov := make(map[float64]map[string]interface{})
+	resMov := make(map[float64]map[string]interface{})
+
 	for _, detalle := range infoDetalleCargue {
 		if detallemap, e := detalle.(map[string]interface{}); e {
 			if auxbool, e := detallemap["Aprobado"].(bool); e {
 				if auxbool {
+					//construccion del resumen de la afectacion presupuestal...
 					if copmap, e := detallemap["ConceptoOrdenPago"].([]map[string]interface{}); e {
 						for _, conceptoOp := range copmap {
 
@@ -359,22 +352,55 @@ func formatoResumenCargueOp(infoDetalleCargue []interface{}) (resumen interface{
 						fmt.Println("2")
 						return
 					}
-					fmt.Println("3")
-					for _, aux := range resRubr {
-						res = append(res, aux)
+					//construccion del resumen de la afectacion Contable...
+
+					if movsCont, e := detallemap["MovimientoContable"].([]interface{}); e {
+						for _, movint := range movsCont {
+							if mov, e := movint.(map[string]interface{}); e {
+
+								if auxmap, e := mov["CuentaContable"].(map[string]interface{}); e {
+									idCuenta := auxmap["Id"].(float64)
+									fmt.Println("cuenta id ", idCuenta)
+									if resMov[idCuenta] != nil {
+										resMov[idCuenta] = map[string]interface{}{"CuentaContable": auxmap, "Debito": resMov[idCuenta]["Debito"].(float64) + mov["Debito"].(float64), "Credito": resMov[idCuenta]["Credito"].(float64) + mov["Credito"].(float64)}
+									} else {
+										resMov[idCuenta] = map[string]interface{}{"CuentaContable": auxmap, "Debito": mov["Debito"].(float64), "Credito": mov["Credito"].(float64)}
+									}
+								} else {
+									fmt.Println("err mov 3")
+								}
+							} else {
+								fmt.Println("err movs 2")
+							}
+
+						}
+					} else {
+						fmt.Println("err movs 1")
+						return
 					}
-					return map[string]interface{}{"ResumenPresupuestal": res, "ResumenContable": nil}
+
 				}
 			} else {
 				fmt.Println("4")
 				return
 			}
+
 		} else {
 			fmt.Println("5")
 			return
 		}
 	}
-	return
+	fmt.Println("3")
+	var resRubrArr []map[string]interface{}
+	for _, aux := range resRubr {
+		resRubrArr = append(resRubrArr, aux)
+	}
+	var resMovArr []map[string]interface{}
+	for _, aux := range resMov {
+		resMovArr = append(resMovArr, aux)
+	}
+	return map[string]interface{}{"ResumenPresupuestal": resRubrArr, "ResumenContable": resMovArr}
+
 }
 
 func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (res interface{}) {
@@ -442,7 +468,10 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					var movimientosContables []interface{}
 					for _, concepto := range homologacionConceptos {
 						movimientoContable := formatoMovimientosContablesOp(concepto)
-						movimientosContables = append(movimientosContables, movimientoContable)
+						for _, aux := range movimientoContable {
+							movimientosContables = append(movimientosContables, aux)
+						}
+
 					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
@@ -458,7 +487,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					if auxmap, e := infoContrato.(map[string]interface{}); e {
 						res["infoPersona"], e = auxmap["infoPersona"]
 					}
-					//res["ConceptoOrdenPago"] = homologacionConceptos
+					res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
 					res["MovimientoContable"] = movimientosContables
 					res["ConceptoOrdenPago"], res["Aprobado"], res["Code"] = formatoConceptoOrdenPago(desagregacionrp, homologacionConceptos)
@@ -512,7 +541,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
 						fmt.Println("acum. ", idrbRp)
-						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
+						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp >= valor {
 							comp = true
 							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
 							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
@@ -550,11 +579,11 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 		for _, cuentaComp := range cuentaContable {
 			fmt.Println(cuentaComp)
 			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
-				out = append(out, map[string]interface{}{"Debito": concepto.(map[string]interface{})["Valor"], "Credito": 0,
+				out = append(out, map[string]interface{}{"Debito": concepto.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
 					"Concepto":       concepto.(map[string]interface{})["Concepto"],
 					"CuentaContable": cuentaComp})
 			} else {
-				out = append(out, map[string]interface{}{"Debito": 0, "Credito": concepto.(map[string]interface{})["Valor"],
+				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": concepto.(map[string]interface{})["Valor"].(float64),
 					"Concepto":       concepto.(map[string]interface{})["Concepto"],
 					"CuentaContable": cuentaComp})
 			}
