@@ -475,15 +475,22 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
-					if rpint, e := desagregacionrp[0]["Rp"].(interface{}); e {
-						ordenPago := make(map[string]interface{})
-						ordenPago["RegistroPresupuestal"] = rpint
-						res["OrdenPago"] = ordenPago
+					if desagregacionrp != nil {
+						if rpint, e := desagregacionrp[0]["Rp"].(interface{}); e {
+							ordenPago := make(map[string]interface{})
+							ordenPago["RegistroPresupuestal"] = rpint
+							res["OrdenPago"] = ordenPago
+						} else {
+							ordenPago := make(map[string]interface{})
+							ordenPago["RegistroPresupuestal"] = nil
+							res["OrdenPago"] = ordenPago
+						}
 					} else {
 						ordenPago := make(map[string]interface{})
 						ordenPago["RegistroPresupuestal"] = nil
 						res["OrdenPago"] = ordenPago
 					}
+
 					if auxmap, e := infoContrato.(map[string]interface{}); e {
 						res["infoPersona"], e = auxmap["infoPersona"]
 					}
@@ -529,7 +536,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 
 		} else {
 			comp = false
-			code = "OPM_E001"
+			code = "E_0458"
 			return
 		}
 
@@ -564,6 +571,12 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 		} else {
 			code = "E_0458"
 		}
+	}
+	if conceptos == nil {
+		code = "OPM_E004"
+	}
+	if desgrRp == nil {
+		code = "OPM_E003"
 	}
 	return
 }
@@ -600,11 +613,12 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp []map[string]interface{}) {
 	var rp []interface{}
 	var saldoRp map[string]float64
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
+	//DVE48
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
 		if rpmap, e := rp[0].(map[string]interface{}); e {
 			if solicitudrp, e := rpmap["Id"].(float64); e {
 				fmt.Println("sol rp : ", solicitudrp)
-				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+"307", &rp); err == nil && rp != nil {
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(solicitudrp)), &rp); err == nil && rp != nil {
 					rpmap = nil
 					if rpmap, e = rp[0].(map[string]interface{}); e {
 						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
