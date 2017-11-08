@@ -319,8 +319,10 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 	var v map[string]interface{}
 	var alert []interface{}
+	var param []interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		if v != nil {
+			param = append(param, v["InfoGeneralOp"])
 			done := make(chan interface{})
 			defer close(done)
 			if tipo, e := v["TipoLiquidacion"].(string); e {
@@ -328,7 +330,7 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 				if f != nil {
 					if dataOparr, e := v["DetalleCargueOp"].([]interface{}); e {
 						resch := utilidades.GenChanInterface(dataOparr...)
-						chlistaAlertas := utilidades.Digest(done, f, resch, nil)
+						chlistaAlertas := utilidades.Digest(done, f, resch, param)
 						for dataAlertas := range chlistaAlertas {
 							if dataAlertas != nil {
 								alert = append(alert, dataAlertas)
@@ -361,20 +363,27 @@ func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
-				if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &data); err == nil {
+				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e {
+					Opmap["UnidadEjecutora"], e = params[0].(map[string]interface{})["UnidadEjecutora"]
+					Opmap["SubTipoOrdenPago"], e = params[0].(map[string]interface{})["SubTipoOrdenPago"]
+					Opmap["FormaPago"], e = params[0].(map[string]interface{})["FormaPago"]
+					Opmap["Vigencia"], e = params[0].(map[string]interface{})["Vigencia"]
+					auxmap["OrdenPago"] = Opmap
+					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
 
-				} else {
-					return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+					} else {
+						return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+					}
 				}
 			} else {
-				//si no se aprobo la op para su registro. (notificar a quien corresponda)
-				return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+				return models.Alert{Code: "E_0458", Body: data, Type: "error"}
 			}
 		} else {
-			return
+			//si no se aprobo la op para su registro. (notificar a quien corresponda)
+			return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
 		}
 	} else {
-		return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+		return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
 	}
 
 	return
