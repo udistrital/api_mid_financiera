@@ -489,6 +489,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					}
 					res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
+					res["VigenciaContrato"] = vigenciaContrato
 					res["MovimientoContable"] = movimientosContables
 					res["ConceptoOrdenPago"], res["Aprobado"], res["Code"] = formatoConceptoOrdenPago(desagregacionrp, homologacionConceptos)
 					return res
