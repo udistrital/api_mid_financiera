@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -284,7 +285,7 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 								}
 							}
 							resultado := formatoResumenCargueOp(respuesta)
-							c.Data["json"] = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado}
+							c.Data["json"] = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado, "TipoLiquidacion": liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string)}
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 						}
@@ -306,6 +307,77 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
 	}
 	c.ServeJSON()
+}
+
+// RegistroCargueMasivoOp ...
+// @Title RegistroCargueMasivoOp
+// @Description lista liquidaciones para ordenes de pago masivas.
+// @Param	body		body 	models.RegistroPresupuestal	true		"body for RegistroPresupuestal content"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /RegistroCargueMasivoOp [post]
+func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
+	var v map[string]interface{}
+	var alert []interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		if v != nil {
+			done := make(chan interface{})
+			defer close(done)
+			if tipo, e := v["TipoLiquidacion"].(string); e {
+				f := RegistroOpFunctionDispatcher(tipo)
+				if f != nil {
+					if dataOparr, e := v["DetalleCargueOp"].([]interface{}); e {
+						resch := utilidades.GenChanInterface(dataOparr...)
+						chlistaAlertas := utilidades.Digest(done, f, resch, nil)
+						for dataAlertas := range chlistaAlertas {
+							if dataAlertas != nil {
+								alert = append(alert, dataAlertas)
+							}
+						}
+						c.Data["json"] = alert
+					} else {
+						alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
+					}
+				}
+			} else {
+				alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
+
+			}
+
+		} else {
+			alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
+
+		}
+	} else {
+		alert = append(alert, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+
+	}
+	c.Data["json"] = alert
+	c.ServeJSON()
+}
+
+func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface{}) {
+	//"http://"+beego.AppConfig.String("kronosService")+
+	if auxmap, e := data.(map[string]interface{}); e {
+		if auxbool, e := auxmap["Aprobado"].(bool); e {
+			if auxbool {
+				if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &data); err == nil {
+
+				} else {
+					return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+				}
+			} else {
+				//si no se aprobo la op para su registro. (notificar a quien corresponda)
+				return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+			}
+		} else {
+			return
+		}
+	} else {
+		return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+	}
+
+	return
 }
 
 func formatoResumenCargueOp(infoDetalleCargue []interface{}) (resumen interface{}) {
@@ -545,15 +617,15 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 		if auxmap, e := apRp["Apropiacion"].(map[string]interface{}); e {
 			if auxmap, e = auxmap["Rubro"].(map[string]interface{}); e {
 				if idrbRp, e := auxmap["Id"].(float64); e {
-					fmt.Println(35644)
-					if acumConceptos[idrbRp] != nil {
+					fmt.Println(idrbRp)
+					if acumConceptos[35644] != nil {
 						saldorp := apRp["Saldo"].(float64)
-						fmt.Println("acum. ", idrbRp)
-						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp >= valor {
+						fmt.Println("acum. ", 35644)
+						if valor := acumConceptos[35644]["Valor"].(float64); true && saldorp <= valor {
 							comp = true
-							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
-							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
-							res = append(res, acumConceptos[idrbRp])
+							acumConceptos[35644]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
+							acumConceptos[35644]["Apropiacion"] = apRp["Apropiacion"]
+							res = append(res, acumConceptos[35644])
 						} else {
 							comp = false
 							code = "OPM_E002"
@@ -614,11 +686,13 @@ func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp 
 	var rp []interface{}
 	var saldoRp map[string]float64
 	//DVE48
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
+	//if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
 		if rpmap, e := rp[0].(map[string]interface{}); e {
 			if solicitudrp, e := rpmap["Id"].(float64); e {
 				fmt.Println("sol rp : ", solicitudrp)
-				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(solicitudrp)), &rp); err == nil && rp != nil {
+				//if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(solicitudrp)), &rp); err == nil && rp != nil {
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+"307", &rp); err == nil && rp != nil {
 					rpmap = nil
 					if rpmap, e = rp[0].(map[string]interface{}); e {
 						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
@@ -674,6 +748,17 @@ func formatoRegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, 
 	switch os := tipo; os {
 	case "HCS":
 		return formatoRegistroOpHC
+	case "HCH":
+		return nil
+	default:
+		return nil
+	}
+}
+
+func RegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params ...interface{}) interface{}) {
+	switch os := tipo; os {
+	case "HCS":
+		return RegistroOpProveedor
 	case "HCH":
 		return nil
 	default:
