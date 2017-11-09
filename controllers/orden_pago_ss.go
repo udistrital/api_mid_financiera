@@ -222,7 +222,30 @@ func (c *OrdenPagoSsController) Getjota() {
 			idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
 			fmt.Println("periodo pago ", idPeriodoPago)
 			if idPeriodoPago != 0 {
-				fmt.Println("consultar proceso externo get necesidad")
+				idNecesidad := getNecesidadByProcesoExternoSS(int(idPeriodoPago))
+				fmt.Println("Nececidad id", idNecesidad)
+				if idNecesidad != 0 {
+					solicitudCDP := getSolicitudDisponibilidad(int(idNecesidad))
+					fmt.Println("solicitud id, ", solicitudCDP)
+					if solicitudCDP != 0 {
+						disponibilidad := getDisponibilidad(int(solicitudCDP))
+						fmt.Println("disponibilidad", disponibilidad)
+						if disponibilidad != 0 {
+							rpDisponibilidadApropiacion := getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
+							if rpDisponibilidadApropiacion != nil {
+								fmt.Println("RPDATA ", rpDisponibilidadApropiacion)
+							} else {
+								c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
+							}
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Disponibilidad para La Necesidad", Type: "error"}
+						}
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Solicitud de Disponibilidad para La Necesidad", Type: "error"}
+					}
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe necesidad para liquidacion de Seguridad Social en el periodo", Type: "error"}
+				}
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
 			}
@@ -270,6 +293,82 @@ func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (
 		}
 	} else {
 		idPeriodoPago = 0
+	}
+	return
+}
+
+func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64) {
+	var necesidadProcesoExterno []interface{}
+	if idPeriodoPagoSs != 0 {
+		//TipoNecesidad.CodigoAbreviacion:S  seguridad social
+		// Necesidad.EstadoNecesidad.CodigoAbreviacion:C  => Solicitud de CDP creada
+		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:S,ProcesoExterno:"+strconv.Itoa(idPeriodoPagoSs)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit:1", &necesidadProcesoExterno); err == nil {
+			if necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
+				necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
+			} else {
+				necesidad = 0
+			}
+		} else {
+			necesidad = 0
+		}
+	} else {
+		necesidad = 0
+	}
+	return
+}
+
+func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64) {
+	var solicitudDisponibilidadData []interface{}
+	if idNecesidad != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil {
+			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+				solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			} else {
+				solicitudDisponibilidad = 0
+			}
+		} else {
+			solicitudDisponibilidad = 0
+		}
+	} else {
+		solicitudDisponibilidad = 0
+	}
+	return
+}
+
+func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64) {
+	var solicitudDisponibilidadData []interface{}
+	if idSolicitudDisponibilidad != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?query=Solicitud:"+strconv.Itoa(idSolicitudDisponibilidad)+"&limit:1", &solicitudDisponibilidadData); err == nil {
+			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+				idDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			} else {
+				idDisponibilidad = 0
+			}
+		} else {
+			idDisponibilidad = 0
+		}
+	} else {
+		idDisponibilidad = 0
+	}
+	return
+}
+
+func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (RpDisponibilidadApropiacion interface{}) {
+	var dataRpDisponibilidadApropiacio interface{}
+	if idDisponibilidad != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.Itoa(idDisponibilidad), &dataRpDisponibilidadApropiacio); err == nil {
+			if dataRpDisponibilidadApropiacio != nil {
+				RpDisponibilidadApropiacion = dataRpDisponibilidadApropiacio
+			} else {
+				fmt.Println("1------------")
+				RpDisponibilidadApropiacion = 0
+			}
+		} else {
+			fmt.Println("2------------")
+			RpDisponibilidadApropiacion = 0
+		}
+	} else {
+		RpDisponibilidadApropiacion = 0
 	}
 	return
 }
