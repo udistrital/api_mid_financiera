@@ -201,3 +201,75 @@ func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp 
 	}
 	return
 }
+
+// Getjota ...
+// @Title Getjota
+// @Description lista pagos de seguridad socila por persona.
+// @Param	idNomina	query	string	false	"nomina a listar"
+// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
+// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /Getjota [get]
+func (c *OrdenPagoSsController) Getjota() {
+	idNomina, err1 := c.GetInt("idNomina")
+	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
+	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
+	if err1 == nil && err2 == nil && err3 == nil {
+		idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
+		fmt.Println("Liquidacion: ", idLiquidacion)
+		if idLiquidacion != 0 {
+			idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
+			fmt.Println("periodo pago ", idPeriodoPago)
+			if idPeriodoPago != 0 {
+				fmt.Println("consultar proceso externo get necesidad")
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	fmt.Println("fin")
+	c.ServeJSON()
+}
+
+// se consulta servicio que retorna las liquidacions en un mes, año y titpo nomina que ya esten en estado EnOrdenPago
+func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiquidacion float64) {
+	var liquidacion interface{}
+	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil && liquidacion.(map[string]interface{})["Id_Preliq"] != nil {
+				IdLiquidacion = liquidacion.(map[string]interface{})["Id_Preliq"].(float64)
+			} else {
+				IdLiquidacion = 0
+			}
+		} else {
+			return 0
+		}
+	} else {
+		return 0
+	}
+	return
+}
+
+// se consulta servicio de periodo_pago en un mes, año y con id liquidacion
+func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64) {
+	var periodoPago []interface{}
+	if idLiquidacion != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:1", &periodoPago); err == nil {
+			if periodoPago != nil && periodoPago[0].(map[string]interface{})["Id"] != nil {
+				idPeriodoPago = periodoPago[0].(map[string]interface{})["Id"].(float64)
+			} else {
+				idPeriodoPago = 0
+			}
+		} else {
+			idPeriodoPago = 0
+		}
+	} else {
+		idPeriodoPago = 0
+	}
+	return
+}
