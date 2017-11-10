@@ -212,17 +212,23 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 				//fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
 				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:"+strconv.Itoa(int(idProyecto)), &homologacion); err == nil {
 					//fmt.Println("Hom ", homologacion)
-					for _, conceptoKronos := range homologacion {
-						row, e := conceptoKronos.(map[string]interface{})
-						//fmt.Println(row)
-						if e {
-							out["Concepto"] = row["ConceptoKronos"]
-							out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
-						} else {
-							fmt.Println("err  concKron")
-							return nil
-						}
+					if homologacion != nil {
+						//cuando hay homologacion de un concepto para concepto kronos.
+						for _, conceptoKronos := range homologacion {
+							row, e := conceptoKronos.(map[string]interface{})
+							//fmt.Println(row)
+							if e {
+								out["Concepto"] = row["ConceptoKronos"]
+								out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
+							} else {
+								fmt.Println("err  concKron")
+								return nil
+							}
 
+						}
+					} else {
+						//cuando no encuentra la homologacion del concepto (buscar en descuentos).
+						beego.Info(dataConceptoAhomologar["Concepto"])
 					}
 				} else {
 					fmt.Println(err.Error())
@@ -363,11 +369,13 @@ func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
-				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e {
+				valorBase, e2 := auxmap["ValorBase"].(float64)
+				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
 					Opmap["UnidadEjecutora"], e = params[0].(map[string]interface{})["UnidadEjecutora"]
 					Opmap["SubTipoOrdenPago"], e = params[0].(map[string]interface{})["SubTipoOrdenPago"]
 					Opmap["FormaPago"], e = params[0].(map[string]interface{})["FormaPago"]
 					Opmap["Vigencia"], e = params[0].(map[string]interface{})["Vigencia"]
+					Opmap["valorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
 					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
 
