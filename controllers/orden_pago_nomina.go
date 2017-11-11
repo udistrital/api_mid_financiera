@@ -212,16 +212,22 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 				//fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
 				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:"+strconv.Itoa(int(idProyecto)), &homologacion); err == nil {
 					//fmt.Println("Hom ", homologacion)
-					for _, conceptoKronos := range homologacion {
-						row, e := conceptoKronos.(map[string]interface{})
-						//fmt.Println(row)
-						if e {
-							out["Concepto"] = row["ConceptoKronos"]
-							out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
-						} else {
-							fmt.Println("err  concKron")
-							return nil
+					if homologacion != nil {
+						//cuando hay homologacion de un concepto para concepto kronos.
+						for _, conceptoKronos := range homologacion {
+							row, e := conceptoKronos.(map[string]interface{})
+							//fmt.Println(row)
+							if e {
+								out["Concepto"] = row["ConceptoKronos"]
+								out["Valor"] = dataConceptoAhomologar["ValorCalculado"]
+							} else {
+								fmt.Println("err  concKron")
+								return nil
+							}
+
 						}
+					} else {
+						//cuando no encuentra la homologacion del concepto (buscar en descuentos).
 
 					}
 				} else {
@@ -244,6 +250,35 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 		return nil
 	}
 
+}
+
+func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) (res interface{}) {
+	beego.Info(dataDescuento)
+	dataDescuentoAhomologar, e := dataDescuento.(map[string]interface{})
+	var homologacion []interface{}
+	out := make(map[string]interface{})
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"homologacion_descuento?query=ConceptoTitan:"+strconv.Itoa(int(dataDescuentoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))), &homologacion); err == nil {
+			if homologacion != nil {
+				for _, descuentoKronos := range homologacion {
+					row, e := descuentoKronos.(map[string]interface{})
+					//fmt.Println(row)
+					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) == 0 {
+						out["Descuento"] = row["CuentaEspecialKronos"]
+						out["Valor"] = dataDescuentoAhomologar["ValorCalculado"]
+					} else {
+						fmt.Println("err  concKron")
+						return nil
+					}
+
+				}
+			}
+		} else {
+			fmt.Println(err.Error())
+			return nil
+		}
+	}
+	return out
 }
 
 // PreviewCargueMasivoOp ...
@@ -363,11 +398,13 @@ func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
-				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e {
+				valorBase, e2 := auxmap["ValorBase"].(float64)
+				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
 					Opmap["UnidadEjecutora"], e = params[0].(map[string]interface{})["UnidadEjecutora"]
 					Opmap["SubTipoOrdenPago"], e = params[0].(map[string]interface{})["SubTipoOrdenPago"]
 					Opmap["FormaPago"], e = params[0].(map[string]interface{})["FormaPago"]
 					Opmap["Vigencia"], e = params[0].(map[string]interface{})["Vigencia"]
+					Opmap["valorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
 					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
 
@@ -488,6 +525,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 	idLiquidacion, e := params[0].(float64)
 	if e {
 		var homologacionConceptos []map[string]interface{}
+		var homologacionDescuentos []map[string]interface{}
 		var listaDetalles []interface{}
 
 		var valorTotal float64
@@ -505,7 +543,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		//consulta del rp asociado al contrato de la persona... strconv.Itoa(int(vigenciaContrato)) ... strconv.Itoa(int(solicitudrp))
 		desagregacionrp := formatoInfoRp(nContrato, vigenciaContrato)
 		//fin consulta del rp ...
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:devengo,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
 			if listaDetalles != nil {
 				done := make(chan interface{})
 				defer close(done)
@@ -546,6 +584,43 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 							}
 						}
 					}
+
+					//---------------------
+					//descuentos homologacion
+					if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
+						if listaDetalles != nil {
+							done := make(chan interface{})
+							defer close(done)
+							resch := utilidades.GenChanInterface(listaDetalles...)
+							chDescHomologados := utilidades.Digest(done, homologacionDescuentosHC, resch, nil)
+							for descuentoHomologado := range chDescHomologados {
+								homologado, e := descuentoHomologado.(map[string]interface{})
+								if e {
+									existe := false
+									for _, comp := range homologacionDescuentos {
+										if comp["Descuento"] != nil && homologado["Descuento"] != nil {
+											if comp["Descuento"].(map[string]interface{})["Id"].(float64) == homologado["Descuento"].(map[string]interface{})["Id"].(float64) {
+												comp["Valor"] = comp["Valor"].(float64) + homologado["Valor"].(float64)
+												existe = true
+												valorTotal = valorTotal + comp["Valor"].(float64)
+											}
+										}
+
+									}
+									if !existe {
+										if homologado["Descuento"] != nil {
+											valorTotal = valorTotal + homologado["Valor"].(float64)
+											homologacionDescuentos = append(homologacionDescuentos, homologado)
+										}
+
+									}
+								}
+							}
+						}
+					}
+
+					//---------------------
+
 					var movimientosContables []interface{}
 					for _, concepto := range homologacionConceptos {
 						movimientoContable := formatoMovimientosContablesOp(concepto)
@@ -575,6 +650,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					if auxmap, e := infoContrato.(map[string]interface{}); e {
 						res["infoPersona"], e = auxmap["infoPersona"]
 					}
+					res["Descuentos"] = listaDetalles
 					res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
 					res["VigenciaContrato"] = vigenciaContrato
@@ -626,15 +702,15 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 		if auxmap, e := apRp["Apropiacion"].(map[string]interface{}); e {
 			if auxmap, e = auxmap["Rubro"].(map[string]interface{}); e {
 				if idrbRp, e := auxmap["Id"].(float64); e {
-					fmt.Println(idrbRp)
-					if acumConceptos[35644] != nil {
+					fmt.Println(35644)
+					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
-						fmt.Println("acum. ", 35644)
-						if valor := acumConceptos[35644]["Valor"].(float64); true && saldorp <= valor {
+						fmt.Println("acum. ", idrbRp)
+						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
 							comp = true
-							acumConceptos[35644]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
-							acumConceptos[35644]["Apropiacion"] = apRp["Apropiacion"]
-							res = append(res, acumConceptos[35644])
+							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
+							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
+							res = append(res, acumConceptos[idrbRp])
 						} else {
 							comp = false
 							code = "OPM_E002"
@@ -691,17 +767,45 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 	return out
 }
 
+func formatoMovimientosContablesDescuentosOp(descuento interface{}) (res []map[string]interface{}) {
+	var out []map[string]interface{}
+	cuentaContable, e := descuento.(map[string]interface{})["CuentaContable"].([]interface{})
+	if !e {
+		//fmt.Println(descuento)
+		fmt.Println("1")
+		return nil
+	}
+	if len(cuentaContable) == 2 {
+		for _, cuentaComp := range cuentaContable {
+			fmt.Println(cuentaComp)
+			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
+				out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
+					"Descuento":      descuento.(map[string]interface{})["descuento"],
+					"CuentaContable": cuentaComp})
+			} else {
+				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
+					"Descuento":      descuento.(map[string]interface{})["Concepto"],
+					"CuentaContable": cuentaComp})
+			}
+
+		}
+	} else {
+		return nil
+	}
+	return out
+}
+
 func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp []map[string]interface{}) {
 	var rp []interface{}
 	var saldoRp map[string]float64
 	//DVE48
-	//if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
+		//if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
 		if rpmap, e := rp[0].(map[string]interface{}); e {
 			if solicitudrp, e := rpmap["Id"].(float64); e {
 				fmt.Println("sol rp : ", solicitudrp)
-				//if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(solicitudrp)), &rp); err == nil && rp != nil {
-				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+"307", &rp); err == nil && rp != nil {
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(solicitudrp)), &rp); err == nil && rp != nil {
+					//if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+"307", &rp); err == nil && rp != nil {
 					rpmap = nil
 					if rpmap, e = rp[0].(map[string]interface{}); e {
 						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
