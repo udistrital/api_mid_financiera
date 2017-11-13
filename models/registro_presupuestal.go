@@ -12,7 +12,7 @@ type RegistroPresupuestal struct {
 	Estado                     *EstadoRegistroPresupuestal `orm:"column(estado);rel(fk)"`
 	NumeroRegistroPresupuestal int                         `orm:"column(numero_registro_presupuestal)"`
 	Beneficiario               int                         `orm:"column(beneficiario);rel(fk)"`
-	Compromiso                 *Compromiso                 `orm:"column(compromiso);rel(fk)"`
+	Compromiso                 interface{}                 `orm:"column(compromiso);rel(fk)"`
 	Solicitud                  int
 	DatosSolicitud             *SolicitudRp
 }

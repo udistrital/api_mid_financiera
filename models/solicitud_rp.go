@@ -16,6 +16,6 @@ type SolicitudRp struct {
 	Masivo              bool
 	DatosDisponibilidad *Disponibilidad
 	DatosProveedor      *InformacionProveedor
-	DatosCompromiso     *Compromiso
+	DatosCompromiso     interface{}
 	Rubros              []interface{}
 }
