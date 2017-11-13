@@ -263,7 +263,7 @@ func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) 
 				for _, descuentoKronos := range homologacion {
 					row, e := descuentoKronos.(map[string]interface{})
 					//fmt.Println(row)
-					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) == 0 {
+					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) >= 0 {
 						out["Descuento"] = row["CuentaEspecialKronos"]
 						out["Valor"] = dataDescuentoAhomologar["ValorCalculado"]
 					} else {
@@ -629,6 +629,13 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 						}
 
 					}
+					for _, descuento := range homologacionDescuentos {
+						movimientoContable := formatoMovimientosContablesDescuentosOp(descuento)
+						for _, aux := range movimientoContable {
+							movimientosContables = append(movimientosContables, aux)
+						}
+
+					}
 					res := make(map[string]interface{})
 					res["ValorBase"] = valorTotal
 					if desagregacionrp != nil {
@@ -650,7 +657,6 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					if auxmap, e := infoContrato.(map[string]interface{}); e {
 						res["infoPersona"], e = auxmap["infoPersona"]
 					}
-					res["Descuentos"] = listaDetalles
 					res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
 					res["VigenciaContrato"] = vigenciaContrato
@@ -780,11 +786,11 @@ func formatoMovimientosContablesDescuentosOp(descuento interface{}) (res []map[s
 			fmt.Println(cuentaComp)
 			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
 				out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
-					"Descuento":      descuento.(map[string]interface{})["descuento"],
+					"CuentaEspecial": descuento.(map[string]interface{})["descuento"],
 					"CuentaContable": cuentaComp})
 			} else {
 				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
-					"Descuento":      descuento.(map[string]interface{})["Concepto"],
+					"CuentaEspecial": descuento.(map[string]interface{})["Concepto"],
 					"CuentaContable": cuentaComp})
 			}
 
