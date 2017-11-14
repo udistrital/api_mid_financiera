@@ -110,10 +110,10 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	var info_contrato []models.ContratoGeneral
 	var contratista []models.InformacionProveedor
 	fmt.Println("sol ", solicitud.NumeroContrato)
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
+	if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 		if info_contrato != nil {
-			fmt.Println("http://" + beego.AppConfig.String("agoraService") + "informacion_proveedor?limit=1&query=NumDocumento:" + strconv.Itoa(info_contrato[0].Contratista))
-			if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+			fmt.Println("http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor?limit=1&query=Id:" + strconv.Itoa(info_contrato[0].Contratista))
+			if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
 				solicitud.DatosProveedor = &contratista[0]
 			} else {
 				//error consulta proveedor
@@ -211,7 +211,7 @@ func (c *RegistroPresupuestalController) ListaRp() {
 					if rp != nil {
 						respuesta = append(respuesta, rp.(map[string]interface{}))
 					}
-					
+
 				}
 				c.Data["json"] = respuesta
 			} else {
@@ -391,13 +391,13 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 				//obtener informacion del contrato del rp
 				var info_contrato []models.ContratoGeneral
 				var contratista []models.InformacionProveedor
-				if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
+				if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 					if info_contrato != nil {
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+						if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
 							solicitud.DatosProveedor = &contratista[0]
 						} else {
 							//error consulta proveedor
-							fmt.Println(err.Error())
+							fmt.Println("ss", err.Error())
 						}
 					} else {
 						//si no encuentra datos sobre el contrato
