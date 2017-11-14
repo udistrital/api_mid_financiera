@@ -364,9 +364,15 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 				f := RegistroOpFunctionDispatcher(tipo)
 				if f != nil {
 					if dataOparr, e := v["DetalleCargueOp"].([]interface{}); e {
-						resch := utilidades.GenChanInterface(dataOparr...)
-						chlistaAlertas := utilidades.Digest(done, f, resch, param)
-						for dataAlertas := range chlistaAlertas {
+						// resch := utilidades.GenChanInterface(dataOparr...)
+						// chlistaAlertas := utilidades.Digest(done, f, resch, param)
+						// for dataAlertas := range chlistaAlertas {
+						// 	if dataAlertas != nil {
+						// 		alert = append(alert, dataAlertas)
+						// 	}
+						// }
+						for _, row := range dataOparr {
+							dataAlertas := f(row, param)
 							if dataAlertas != nil {
 								alert = append(alert, dataAlertas)
 							}
@@ -395,16 +401,17 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 
 func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
+	fmt.Println(params)
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
 				valorBase, e2 := auxmap["ValorBase"].(float64)
 				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
-					Opmap["UnidadEjecutora"], e = params[0].(map[string]interface{})["UnidadEjecutora"]
-					Opmap["SubTipoOrdenPago"], e = params[0].(map[string]interface{})["SubTipoOrdenPago"]
-					Opmap["FormaPago"], e = params[0].(map[string]interface{})["FormaPago"]
-					Opmap["Vigencia"], e = params[0].(map[string]interface{})["Vigencia"]
-					Opmap["valorBase"] = valorBase
+					Opmap["UnidadEjecutora"], e = params[0].([]interface{})[0].(map[string]interface{})["UnidadEjecutora"]
+					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
+					Opmap["FormaPago"], e = params[0].([]interface{})[0].(map[string]interface{})["FormaPago"]
+					Opmap["Vigencia"], e = params[0].([]interface{})[0].(map[string]interface{})["Vigencia"]
+					Opmap["ValorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
 					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
 
