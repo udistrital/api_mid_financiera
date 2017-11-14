@@ -401,7 +401,6 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 
 func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
-	fmt.Println(params)
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
@@ -637,9 +636,13 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 
 					}
 					for _, descuento := range homologacionDescuentos {
-						movimientoContable := formatoMovimientosContablesDescuentosOp(descuento)
-						for _, aux := range movimientoContable {
-							movimientosContables = append(movimientosContables, aux)
+						if movimientosContables != nil {
+							if auxmap, e := movimientosContables[0].(map[string]interface{}); e {
+								movimientoContable := formatoMovimientosContablesDescuentosOp(descuento, auxmap["Concepto"])
+								for _, aux := range movimientoContable {
+									movimientosContables = append(movimientosContables, aux)
+								}
+							}
 						}
 
 					}
@@ -780,7 +783,7 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 	return out
 }
 
-func formatoMovimientosContablesDescuentosOp(descuento interface{}) (res []map[string]interface{}) {
+func formatoMovimientosContablesDescuentosOp(descuento interface{}, concepto interface{}) (res []map[string]interface{}) {
 	var out []map[string]interface{}
 	cuentaContable, e := descuento.(map[string]interface{})["CuentaContable"].([]interface{})
 	if !e {
@@ -793,12 +796,14 @@ func formatoMovimientosContablesDescuentosOp(descuento interface{}) (res []map[s
 			fmt.Println(cuentaComp)
 			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
 				out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
-					"CuentaEspecial": descuento.(map[string]interface{})["descuento"],
-					"CuentaContable": cuentaComp})
+					"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+					"CuentaContable": cuentaComp,
+					"Concepto":       concepto})
 			} else {
 				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
-					"CuentaEspecial": descuento.(map[string]interface{})["Concepto"],
-					"CuentaContable": cuentaComp})
+					"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+					"CuentaContable": cuentaComp,
+					"Concepto":       concepto})
 			}
 
 		}
