@@ -196,7 +196,7 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 		//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
 		var infoVinculacion []interface{}
 		//fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
-		if err := getJson("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
 			if infoVinculacion != nil {
 				//fmt.Println("Facultad: ", infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"], "Proyecto: ", infoVinculacion[0].(map[string]interface{})["IdProyectoCurricular"])
 				idFacultad, e := infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"].(float64)
@@ -253,7 +253,7 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 }
 
 func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) (res interface{}) {
-	beego.Info(dataDescuento)
+	//beego.Info(dataDescuento)
 	dataDescuentoAhomologar, e := dataDescuento.(map[string]interface{})
 	var homologacion []interface{}
 	out := make(map[string]interface{})
@@ -262,10 +262,11 @@ func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) 
 			if homologacion != nil {
 				for _, descuentoKronos := range homologacion {
 					row, e := descuentoKronos.(map[string]interface{})
-					//fmt.Println(row)
+
 					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) >= 0 {
 						out["Descuento"] = row["CuentaEspecialKronos"]
 						out["Valor"] = dataDescuentoAhomologar["ValorCalculado"]
+						//beego.Info(out)
 					} else {
 						fmt.Println("err  concKron")
 						return nil
@@ -609,6 +610,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 												comp["Valor"] = comp["Valor"].(float64) + homologado["Valor"].(float64)
 												existe = true
 												valorTotal = valorTotal + comp["Valor"].(float64)
+
 											}
 										}
 
@@ -617,6 +619,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 										if homologado["Descuento"] != nil {
 											valorTotal = valorTotal + homologado["Valor"].(float64)
 											homologacionDescuentos = append(homologacionDescuentos, homologado)
+
 										}
 
 									}
@@ -640,6 +643,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 							if auxmap, e := movimientosContables[0].(map[string]interface{}); e {
 								movimientoContable := formatoMovimientosContablesDescuentosOp(descuento, auxmap["Concepto"])
 								for _, aux := range movimientoContable {
+
 									movimientosContables = append(movimientosContables, aux)
 								}
 							}
@@ -718,7 +722,8 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 		if auxmap, e := apRp["Apropiacion"].(map[string]interface{}); e {
 			if auxmap, e = auxmap["Rubro"].(map[string]interface{}); e {
 				if idrbRp, e := auxmap["Id"].(float64); e {
-					fmt.Println(35644)
+					//fmt.Println(35645)
+					//fmt.Println(acumConceptos)
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
 						fmt.Println("acum. ", idrbRp)
@@ -758,8 +763,8 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 	var out []map[string]interface{}
 	cuentaContable, e := concepto.(map[string]interface{})["Concepto"].(map[string]interface{})["ConceptoCuentaContable"].([]interface{})
 	if !e {
-		//fmt.Println(concepto)
-		fmt.Println("1")
+		fmt.Println(concepto)
+		fmt.Println("1 concepto")
 		return nil
 	}
 	if len(cuentaContable) == 2 {
@@ -785,31 +790,27 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 
 func formatoMovimientosContablesDescuentosOp(descuento interface{}, concepto interface{}) (res []map[string]interface{}) {
 	var out []map[string]interface{}
-	cuentaContable, e := descuento.(map[string]interface{})["CuentaContable"].([]interface{})
+	cuentaComp, e := descuento.(map[string]interface{})["Descuento"]
 	if !e {
 		//fmt.Println(descuento)
+		beego.Info(descuento)
 		fmt.Println("1")
 		return nil
 	}
-	if len(cuentaContable) == 2 {
-		for _, cuentaComp := range cuentaContable {
-			fmt.Println(cuentaComp)
-			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
-				out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
-					"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-					"CuentaContable": cuentaComp,
-					"Concepto":       concepto})
-			} else {
-				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
-					"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-					"CuentaContable": cuentaComp,
-					"Concepto":       concepto})
-			}
 
-		}
+	fmt.Println(cuentaComp)
+	if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
+		out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
+			"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+			"CuentaContable": cuentaComp,
+			"Concepto":       concepto})
 	} else {
-		return nil
+		out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
+			"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+			"CuentaContable": cuentaComp,
+			"Concepto":       concepto})
 	}
+
 	return out
 }
 
