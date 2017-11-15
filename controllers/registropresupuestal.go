@@ -110,9 +110,10 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	var info_contrato []models.ContratoGeneral
 	var contratista []models.InformacionProveedor
 	fmt.Println("sol ", solicitud.NumeroContrato)
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
+	if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 		if info_contrato != nil {
-			if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+			fmt.Println("http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor?limit=1&query=Id:" + strconv.Itoa(info_contrato[0].Contratista))
+			if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
 				solicitud.DatosProveedor = &contratista[0]
 			} else {
 				//error consulta proveedor
@@ -128,16 +129,17 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		fmt.Println(err.Error())
 	}
 	//cargar datos del compromiso de la solicitud de rp
-	var compromiso_rp []models.Compromiso
+	var compromiso_rp []interface{}
 	if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.Compromiso), &compromiso_rp); err == nil {
 		if compromiso_rp != nil {
-			solicitud.DatosCompromiso = &compromiso_rp[0]
+			solicitud.DatosCompromiso = compromiso_rp[0]
 		} else {
 			//si no encuentra los datos del compromiso
 
 		}
 	} else {
 		//si hay error al cargar el compromiso del rp
+		fmt.Println(err.Error())
 	}
 	return solicitud
 }
@@ -209,7 +211,7 @@ func (c *RegistroPresupuestalController) ListaRp() {
 					if rp != nil {
 						respuesta = append(respuesta, rp.(map[string]interface{}))
 					}
-					
+
 				}
 				c.Data["json"] = respuesta
 			} else {
@@ -389,13 +391,13 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 				//obtener informacion del contrato del rp
 				var info_contrato []models.ContratoGeneral
 				var contratista []models.InformacionProveedor
-				if err := getJson("http://"+beego.AppConfig.String("argoService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
+				if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
 					if info_contrato != nil {
-						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_proveedor?limit=1&query=NumDocumento:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+						if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
 							solicitud.DatosProveedor = &contratista[0]
 						} else {
 							//error consulta proveedor
-							fmt.Println(err.Error())
+							fmt.Println("ss", err.Error())
 						}
 					} else {
 						//si no encuentra datos sobre el contrato
@@ -445,7 +447,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	var dataRpRegistro []models.DatosRegistroPresupuestal
 	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
 	var saldoCDP map[string]float64
-	var comprobacion models.DatosRegistroPresupuestal
+
 	tool := new(tools.EntornoReglas)
 	var respuestaServices interface{}
 	//------------------------------------------------------
@@ -484,6 +486,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 				if err == nil { //
 					if res == "1" { // si se aprueba la solicitud
 						rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
+						var comprobacion models.DatosRegistroPresupuestal
 						if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
 							dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
 							rp_a_registrar.Rp.DatosSolicitud.Expedida = true
@@ -616,4 +619,172 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 
 	c.ServeJSON()
 
+}
+
+// SolicitudesRpByDependencia ...
+// @Title SolicitudesRpByDependencia
+// @Description Lsta de las necesidades origen de los rp registrados
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	idDependencia	query	string	false	"tipo de la necesidad origen del rp"
+// @Param	tipoNecesidad	query	string	false	"tipo de la necesidad origen del rp"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SolicitudesRpByDependencia/:vigencia [get]
+func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err := strconv.Atoi(vigenciaStr)
+	//var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	var queryF string
+	var idDependencia int64
+	var tipoNecesidad string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+		fmt.Println(limit)
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+		fmt.Println(offset)
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if startrange != "" && endrange != "" {
+		queryF = ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
+
+	}
+	if tipoNecesidad = c.GetString("tipoNecesidad"); tipoNecesidad != "" {
+		if idDependencia, err = c.GetInt64("idDependencia"); err == nil {
+			var jefeDependenciaInfo []interface{}
+
+			//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
+			//si no se establece un rango de fechas.
+			//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
+			fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
+			query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
+
+			fmt.Println(query)
+			//consulta del servicio para determinar el filtro de la necesidad.
+			//fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:" + strconv.FormatInt(idDependencia, 10) + "," + query)
+			if err = getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?fields=Id&limit=-1&query=DependenciaId:"+strconv.FormatInt(idDependencia, 10)+","+query, &jefeDependenciaInfo); err == nil && jefeDependenciaInfo != nil {
+				//consulta sobre necesidades expedidas
+				//solicitud_disponibilidad?query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante:
+				inQuery := ""
+				for i, jefeDep := range jefeDependenciaInfo {
+					jefeDepmap, e := jefeDep.(map[string]interface{})
+					if e {
+						if idJefeDep, e := jefeDepmap["Id"].(float64); e {
+							if i == len(jefeDependenciaInfo)-1 {
+								inQuery = inQuery + strconv.Itoa(int(idJefeDep))
+							} else {
+								inQuery = inQuery + strconv.Itoa(int(idJefeDep)) + "|"
+							}
+
+						}
+
+					}
+
+				}
+				var solicitudNecesidad []map[string]interface{}
+				//fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_disponibilidad?limit=-1&query=Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:" + inQuery)
+				if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=-1&query=Expedida:true,JustificacionRechazo:,Necesidad.TipoNecesidad.CodigoAbreviacion:"+tipoNecesidad+",Necesidad.DependenciaReversa.JefeDependenciaSolicitante__in:"+inQuery, &solicitudNecesidad); err == nil && solicitudNecesidad != nil {
+					inQuery = ""
+					for i, solicitud := range solicitudNecesidad {
+						if idSolicitud, e := solicitud["Id"].(float64); e {
+							if i == len(solicitudNecesidad)-1 {
+								inQuery = inQuery + strconv.Itoa(int(idSolicitud))
+							} else {
+								inQuery = inQuery + strconv.Itoa(int(idSolicitud)) + "|"
+							}
+						}
+					}
+					//consulta de los CDP expedidos a las necesidades filtradas
+					var Disponibilidades []map[string]interface{}
+					if err = getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?limit=-1&query=Solicitud__in:"+inQuery, &Disponibilidades); err == nil && Disponibilidades != nil {
+						inQuery = ""
+						for i, disponibilidad := range Disponibilidades {
+							if idDisponibilidad, e := disponibilidad["Id"].(float64); e {
+								if i == len(Disponibilidades)-1 {
+									inQuery = inQuery + strconv.Itoa(int(idDisponibilidad))
+								} else {
+									inQuery = inQuery + strconv.Itoa(int(idDisponibilidad)) + "|"
+								}
+							}
+						}
+						var solicitudRp []interface{}
+						var respuesta []interface{}
+						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Masivo:true,Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery+queryF, &solicitudRp); err == nil && solicitudRp != nil {
+							done := make(chan interface{})
+							defer close(done)
+							resch := utilidades.GenChanInterface(solicitudRp...)
+							chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
+							var rubrosAfectados []map[string]interface{}
+							for solicitud := range chsolicitud {
+								if solicitudmap, e := solicitud.(models.SolicitudRp); e {
+
+									rubrosint := solicitudmap.Rubros
+									for _, afectacion := range rubrosint {
+										row := make(map[string]interface{})
+										if afectacionmap, e := afectacion.(map[string]interface{}); e {
+
+											existe := false
+											for _, rubro := range rubrosAfectados {
+												if rubro["Apropiacion"].(map[string]interface{})["Id"].(float64) == afectacionmap["Apropiacion"].(map[string]interface{})["Id"].(float64) && rubro["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64) == afectacionmap["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64) {
+													rubro["Valor"] = rubro["Valor"].(float64) + afectacionmap["ValorAsignado"].(float64)
+													existe = true
+												}
+
+											}
+											if !existe {
+												row["Apropiacion"] = afectacionmap["Apropiacion"]
+												row["FuenteFinanciamiento"] = afectacionmap["FuenteFinanciamiento"]
+												row["Valor"] = afectacionmap["ValorAsignado"]
+												rubrosAfectados = append(rubrosAfectados, row)
+											}
+
+										}
+									}
+
+								}
+								respuesta = append(respuesta, solicitud)
+							}
+							c.Data["json"] = map[string]interface{}{"InformacionRp": respuesta, "ResumenCargueRp": rubrosAfectados}
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Solicitud RP lost", Type: "error"}
+						}
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: "Disponibilidad lost", Type: "error"}
+
+					}
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: "Solicitud Necesidad Lost", Type: "error"}
+				}
+
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: "jefe dependencia lost", Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: "idDependencia lost", Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "tipoNecesidad lost", Type: "error"}
+	}
+
+	c.ServeJSON()
 }
