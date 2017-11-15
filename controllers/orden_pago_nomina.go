@@ -263,7 +263,7 @@ func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) 
 				for _, descuentoKronos := range homologacion {
 					row, e := descuentoKronos.(map[string]interface{})
 
-					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) >= 0 {
+					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) > 0 {
 						out["Descuento"] = row["CuentaEspecialKronos"]
 						out["Valor"] = dataDescuentoAhomologar["ValorCalculado"]
 						//beego.Info(out)
@@ -727,7 +727,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
 						beego.Info("acum. ", idrbRp)
-						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
+						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp >= valor {
 							comp = true
 							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
 							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
@@ -872,7 +872,7 @@ func homologacionFunctionDispatcher(tipo string) (f func(data interface{}, param
 	case "HCS":
 		return homologacionConceptosHC
 	case "HCH":
-		return nil
+		return homologacionConceptosHC
 	default:
 		return nil
 	}
@@ -882,7 +882,7 @@ func formatoRegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, 
 	case "HCS":
 		return formatoRegistroOpHC
 	case "HCH":
-		return nil
+		return formatoRegistroOpHC
 	default:
 		return nil
 	}
@@ -893,7 +893,7 @@ func RegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params 
 	case "HCS":
 		return RegistroOpProveedor
 	case "HCH":
-		return nil
+		return RegistroOpProveedor
 	default:
 		return nil
 	}
