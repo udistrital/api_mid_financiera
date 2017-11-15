@@ -726,7 +726,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					//fmt.Println(acumConceptos)
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
-						fmt.Println("acum. ", idrbRp)
+						beego.Info("acum. ", idrbRp)
 						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
 							comp = true
 							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
@@ -818,7 +818,8 @@ func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp 
 	var rp []interface{}
 	var saldoRp map[string]float64
 	//DVE48
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
+	fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_rp?limit=-1&query=Expedida:true,NumeroContrato:" + nContrato + ",VigenciaContrato:" + strconv.Itoa(int(vigenciaContrato)))
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:true,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
 		//if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
 		if rpmap, e := rp[0].(map[string]interface{}); e {
 			if solicitudrp, e := rpmap["Id"].(float64); e {
