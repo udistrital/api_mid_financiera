@@ -216,6 +216,20 @@ func (c *OrdenPagoSsController) Getjota() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
+		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
+			c.Data["json"] = rpCorrespondiente
+		} else {
+			c.Data["json"] = e
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+	c.ServeJSON()
+}
+
+func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion int) (rpDisponibilidadApropiacion []map[string]interface{}, ouputError map[string]interface{}) {
+	//var ouputError []map[string]interface{}
+	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
 		fmt.Println("Liquidacion: ", idLiquidacion)
 		if idLiquidacion != 0 {
@@ -231,43 +245,45 @@ func (c *OrdenPagoSsController) Getjota() {
 						disponibilidad := getDisponibilidad(int(solicitudCDP))
 						fmt.Println("disponibilidad", disponibilidad)
 						if disponibilidad != 0 {
-							var rpDisponibilidadApropiacion []interface{}
 							rpDisponibilidadApropiacion = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
 							if rpDisponibilidadApropiacion != nil {
-								var allData []interface{}
-								done := make(chan interface{})
-								defer close(done)
-								resch := utilidades.GenChanInterface(rpDisponibilidadApropiacion...)
-								chlistaRpDispoApropi := utilidades.Digest(done, getConceptosEnRpDisponibilidadApropiacion, resch, nil)
-								for dataChRpDispoApropi := range chlistaRpDispoApropi {
-									if dataChRpDispoApropi != nil {
-										allData = append(allData, dataChRpDispoApropi.(interface{}))
-									}
-								}
-								c.Data["json"] = allData
+								fmt.Println("rp", rpDisponibilidadApropiacion[0]["Rp"].(map[string]interface{})["Id"])
+								return rpDisponibilidadApropiacion, nil
 							} else {
-								c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
+								//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
+								ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Registro Presupuestal para La Necesidad", "Type": "error"}
+								return nil, ouputError
 							}
 						} else {
-							c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Disponibilidad para La Necesidad", Type: "error"}
+							//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Disponibilidad para La Necesidad", Type: "error"}
+							ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Disponibilidad para La Necesidad", "Type": "error"}
+							return nil, ouputError
 						}
 					} else {
-						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Solicitud de Disponibilidad para La Necesidad", Type: "error"}
+						//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Solicitud de Disponibilidad para La Necesidad", Type: "error"}
+						ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Disponibilidad para La Necesidad", "Type": "error"}
+						return nil, ouputError
 					}
 				} else {
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe necesidad para liquidacion de Seguridad Social en el periodo", Type: "error"}
+					//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe necesidad para liquidacion de Seguridad Social en el periodo", Type: "error"}
+					ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe necesidad para liquidacion de Seguridad Social en el periodo", "Type": "error"}
+					return nil, ouputError
 				}
 			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
+				//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
+				ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe periodo pago de Seguridad Social para el periodo", "Type": "error"}
+				return nil, ouputError
 			}
 		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
+			//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
+			ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe liquidacion en estado EnOrdenPago para el periodo", "Type": "error"}
+			return nil, ouputError
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		//c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		ouputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter", "Type": "error"}
+		return nil, ouputError
 	}
-	fmt.Println("fin")
-	c.ServeJSON()
 }
 
 // se consulta servicio que retorna las liquidacions en un mes, año y titpo nomina que ya esten en estado EnOrdenPago
@@ -364,21 +380,36 @@ func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64)
 	return
 }
 
-func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (RpDisponibilidadApropiacion []interface{}) {
+func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}) {
 	var dataRpDisponibilidadApropiacio []interface{}
+	var saldoRp map[string]float64
 	if idDisponibilidad != 0 {
 		//fmt.Println("http://" + beego.AppConfig.String("kronosService") + "registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:" + strconv.Itoa(idDisponibilidad))
 		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.Itoa(idDisponibilidad), &dataRpDisponibilidadApropiacio); err == nil {
 			if dataRpDisponibilidadApropiacio != nil {
-				RpDisponibilidadApropiacion = dataRpDisponibilidadApropiacio
+				for _, infoRpDispoApro := range dataRpDisponibilidadApropiacio {
+					outpuRow := make(map[string]interface{})
+					if row, e := infoRpDispoApro.(map[string]interface{}); e {
+						if dispoApr, e := row["DisponibilidadApropiacion"].(map[string]interface{}); e {
+							outpuRow["RegistroPresupuestalDisponibilidadApropiacion"] = row
+							outpuRow["Rp"] = row["RegistroPresupuestal"]
+							outpuRow["Apropiacion"] = dispoApr["Apropiacion"]
+							outpuRow["FuenteFinanciacion"] = dispoApr["FuenteFinanciamiento"]
+							if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, outpuRow); err == nil {
+								outpuRow["Saldo"] = saldoRp["saldo"]
+							}
+							rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, outpuRow)
+						}
+					}
+				}
 			} else {
-				RpDisponibilidadApropiacion = nil
+				rpDisponibilidadApropiacion = nil
 			}
 		} else {
-			RpDisponibilidadApropiacion = nil
+			rpDisponibilidadApropiacion = nil
 		}
 	} else {
-		RpDisponibilidadApropiacion = nil
+		rpDisponibilidadApropiacion = nil
 	}
 	return
 }
