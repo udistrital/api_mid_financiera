@@ -226,14 +226,25 @@ func (c *OrdenPagoSsController) Getjota() {
 				fmt.Println("Nececidad id", idNecesidad)
 				if idNecesidad != 0 {
 					solicitudCDP := getSolicitudDisponibilidad(int(idNecesidad))
-					fmt.Println("solicitud id, ", solicitudCDP)
+					fmt.Println("solicitud disponibilidad id, ", solicitudCDP)
 					if solicitudCDP != 0 {
 						disponibilidad := getDisponibilidad(int(solicitudCDP))
 						fmt.Println("disponibilidad", disponibilidad)
 						if disponibilidad != 0 {
-							rpDisponibilidadApropiacion := getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
+							var rpDisponibilidadApropiacion []interface{}
+							rpDisponibilidadApropiacion = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
 							if rpDisponibilidadApropiacion != nil {
-								fmt.Println("RPDATA ", rpDisponibilidadApropiacion)
+								var allData []interface{}
+								done := make(chan interface{})
+								defer close(done)
+								resch := utilidades.GenChanInterface(rpDisponibilidadApropiacion...)
+								chlistaRpDispoApropi := utilidades.Digest(done, getConceptosEnRpDisponibilidadApropiacion, resch, nil)
+								for dataChRpDispoApropi := range chlistaRpDispoApropi {
+									if dataChRpDispoApropi != nil {
+										allData = append(allData, dataChRpDispoApropi.(interface{}))
+									}
+								}
+								c.Data["json"] = allData
 							} else {
 								c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
 							}
@@ -353,22 +364,41 @@ func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64)
 	return
 }
 
-func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (RpDisponibilidadApropiacion interface{}) {
-	var dataRpDisponibilidadApropiacio interface{}
+func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (RpDisponibilidadApropiacion []interface{}) {
+	var dataRpDisponibilidadApropiacio []interface{}
 	if idDisponibilidad != 0 {
+		//fmt.Println("http://" + beego.AppConfig.String("kronosService") + "registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:" + strconv.Itoa(idDisponibilidad))
 		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.Itoa(idDisponibilidad), &dataRpDisponibilidadApropiacio); err == nil {
 			if dataRpDisponibilidadApropiacio != nil {
 				RpDisponibilidadApropiacion = dataRpDisponibilidadApropiacio
 			} else {
-				fmt.Println("1------------")
-				RpDisponibilidadApropiacion = 0
+				RpDisponibilidadApropiacion = nil
 			}
 		} else {
-			fmt.Println("2------------")
-			RpDisponibilidadApropiacion = 0
+			RpDisponibilidadApropiacion = nil
 		}
 	} else {
-		RpDisponibilidadApropiacion = 0
+		RpDisponibilidadApropiacion = nil
 	}
 	return
+}
+
+func getConceptosEnRpDisponibilidadApropiacion(listaRpDispoApropi interface{}, params ...interface{}) (res interface{}) {
+	row, e := listaRpDispoApropi.(map[string]interface{})
+	rubro := row["DisponibilidadApropiacion"].(map[string]interface{})["Apropiacion"].(map[string]interface{})["Rubro"].(map[string]interface{})
+	var conceptos []interface{}
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"concepto/?query=Rubro:"+strconv.FormatFloat(rubro["Id"].(float64), 'f', 0, 64), &conceptos); err == nil {
+			if conceptos != nil {
+				row["DisponibilidadApropiacion"].(map[string]interface{})["Apropiacion"].(map[string]interface{})["Rubro"].(map[string]interface{})["Concepto"] = conceptos
+				return row
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
 }
