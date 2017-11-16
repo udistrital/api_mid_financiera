@@ -216,8 +216,32 @@ func (c *OrdenPagoSsController) Getjota() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
+		var pagos []interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
-			c.Data["json"] = rpCorrespondiente
+			fmt.Println("rp correpondiente: ", rpCorrespondiente)
+			idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
+			if idLiquidacion != 0 {
+				idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
+				if idPeriodoPago != 0 {
+					fmt.Println("idLiquidacion ", idLiquidacion, " /idPeriodoPago", idPeriodoPago)
+					//todos los pagos por periodo pago
+					if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=PeriodoPago.Id:"+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64)+"&limit=-1", &pagos); err == nil && pagos != nil {
+						c.Data["json"] = pagos
+					} else {
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no se encontraron pagos para el pero", Type: "error"}
+					}
+					//todos los pagos por periodo pago
+
+					//homologar
+
+					//--
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
+				}
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
+			}
+
 		} else {
 			c.Data["json"] = e
 		}
