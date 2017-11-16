@@ -21,6 +21,15 @@ func (c *AprobacionFuenteController) URLMapping() {
 //http://localhost:8080/v1/aprobacion_fuente/ValorMovimientoFuente?idfuente=37&idapropiacion=256&iddependencia=122
 
 
+// ValorMovimientoFuente ...
+// @Title ValorMovimientoFuente
+// @Description muestra el valor comprometido de una fuente especifica por dependencia y apropiacion
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuente [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	var res []interface{}
 	var resfuente []interface{}
@@ -108,6 +117,17 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	c.ServeJSON()
 }
 
+
+// ValorMovimientoFuenteTraslado ...
+// @Title ValorMovimientoFuenteTraslado
+// @Description retorna si se puede realizar un traslado o no en una fuente de financiamiento
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Param	valortraslado	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuenteTraslado [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 	var res []interface{}
 	var resfuente []interface{}
@@ -243,6 +263,16 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 	c.ServeJSON()
 }
 
+
+// ValorMovimientoFuenteLista ...
+// @Title ValorMovimientoFuenteLista
+// @Description devuelve una lista de las fuentes, dependecias y apropiaciones con los valores de la fuente (comprometido, disponible y el valor total)
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuenteLista [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 	var res []interface{}
 	var resfuente []models.MovimientoFuenteFinanciamientoApropiacion
@@ -352,14 +382,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 					 fmt.Println("err4 ", err.Error())
 					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				 }
-
-
-
 			 }
-
-
-
-
 
 	c.ServeJSON()
 }
