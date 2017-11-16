@@ -242,31 +242,30 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 			if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
 				if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
 					if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+							if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
+								if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
+								} else {
+									fmt.Println("error4: ", err)
+									////return nil
+								}
+							} else {
+								fmt.Println("error5: ", err)
+								//return nil
+							}
+						} else {
+							fmt.Println("error5: ", err)
+							//return nil
+						}
 					} else {
 						fmt.Println("error4: ", err)
-						return nil
-					}
-					if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
+						//return nil
 
-					} else {
-						fmt.Println("error5: ", err)
-						return nil
 					}
-					fmt.Println(depNes[0].OrdenadorGasto)
-					if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
 
-					} else {
-						fmt.Println("error5: ", err)
-						return nil
-					}
-					if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
-					} else {
-						fmt.Println("error4: ", err)
-						return nil
-					}
 				} else {
 					fmt.Println("error5: ", err)
-					return nil
+					//return nil
 				}
 
 				if depSol == nil {
@@ -280,14 +279,14 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 				return
 			} else {
 				fmt.Println("error3: ", err)
-				return nil
+				//return nil
 			}
 		} else {
 			fmt.Println("error2: ", err)
-			return nil
+			//return nil
 		}
 	}
-	return nil
+	return res
 
 }
 
