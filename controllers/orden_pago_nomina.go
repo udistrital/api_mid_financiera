@@ -786,15 +786,15 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 	}
 	if len(cuentaContable) == 2 {
 		for _, cuentaComp := range cuentaContable {
-			fmt.Println(cuentaComp)
+			//fmt.Println(cuentaComp)
 			if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
 				out = append(out, map[string]interface{}{"Debito": concepto.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
 					"Concepto":       concepto.(map[string]interface{})["Concepto"],
-					"CuentaContable": cuentaComp})
+					"CuentaContable": cuentaComp.(map[string]interface{})["CuentaContable"]})
 			} else {
 				out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": concepto.(map[string]interface{})["Valor"].(float64),
 					"Concepto":       concepto.(map[string]interface{})["Concepto"],
-					"CuentaContable": cuentaComp})
+					"CuentaContable": cuentaComp.(map[string]interface{})["CuentaContable"]})
 			}
 
 		}
@@ -809,11 +809,11 @@ func findMovimientoCredito(movimientos []interface{}) (movimiento interface{}) {
 	for _, movimiento := range movimientos {
 		if auxmap, e := movimiento.(map[string]interface{}); e {
 			if auxmap, e := auxmap["CuentaContable"].(map[string]interface{}); e {
-				if auxmap, e := auxmap["CuentaContable"].(map[string]interface{}); e {
-					if naturaleza, e := auxmap["Naturaleza"].(string); e && naturaleza == "credito" {
-						return movimiento
-					}
+
+				if naturaleza, e := auxmap["Naturaleza"].(string); e && naturaleza == "credito" {
+					return movimiento
 				}
+
 			}
 		}
 	}
@@ -834,12 +834,12 @@ func formatoMovimientosContablesDescuentosOp(descuento interface{}, movimiento i
 		if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
 			out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
 				"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-				"CuentaContable": cuentaComp,
+				"CuentaContable": cuentaComp.(map[string]interface{})["CuentaContable"],
 				"Concepto":       movmap["Concepto"]})
 		} else {
 			out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
 				"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-				"CuentaContable": cuentaComp,
+				"CuentaContable": cuentaComp.(map[string]interface{})["CuentaContable"],
 				"Concepto":       movmap["Concepto"]})
 		}
 		movmap["Credito"] = movmap["Credito"].(float64) - out[0]["Credito"].(float64)
