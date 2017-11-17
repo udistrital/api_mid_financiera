@@ -263,7 +263,7 @@ func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) 
 				for _, descuentoKronos := range homologacion {
 					row, e := descuentoKronos.(map[string]interface{})
 
-					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) >= 0 {
+					if e && dataDescuentoAhomologar["ValorCalculado"].(float64) > 0 {
 						out["Descuento"] = row["CuentaEspecialKronos"]
 						out["Valor"] = dataDescuentoAhomologar["ValorCalculado"]
 						//beego.Info(out)
@@ -609,7 +609,6 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 											if comp["Descuento"].(map[string]interface{})["Id"].(float64) == homologado["Descuento"].(map[string]interface{})["Id"].(float64) {
 												comp["Valor"] = comp["Valor"].(float64) + homologado["Valor"].(float64)
 												existe = true
-												valorTotal = valorTotal + comp["Valor"].(float64)
 
 											}
 										}
@@ -617,7 +616,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 									}
 									if !existe {
 										if homologado["Descuento"] != nil {
-											valorTotal = valorTotal + homologado["Valor"].(float64)
+
 											homologacionDescuentos = append(homologacionDescuentos, homologado)
 
 										}
@@ -638,15 +637,18 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 						}
 
 					}
+					movcredito := findMovimientoCredito(movimientosContables)
 					for _, descuento := range homologacionDescuentos {
 						if movimientosContables != nil {
-							if auxmap, e := movimientosContables[0].(map[string]interface{}); e {
-								movimientoContable := formatoMovimientosContablesDescuentosOp(descuento, auxmap["Concepto"])
-								for _, aux := range movimientoContable {
 
-									movimientosContables = append(movimientosContables, aux)
-								}
+							movimientoContable, mov := formatoMovimientosContablesDescuentosOp(descuento, movcredito)
+							movcredito = mov
+							beego.Info(movcredito.(map[string]interface{})["Credito"])
+							for _, aux := range movimientoContable {
+
+								movimientosContables = append(movimientosContables, aux)
 							}
+
 						}
 
 					}
@@ -671,7 +673,6 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 					if auxmap, e := infoContrato.(map[string]interface{}); e {
 						res["infoPersona"], e = auxmap["infoPersona"]
 					}
-					res["ConceptoOrdenPago"] = homologacionConceptos
 					res["Contrato"] = nContrato
 					res["VigenciaContrato"] = vigenciaContrato
 					res["MovimientoContable"] = movimientosContables
@@ -701,13 +702,18 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 	for _, concepto := range conceptos {
 		if auxconcp, e := concepto["Concepto"].(map[string]interface{}); e {
 			value := concepto["Valor"].(float64)
-			idConcepto := auxconcp["Id"].(float64)
+			//idConcepto := auxconcp["Id"].(float64)
 			if auxconcp, e = auxconcp["Rubro"].(map[string]interface{}); e {
 				key := auxconcp["Id"].(float64)
 				if acumConceptos[key] != nil {
-					acumConceptos[key] = map[string]interface{}{"Valor": acumConceptos[key]["Valor"].(float64) + value, "Concepto": map[string]interface{}{"Id": idConcepto}}
+					var auxconceptos []interface{}
+					auxconceptos = append(auxconceptos, acumConceptos[key]["Conceptos"].([]interface{})...)
+					auxconceptos = append(auxconceptos, concepto)
+					acumConceptos[key] = map[string]interface{}{"Valor": acumConceptos[key]["Valor"].(float64) + value, "Concepto": auxconceptos}
 				} else {
-					acumConceptos[key] = map[string]interface{}{"Valor": value, "Concepto": map[string]interface{}{"Id": idConcepto}}
+					var auxconceptos []interface{}
+					auxconceptos = append(auxconceptos, concepto)
+					acumConceptos[key] = map[string]interface{}{"Valor": value, "Concepto": auxconceptos}
 				}
 			}
 
@@ -726,12 +732,23 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					//fmt.Println(acumConceptos)
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
-						fmt.Println("acum. ", idrbRp)
-						if valor := acumConceptos[idrbRp]["Valor"].(float64); true && saldorp <= valor {
+						beego.Info("acum. ", idrbRp)
+						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp >= valor {
 							comp = true
-							acumConceptos[idrbRp]["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
-							acumConceptos[idrbRp]["Apropiacion"] = apRp["Apropiacion"]
-							res = append(res, acumConceptos[idrbRp])
+							if concetosmap, e := acumConceptos[idrbRp]["Concepto"].([]interface{}); e {
+								for _, cpt := range concetosmap {
+									if mapcpt, e := cpt.(map[string]interface{}); e {
+										row := make(map[string]interface{})
+										row["RegistroPresupuestalDisponibilidadApropiacion"] = apRp["RegistroPresupuestalDisponibilidadApropiacion"]
+										row["Apropiacion"] = apRp["Apropiacion"]
+										row["Concepto"] = mapcpt["Concepto"]
+										row["Valor"] = mapcpt["Valor"]
+										res = append(res, row)
+									}
+
+								}
+							}
+
 						} else {
 							comp = false
 							code = "OPM_E002"
@@ -788,37 +805,57 @@ func formatoMovimientosContablesOp(concepto interface{}) (res []map[string]inter
 	return out
 }
 
-func formatoMovimientosContablesDescuentosOp(descuento interface{}, concepto interface{}) (res []map[string]interface{}) {
+func findMovimientoCredito(movimientos []interface{}) (movimiento interface{}) {
+	for _, movimiento := range movimientos {
+		if auxmap, e := movimiento.(map[string]interface{}); e {
+			if auxmap, e := auxmap["CuentaContable"].(map[string]interface{}); e {
+				if auxmap, e := auxmap["CuentaContable"].(map[string]interface{}); e {
+					if naturaleza, e := auxmap["Naturaleza"].(string); e && naturaleza == "credito" {
+						return movimiento
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+func formatoMovimientosContablesDescuentosOp(descuento interface{}, movimiento interface{}) (res []map[string]interface{}, resmovimiento map[string]interface{}) {
 	var out []map[string]interface{}
 	cuentaComp, e := descuento.(map[string]interface{})["Descuento"]
 	if !e {
 		//fmt.Println(descuento)
 		beego.Info(descuento)
 		fmt.Println("1")
-		return nil
+		return
+	}
+	if movmap, e := movimiento.(map[string]interface{}); e {
+		//fmt.Println(cuentaComp)
+		if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
+			out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
+				"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+				"CuentaContable": cuentaComp,
+				"Concepto":       movmap["Concepto"]})
+		} else {
+			out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
+				"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
+				"CuentaContable": cuentaComp,
+				"Concepto":       movmap["Concepto"]})
+		}
+		movmap["Credito"] = movmap["Credito"].(float64) - out[0]["Credito"].(float64)
+		movmap["Debito"] = movmap["Debito"].(float64) - out[0]["Debito"].(float64)
+		return out, movmap
 	}
 
-	fmt.Println(cuentaComp)
-	if cuentaComp.(map[string]interface{})["CuentaContable"].(map[string]interface{})["Naturaleza"].(string) == "debito" {
-		out = append(out, map[string]interface{}{"Debito": descuento.(map[string]interface{})["Valor"].(float64), "Credito": float64(0),
-			"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-			"CuentaContable": cuentaComp,
-			"Concepto":       concepto})
-	} else {
-		out = append(out, map[string]interface{}{"Debito": float64(0), "Credito": descuento.(map[string]interface{})["Valor"].(float64),
-			"CuentaEspecial": descuento.(map[string]interface{})["Descuento"],
-			"CuentaContable": cuentaComp,
-			"Concepto":       concepto})
-	}
-
-	return out
+	return out, resmovimiento
 }
 
 func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp []map[string]interface{}) {
 	var rp []interface{}
 	var saldoRp map[string]float64
 	//DVE48
-	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
+	fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_rp?limit=-1&query=Expedida:true,NumeroContrato:" + nContrato + ",VigenciaContrato:" + strconv.Itoa(int(vigenciaContrato)))
+	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:true,NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &rp); err == nil && rp != nil {
 		//if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:false,NumeroContrato:"+"DVE48"+",VigenciaContrato:"+"2017", &rp); err == nil && rp != nil {
 		if rpmap, e := rp[0].(map[string]interface{}); e {
 			if solicitudrp, e := rpmap["Id"].(float64); e {
@@ -871,7 +908,7 @@ func homologacionFunctionDispatcher(tipo string) (f func(data interface{}, param
 	case "HCS":
 		return homologacionConceptosHC
 	case "HCH":
-		return nil
+		return homologacionConceptosHC
 	default:
 		return nil
 	}
@@ -881,7 +918,7 @@ func formatoRegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, 
 	case "HCS":
 		return formatoRegistroOpHC
 	case "HCH":
-		return nil
+		return formatoRegistroOpHC
 	default:
 		return nil
 	}
@@ -892,7 +929,7 @@ func RegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params 
 	case "HCS":
 		return RegistroOpProveedor
 	case "HCH":
-		return nil
+		return RegistroOpProveedor
 	default:
 		return nil
 	}
