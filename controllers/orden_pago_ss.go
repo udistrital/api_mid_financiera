@@ -94,7 +94,6 @@ func (c *OrdenPagoSsController) ListaPagoSsPorPersona() {
 			defer close(done)
 			if pagosAgrupados.(map[string]interface{})["Pagos"] != nil {
 				listaPagos := pagosAgrupados.(map[string]interface{})["Pagos"].([]interface{})
-				fmt.Println(listaPagos)
 				resch := utilidades.GenChanInterface(listaPagos...)
 				chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
 				for datalistaPagos := range chlistaPagos {
@@ -122,21 +121,19 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 	var infoDetallePreliquidacion []interface{}
 	var infoPersona interface{}
 	if e {
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion/?query=Id:"+strconv.FormatFloat(row["DetalleLiquidacion"].(float64), 'f', 0, 64)+"&limit=1", &infoDetallePreliquidacion); err == nil {
-			row["NumeroContrato"], e = infoDetallePreliquidacion[0].(map[string]interface{})["NumeroContrato"]
-			row["VigenciaContrato"], e = infoDetallePreliquidacion[0].(map[string]interface{})["VigenciaContrato"]
-			if e {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion/?query=Id:"+strconv.FormatFloat(row["DetalleLiquidacion"].(float64), 'f', 0, 64)+"&limit=1", &infoDetallePreliquidacion); err == nil && infoDetallePreliquidacion != nil {
+			if data, e1 := infoDetallePreliquidacion[0].(map[string]interface{}); e1 {
+				row["NumeroContrato"] = data["NumeroContrato"]
+				row["VigenciaContrato"] = data["VigenciaContrato"]
 				if err := getJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
-					row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]
-					if e {
+					if row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]; e {
 						return row
 					} else {
 						return nil
 					}
 				} else {
-					return
+					return nil
 				}
-
 			} else {
 				return nil
 			}
@@ -216,7 +213,7 @@ func (c *OrdenPagoSsController) Getjota() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
-		var pagos []interface{}
+		var respuesta []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			fmt.Println("rp correpondiente: ", rpCorrespondiente)
 			idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
@@ -224,17 +221,39 @@ func (c *OrdenPagoSsController) Getjota() {
 				idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
 				if idPeriodoPago != 0 {
 					fmt.Println("idLiquidacion ", idLiquidacion, " /idPeriodoPago", idPeriodoPago)
-					//todos los pagos por periodo pago
-					if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=PeriodoPago.Id:"+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64)+"&limit=-1", &pagos); err == nil && pagos != nil {
-						c.Data["json"] = pagos
+					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
+					if allPago != nil {
+						done := make(chan interface{})
+						defer close(done)
+						resch := utilidades.GenChanInterface(allPago...)
+						chConcHomologados := utilidades.Digest(done, homologacionConceptosSS, resch, nil)
+						for conceptoHomologadoint := range chConcHomologados {
+							conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
+							if e {
+								existe := false
+								for _, comp := range respuesta {
+									if comp["Concepto"] != nil && conceptoHomologado["Concepto"] != nil {
+										if comp["Concepto"].(map[string]interface{})["Id"].(float64) == conceptoHomologado["Concepto"].(map[string]interface{})["Id"].(float64) {
+											comp["Valor"] = comp["Valor"].(float64) + conceptoHomologado["Valor"].(float64)
+											movcont := formatoMovimientosContablesOp(comp) //decirle a miguel
+											comp["MovimientoContable"] = movcont
+											existe = true
+										}
+									}
+								}
+								if !existe {
+									if conceptoHomologado["Concepto"] != nil {
+										movcont := formatoMovimientosContablesOp(conceptoHomologado)
+										conceptoHomologado["MovimientoContable"] = movcont
+										respuesta = append(respuesta, conceptoHomologado)
+									}
+								}
+							}
+						}
+						c.Data["json"] = respuesta
 					} else {
-						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no se encontraron pagos para el pero", Type: "error"}
+						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no se logro asocial informacion del detalle de liquidacion a los pagos de Seguridad Social para el periodo", Type: "error"}
 					}
-					//todos los pagos por periodo pago
-
-					//homologar
-
-					//--
 				} else {
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
 				}
@@ -423,7 +442,11 @@ func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpD
 								outpuRow["Saldo"] = saldoRp["saldo"]
 							}
 							rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, outpuRow)
+						} else {
+							rpDisponibilidadApropiacion = nil
 						}
+					} else {
+						rpDisponibilidadApropiacion = nil
 					}
 				}
 			} else {
@@ -436,6 +459,49 @@ func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpD
 		rpDisponibilidadApropiacion = nil
 	}
 	return
+}
+
+func getPagosConDetalleLiquidacion(idPeriodoPago int) (respuestaCV []interface{}) {
+	var dataPagos []interface{}
+	if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago)+"&limit=-1", &dataPagos); err == nil && dataPagos != nil {
+		done := make(chan interface{})
+		defer close(done)
+		resch := utilidades.GenChanInterface(dataPagos...)
+		chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
+		for datalistaPagos := range chlistaPagos {
+			if datalistaPagos != nil {
+				respuestaCV = append(respuestaCV, datalistaPagos.(interface{}))
+			}
+		}
+		return respuestaCV
+	} else {
+		return nil
+	}
+}
+
+func homologacionConceptosSS(dataPagos interface{}, params ...interface{}) (res interface{}) {
+	if dataPago, e := dataPagos.(map[string]interface{}); e {
+		var infoVinculacion []interface{}
+		var homologacion []interface{}
+		outputConceptoHomologado := make(map[string]interface{})
+		if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"vinculacion_docente?query=NumeroContrato:"+dataPago["NumeroContrato"].(string)+",Vigencia:"+strconv.FormatFloat(dataPago["VigenciaContrato"].(float64), 'f', -1, 64), &infoVinculacion); err == nil && infoVinculacion != nil {
+			idFacultad, e := infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"].(float64)
+			if !e {
+				return nil
+			}
+			if err := getJson("http://"+beego.AppConfig.String("kronosService")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataPago["TipoPago"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:0", &homologacion); err == nil && homologacion != nil {
+				outputConceptoHomologado["Concepto"] = homologacion[0].(map[string]interface{})["ConceptoKronos"]
+				outputConceptoHomologado["Valor"] = dataPago["Valor"]
+				return outputConceptoHomologado
+			} else {
+				return nil
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
 }
 
 func getConceptosEnRpDisponibilidadApropiacion(listaRpDispoApropi interface{}, params ...interface{}) (res interface{}) {
