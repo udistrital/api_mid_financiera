@@ -213,9 +213,8 @@ func (c *OrdenPagoSsController) Getjota() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
-		var respuesta []map[string]interface{}
+		var homologacionConceptos []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
-			fmt.Println("rp correpondiente: ", rpCorrespondiente)
 			idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
 			if idLiquidacion != 0 {
 				idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
@@ -231,26 +230,40 @@ func (c *OrdenPagoSsController) Getjota() {
 							conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
 							if e {
 								existe := false
-								for _, comp := range respuesta {
+								for _, comp := range homologacionConceptos {
 									if comp["Concepto"] != nil && conceptoHomologado["Concepto"] != nil {
 										if comp["Concepto"].(map[string]interface{})["Id"].(float64) == conceptoHomologado["Concepto"].(map[string]interface{})["Id"].(float64) {
 											comp["Valor"] = comp["Valor"].(float64) + conceptoHomologado["Valor"].(float64)
-											movcont := formatoMovimientosContablesOp(comp) //decirle a miguel
-											comp["MovimientoContable"] = movcont
 											existe = true
 										}
 									}
 								}
 								if !existe {
 									if conceptoHomologado["Concepto"] != nil {
-										movcont := formatoMovimientosContablesOp(conceptoHomologado)
-										conceptoHomologado["MovimientoContable"] = movcont
-										respuesta = append(respuesta, conceptoHomologado)
+										homologacionConceptos = append(homologacionConceptos, conceptoHomologado)
 									}
 								}
 							}
 						}
-						c.Data["json"] = respuesta
+						//c.Data["json"] = homologacionConceptos
+						// -- movimeintos
+						if homologacionConceptos != nil {
+							var movimientosContables []interface{}
+							for _, concepto := range homologacionConceptos {
+								movimientoContable := formatoMovimientosContablesOp(concepto)
+								for _, aux := range movimientoContable {
+									movimientosContables = append(movimientosContables, aux)
+								}
+							}
+							// estructura out fin
+							allDataOuput := make(map[string]interface{})
+							allDataOuput["MovimientoContable"] = movimientosContables
+							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
+							//allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
+							c.Data["json"] = allDataOuput
+						} else {
+							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
+						}
 					} else {
 						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no se logro asocial informacion del detalle de liquidacion a los pagos de Seguridad Social para el periodo", Type: "error"}
 					}
