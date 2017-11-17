@@ -707,7 +707,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 				key := auxconcp["Id"].(float64)
 				if acumConceptos[key] != nil {
 					var auxconceptos []interface{}
-					auxconceptos = append(auxconceptos, acumConceptos[key]["Conceptos"].([]interface{})...)
+					auxconceptos = append(auxconceptos, acumConceptos[key]["Concepto"].([]interface{})...)
 					auxconceptos = append(auxconceptos, concepto)
 					acumConceptos[key] = map[string]interface{}{"Valor": acumConceptos[key]["Valor"].(float64) + value, "Concepto": auxconceptos}
 				} else {
