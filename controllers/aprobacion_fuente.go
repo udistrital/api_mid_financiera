@@ -21,6 +21,15 @@ func (c *AprobacionFuenteController) URLMapping() {
 //http://localhost:8080/v1/aprobacion_fuente/ValorMovimientoFuente?idfuente=37&idapropiacion=256&iddependencia=122
 
 
+// ValorMovimientoFuente ...
+// @Title ValorMovimientoFuente
+// @Description muestra el valor comprometido de una fuente especifica por dependencia y apropiacion
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuente [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	var res []interface{}
 	var resfuente []interface{}
@@ -108,6 +117,17 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 	c.ServeJSON()
 }
 
+
+// ValorMovimientoFuenteTraslado ...
+// @Title ValorMovimientoFuenteTraslado
+// @Description retorna si se puede realizar un traslado o no en una fuente de financiamiento
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Param	valortraslado	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuenteTraslado [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 	var res []interface{}
 	var resfuente []interface{}
@@ -156,26 +176,22 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								reglas := FormatoReglas(predicados) + reglasBase
 
 								m := NewMachine().Consult(reglas)
-								resultados := m.ProveAll("total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).")
+								resultados := m.ProveAll("validacion_total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).")
 								var resp string
-								var restante float64
+
 								for _, solution := range resultados {
 									resp = fmt.Sprintf("%s", solution.ByName_("Y"))
 								}
-								f, _ := strconv.ParseFloat(resp, 64)
-								restante = f
+								f, _ := strconv.ParseBool(resp)
+
 
 								var trasladar bool
-								if restante >= 0{
-									trasladar = true
-								}else {
-									trasladar = false
-								}
+								trasladar = f
 
 								fmt.Println("reglas: ", reglas)
 								fmt.Println("RESP: ", resp)
 
-								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor, "ValorRestante": restante, "Trasladar": trasladar }
+								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar }
 							  }
 							}
 						}else{
@@ -194,7 +210,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								trasladar = false
 							}
 
-							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
 
 						}
 
@@ -213,7 +229,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								trasladar = false
 							}
 
-							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,  "Trasladar": trasladar}
 						}
 					} else {
 						fmt.Println("aqui")
@@ -243,6 +259,16 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 	c.ServeJSON()
 }
 
+
+// ValorMovimientoFuenteLista ...
+// @Title ValorMovimientoFuenteLista
+// @Description devuelve una lista de las fuentes, dependecias y apropiaciones con los valores de la fuente (comprometido, disponible y el valor total)
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuenteLista [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 	var res []interface{}
 	var resfuente []models.MovimientoFuenteFinanciamientoApropiacion
@@ -352,14 +378,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 					 fmt.Println("err4 ", err.Error())
 					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				 }
-
-
-
 			 }
-
-
-
-
 
 	c.ServeJSON()
 }
