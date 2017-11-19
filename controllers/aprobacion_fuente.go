@@ -176,26 +176,22 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								reglas := FormatoReglas(predicados) + reglasBase
 
 								m := NewMachine().Consult(reglas)
-								resultados := m.ProveAll("total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).")
+								resultados := m.ProveAll("validacion_total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) +  "," + strconv.Itoa(idfuente) + ",Y).")
 								var resp string
-								var restante float64
+
 								for _, solution := range resultados {
 									resp = fmt.Sprintf("%s", solution.ByName_("Y"))
 								}
-								f, _ := strconv.ParseFloat(resp, 64)
-								restante = f
+								f, _ := strconv.ParseBool(resp)
+
 
 								var trasladar bool
-								if restante >= 0{
-									trasladar = true
-								}else {
-									trasladar = false
-								}
+								trasladar = f
 
 								fmt.Println("reglas: ", reglas)
 								fmt.Println("RESP: ", resp)
 
-								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "ValorGastado": valorcdp , "ValorTotal": valor, "ValorRestante": restante, "Trasladar": trasladar }
+								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar }
 							  }
 							}
 						}else{
@@ -214,7 +210,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								trasladar = false
 							}
 
-							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
 
 						}
 
@@ -233,7 +229,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								trasladar = false
 							}
 
-							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": (valor + valortraslado),  "Trasladar": trasladar}
+							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,  "Trasladar": trasladar}
 						}
 					} else {
 						fmt.Println("aqui")
