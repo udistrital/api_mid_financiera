@@ -199,16 +199,16 @@ func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp 
 	return
 }
 
-// Getjota ...
-// @Title Getjota
+// GetConceptosMovimeintosContablesSs ...
+// @Title GetConceptosMovimeintosContablesSs
 // @Description lista pagos de seguridad socila por persona.
 // @Param	idNomina	query	string	false	"nomina a listar"
 // @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
 // @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /Getjota [get]
-func (c *OrdenPagoSsController) Getjota() {
+// @router /GetConceptosMovimeintosContablesSs [get]
+func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	idNomina, err1 := c.GetInt("idNomina")
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
@@ -487,7 +487,6 @@ func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpD
 		ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Dispinibildida para La Necesidad", "Type": "error"}
 		return nil, ouputError
 	}
-	return
 }
 
 func getPagosConDetalleLiquidacion(idPeriodoPago int) (respuestaCV []interface{}) {
