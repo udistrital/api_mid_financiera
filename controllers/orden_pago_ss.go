@@ -256,7 +256,7 @@ func (c *OrdenPagoSsController) Getjota() {
 									movimientosContables = append(movimientosContables, aux)
 								}
 							}
-							// estructura out fin
+							//estructura out fin
 							allDataOuput := make(map[string]interface{})
 							allDataOuput["MovimientoContable"] = movimientosContables
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
@@ -302,13 +302,10 @@ func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion
 						disponibilidad := getDisponibilidad(int(solicitudCDP))
 						fmt.Println("disponibilidad", disponibilidad)
 						if disponibilidad != 0 {
-							rpDisponibilidadApropiacion = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
-							if rpDisponibilidadApropiacion != nil {
+							if rpDisponibilidadApropiacion, ouputError = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad)); ouputError == nil {
 								fmt.Println("rp", rpDisponibilidadApropiacion[0]["Rp"].(map[string]interface{})["Id"])
 								return rpDisponibilidadApropiacion, nil
 							} else {
-								//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
-								ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Registro Presupuestal para La Necesidad", "Type": "error"}
 								return nil, ouputError
 							}
 						} else {
@@ -437,40 +434,58 @@ func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64)
 	return
 }
 
-func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}) {
-	var dataRpDisponibilidadApropiacio []interface{}
+func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}, ouputError map[string]interface{}) {
+	var dataSolicitudRp []interface{}
+	var dataRp []interface{}
 	var saldoRp map[string]float64
 	if idDisponibilidad != 0 {
-		//fmt.Println("http://" + beego.AppConfig.String("kronosService") + "registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:" + strconv.Itoa(idDisponibilidad))
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.Itoa(idDisponibilidad), &dataRpDisponibilidadApropiacio); err == nil {
-			if dataRpDisponibilidadApropiacio != nil {
-				for _, infoRpDispoApro := range dataRpDisponibilidadApropiacio {
-					outpuRow := make(map[string]interface{})
-					if row, e := infoRpDispoApro.(map[string]interface{}); e {
-						if dispoApr, e := row["DisponibilidadApropiacion"].(map[string]interface{}); e {
-							outpuRow["RegistroPresupuestalDisponibilidadApropiacion"] = row
-							outpuRow["Rp"] = row["RegistroPresupuestal"]
-							outpuRow["Apropiacion"] = dispoApr["Apropiacion"]
-							outpuRow["FuenteFinanciacion"] = dispoApr["FuenteFinanciamiento"]
-							if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, outpuRow); err == nil {
-								outpuRow["Saldo"] = saldoRp["saldo"]
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:true,Cdp:"+strconv.Itoa(int(idDisponibilidad)), &dataSolicitudRp); err == nil && dataSolicitudRp != nil {
+			if idSolicitudRp, e := dataSolicitudRp[0].(map[string]interface{})["Id"].(float64); e {
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(idSolicitudRp)), &dataRp); err == nil && dataRp != nil {
+					if rpmap, e := dataRp[0].(map[string]interface{}); e {
+						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
+							for _, infopresrp := range desagregacionpresrp {
+								row := make(map[string]interface{})
+								if info, e := infopresrp.(map[string]interface{}); e {
+									if dispoap, e := info["DisponibilidadApropiacion"].(map[string]interface{}); e {
+										row["RegistroPresupuestalDisponibilidadApropiacion"] = info
+										row["Rp"] = dataRp[0]
+										row["Apropiacion"] = dispoap["Apropiacion"]
+										row["FuenteFinanciacion"] = dispoap["FuenteFinanciamiento"]
+										if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, row); err == nil && dataRp != nil {
+											row["Saldo"] = saldoRp["saldo"]
+										}
+										rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, row)
+									}
+								}
 							}
-							rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, outpuRow)
+							return rpDisponibilidadApropiacion, nil
 						} else {
-							rpDisponibilidadApropiacion = nil
+							//get data rp
+							ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+							return nil, ouputError
 						}
 					} else {
-						rpDisponibilidadApropiacion = nil
+						// conversion data del rp
+						ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+						return nil, ouputError
 					}
+				} else {
+					//get data registro presupuestal
+					ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+					return nil, ouputError
 				}
 			} else {
-				rpDisponibilidadApropiacion = nil
+				ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Rp para La Necesidad", "Type": "error"}
+				return nil, ouputError
 			}
 		} else {
-			rpDisponibilidadApropiacion = nil
+			ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Rp para La Necesidad", "Type": "error"}
+			return nil, ouputError
 		}
 	} else {
-		rpDisponibilidadApropiacion = nil
+		ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Dispinibildida para La Necesidad", "Type": "error"}
+		return nil, ouputError
 	}
 	return
 }
