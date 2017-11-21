@@ -213,6 +213,10 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
+
+		descuentosDeLiquidacion := reglaGetDescuentosDeLiquidacion(idNomina)
+		fmt.Println(descuentosDeLiquidacion)
+		c.Data["json"] = descuentosDeLiquidacion
 		var homologacionConceptos []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			//c.Data["json"] = rpCorrespondiente
@@ -261,7 +265,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput["MovimientoContable"] = movimientosContables
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
-							c.Data["json"] = allDataOuput
+							//c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
 						}
@@ -363,6 +367,7 @@ func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiq
 func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64) {
 	var periodoPago []interface{}
 	if idLiquidacion != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
+		fmt.Println("http://" + beego.AppConfig.String("SsService") + "periodo_pago/?query=Mes:" + strconv.Itoa(mesLiquidacion) + "&Anio:" + strconv.Itoa(anioLiquidacion) + "&Liquidacion:" + strconv.Itoa(idLiquidacion) + "&limit:1")
 		if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:1", &periodoPago); err == nil {
 			if periodoPago != nil && periodoPago[0].(map[string]interface{})["Id"] != nil {
 				idPeriodoPago = periodoPago[0].(map[string]interface{})["Id"].(float64)
@@ -550,4 +555,31 @@ func getConceptosEnRpDisponibilidadApropiacion(listaRpDispoApropi interface{}, p
 	} else {
 		return nil
 	}
+}
+
+func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}) {
+	var nomina []interface{}
+	var idDescuentos [3]int
+	var descuento []interface{}
+
+	if err := getJson("http://"+beego.AppConfig.String("titanService")+"nomina/?query=Id:"+strconv.Itoa(idNomina), &nomina); err == nil && nomina != nil {
+		if nominaName, e := nomina[0].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"]; e {
+			fmt.Println(nominaName)
+			if nominaName == "HCH" { //descuentos de homorarios
+				idDescuentos = [3]int{40, 42, 41}
+			} else {
+				idDescuentos = [3]int{43, 45, 44}
+			}
+			for _, id := range idDescuentos {
+				if err := getJson("http://"+beego.AppConfig.String("kronosService")+"cuenta_especial/?query=Id:"+strconv.Itoa(id)+"&limit:1", &descuento); err == nil && descuento != nil {
+					DataDescuentos = append(DataDescuentos, descuento[0])
+				}
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+	return
 }
