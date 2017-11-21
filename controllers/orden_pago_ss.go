@@ -214,9 +214,8 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
 
-		descuentosDeLiquidacion := reglaGetDescuentosDeLiquidacion(idNomina)
-		fmt.Println(descuentosDeLiquidacion)
-		c.Data["json"] = descuentosDeLiquidacion
+		// descuentosDeLiquidacion := reglaGetDescuentosDeLiquidacion(idNomina)
+		// fmt.Println(descuentosDeLiquidacion)
 		var homologacionConceptos []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			//c.Data["json"] = rpCorrespondiente
@@ -265,7 +264,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput["MovimientoContable"] = movimientosContables
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
-							//c.Data["json"] = allDataOuput
+							c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
 						}
@@ -582,4 +581,40 @@ func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}
 		return nil
 	}
 	return
+}
+
+func getMovimientosDescuentoDeLiquidacion(idLiquidacion int) (DataMovimientoDescuento []interface{}) {
+	if idLiquidacion != 0 {
+		var ordenespago []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=SubTipoOrdenPago.TipoOrdenPago.CodigoAbreviacion:OP-PROV,Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:-1", &ordenespago); err == nil && ordenespago != nil {
+			done := make(chan interface{})
+			defer close(done)
+			resch := utilidades.GenChanInterface(ordenespago...)
+			chlistaMovimientos := utilidades.Digest(done, getMovimeintosContables, resch, nil)
+			for dataChListaMovimientos := range chlistaMovimientos {
+				if dataChListaMovimientos != nil {
+					DataMovimientoDescuento = append(DataMovimientoDescuento, dataChListaMovimientos.(interface{}))
+				}
+			}
+		} else {
+			return nil // get ordenes
+		}
+	} else {
+		return nil
+	}
+	return
+}
+
+func getMovimeintosContables(listaOrdenesPago interface{}, params ...interface{}) (res interface{}) {
+	if ordenPago, e := listaOrdenesPago.(map[string]interface{}); e {
+		var movimientosContables []interface{}
+		// aray de regla
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"movimiento_contable/?query=TipoDocumentoAfectante.CodigoAbreviacion:DA-OP,CuentaEspecial__isnull:false,CodigoDocumentoAfectante:"+strconv.Itoa(int(ordenPago["Id"].(float64)))+"&limit:-1", &movimientosContables); err == nil && movimientosContables != nil {
+			return movimientosContables
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
 }
