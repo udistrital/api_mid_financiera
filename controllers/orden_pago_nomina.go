@@ -534,7 +534,6 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		var homologacionConceptos []map[string]interface{}
 		var homologacionDescuentos []map[string]interface{}
 		var listaDetalles []interface{}
-
 		var valorTotal float64
 		var params []interface{}
 
@@ -547,17 +546,20 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		if !e {
 			return nil
 		}
+		var infoContrato interface{}
+		var idPreliquidacion float64
 		//consulta del rp asociado al contrato de la persona... strconv.Itoa(int(vigenciaContrato)) ... strconv.Itoa(int(solicitudrp))
 		desagregacionrp := formatoInfoRp(nContrato, vigenciaContrato)
 		//fin consulta del rp ...
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:devengo,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
 			if listaDetalles != nil {
+				idPreliquidacion = listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 				done := make(chan interface{})
 				defer close(done)
 				resch := utilidades.GenChanInterface(listaDetalles...)
 				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 				if f != nil {
-					infoContrato := formatoListaLiquidacion(dataLiquidacion, nil)
+					infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
 					idProveedor, e := infoContrato.(map[string]interface{})["infoPersona"].(map[string]interface{})["id_persona"]
 					if e {
 						params = append(params, idProveedor)
@@ -592,99 +594,98 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 						}
 					}
 
-					//---------------------
-					//descuentos homologacion
-					if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
-						if listaDetalles != nil {
-							done := make(chan interface{})
-							defer close(done)
-							resch := utilidades.GenChanInterface(listaDetalles...)
-							chDescHomologados := utilidades.Digest(done, homologacionDescuentosHC, resch, nil)
-							for descuentoHomologado := range chDescHomologados {
-								homologado, e := descuentoHomologado.(map[string]interface{})
-								if e {
-									existe := false
-									for _, comp := range homologacionDescuentos {
-										if comp["Descuento"] != nil && homologado["Descuento"] != nil {
-											if comp["Descuento"].(map[string]interface{})["Id"].(float64) == homologado["Descuento"].(map[string]interface{})["Id"].(float64) {
-												comp["Valor"] = comp["Valor"].(float64) + homologado["Valor"].(float64)
-												existe = true
-
-											}
-										}
-
-									}
-									if !existe {
-										if homologado["Descuento"] != nil {
-
-											homologacionDescuentos = append(homologacionDescuentos, homologado)
+				}
+				//---------------------
+				//descuentos homologacion
+				if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &listaDetalles); err == nil {
+					if listaDetalles != nil {
+						idPreliquidacion = listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
+						done := make(chan interface{})
+						defer close(done)
+						resch := utilidades.GenChanInterface(listaDetalles...)
+						chDescHomologados := utilidades.Digest(done, homologacionDescuentosHC, resch, nil)
+						for descuentoHomologado := range chDescHomologados {
+							homologado, e := descuentoHomologado.(map[string]interface{})
+							if e {
+								existe := false
+								for _, comp := range homologacionDescuentos {
+									if comp["Descuento"] != nil && homologado["Descuento"] != nil {
+										if comp["Descuento"].(map[string]interface{})["Id"].(float64) == homologado["Descuento"].(map[string]interface{})["Id"].(float64) {
+											comp["Valor"] = comp["Valor"].(float64) + homologado["Valor"].(float64)
+											existe = true
 
 										}
+									}
+
+								}
+								if !existe {
+									if homologado["Descuento"] != nil {
+
+										homologacionDescuentos = append(homologacionDescuentos, homologado)
 
 									}
+
 								}
 							}
 						}
 					}
+				}
 
-					//---------------------
+				//---------------------
 
-					var movimientosContables []interface{}
-					for _, concepto := range homologacionConceptos {
-						movimientoContable := formatoMovimientosContablesOp(concepto)
+				var movimientosContables []interface{}
+				for _, concepto := range homologacionConceptos {
+					movimientoContable := formatoMovimientosContablesOp(concepto)
+					for _, aux := range movimientoContable {
+						movimientosContables = append(movimientosContables, aux)
+					}
+
+				}
+				movcredito := findMovimientoCredito(movimientosContables)
+				for _, descuento := range homologacionDescuentos {
+					if movimientosContables != nil {
+
+						movimientoContable, mov := formatoMovimientosContablesDescuentosOp(descuento, movcredito)
+						movcredito = mov
+						beego.Info(movcredito.(map[string]interface{})["Credito"])
 						for _, aux := range movimientoContable {
+
 							movimientosContables = append(movimientosContables, aux)
 						}
 
 					}
-					movcredito := findMovimientoCredito(movimientosContables)
-					for _, descuento := range homologacionDescuentos {
-						if movimientosContables != nil {
 
-							movimientoContable, mov := formatoMovimientosContablesDescuentosOp(descuento, movcredito)
-							movcredito = mov
-							beego.Info(movcredito.(map[string]interface{})["Credito"])
-							for _, aux := range movimientoContable {
-
-								movimientosContables = append(movimientosContables, aux)
-							}
-
-						}
-
-					}
-					res := make(map[string]interface{})
-					res["ValorBase"] = valorTotal
-					if desagregacionrp != nil {
-						if rpint, e := desagregacionrp[0]["Rp"].(interface{}); e {
-							ordenPago := make(map[string]interface{})
-							ordenPago["RegistroPresupuestal"] = rpint
-							res["OrdenPago"] = ordenPago
-						} else {
-							ordenPago := make(map[string]interface{})
-							ordenPago["RegistroPresupuestal"] = nil
-							res["OrdenPago"] = ordenPago
-						}
+				}
+				res := make(map[string]interface{})
+				res["ValorBase"] = valorTotal
+				if desagregacionrp != nil {
+					if rpint, e := desagregacionrp[0]["Rp"].(interface{}); e {
+						ordenPago := make(map[string]interface{})
+						ordenPago["RegistroPresupuestal"] = rpint
+						ordenPago["Liquidacion"] = idPreliquidacion
+						res["OrdenPago"] = ordenPago
 					} else {
 						ordenPago := make(map[string]interface{})
 						ordenPago["RegistroPresupuestal"] = nil
 						res["OrdenPago"] = ordenPago
 					}
-
-					if auxmap, e := infoContrato.(map[string]interface{}); e {
-						res["infoPersona"], e = auxmap["infoPersona"]
-					}
-					res["Contrato"] = nContrato
-					res["VigenciaContrato"] = vigenciaContrato
-					res["MovimientoContable"] = movimientosContables
-					res["ConceptoOrdenPago"], res["Aprobado"], res["Code"] = formatoConceptoOrdenPago(desagregacionrp, homologacionConceptos)
-					return res
 				} else {
-					return nil
+					ordenPago := make(map[string]interface{})
+					ordenPago["RegistroPresupuestal"] = nil
+					res["OrdenPago"] = ordenPago
 				}
+
+				if auxmap, e := infoContrato.(map[string]interface{}); e {
+					res["infoPersona"], e = auxmap["infoPersona"]
+				}
+				res["Contrato"] = nContrato
+				res["VigenciaContrato"] = vigenciaContrato
+				res["MovimientoContable"] = movimientosContables
+				res["ConceptoOrdenPago"], res["Aprobado"], res["Code"] = formatoConceptoOrdenPago(desagregacionrp, homologacionConceptos)
+				return res
 			} else {
 				return nil
 			}
-
 		} else {
 			return nil
 		}
