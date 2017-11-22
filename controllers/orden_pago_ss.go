@@ -213,11 +213,9 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
-
-		// descuentosDeLiquidacion := reglaGetDescuentosDeLiquidacion(idNomina)
-		// fmt.Println(descuentosDeLiquidacion)
 		var homologacionConceptos []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
+			//fmt.Println(rpCorrespondiente)
 			//c.Data["json"] = rpCorrespondiente
 			idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
 			if idLiquidacion != 0 {
@@ -264,6 +262,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput["MovimientoContable"] = movimientosContables
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
+							allDataOuput["MovimientosDeDescuento"] = getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina)
 							c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
@@ -366,7 +365,7 @@ func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiq
 func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64) {
 	var periodoPago []interface{}
 	if idLiquidacion != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
-		fmt.Println("http://" + beego.AppConfig.String("SsService") + "periodo_pago/?query=Mes:" + strconv.Itoa(mesLiquidacion) + "&Anio:" + strconv.Itoa(anioLiquidacion) + "&Liquidacion:" + strconv.Itoa(idLiquidacion) + "&limit:1")
+		//fmt.Println("http://" + beego.AppConfig.String("SsService") + "periodo_pago/?query=Mes:" + strconv.Itoa(mesLiquidacion) + "&Anio:" + strconv.Itoa(anioLiquidacion) + "&Liquidacion:" + strconv.Itoa(idLiquidacion) + "&limit:1")
 		if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:1", &periodoPago); err == nil {
 			if periodoPago != nil && periodoPago[0].(map[string]interface{})["Id"] != nil {
 				idPeriodoPago = periodoPago[0].(map[string]interface{})["Id"].(float64)
@@ -563,7 +562,6 @@ func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}
 
 	if err := getJson("http://"+beego.AppConfig.String("titanService")+"nomina/?query=Id:"+strconv.Itoa(idNomina), &nomina); err == nil && nomina != nil {
 		if nominaName, e := nomina[0].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"]; e {
-			fmt.Println(nominaName)
 			if nominaName == "HCH" { //descuentos de homorarios
 				idDescuentos = [3]int{40, 42, 41}
 			} else {
@@ -583,34 +581,65 @@ func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}
 	return
 }
 
-func getMovimientosDescuentoDeLiquidacion(idLiquidacion int) (DataMovimientoDescuento []interface{}) {
-	if idLiquidacion != 0 {
+func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovimientoDescuento []map[string]interface{}) {
+	if idLiquidacion != 0 && idNomina != 0 {
 		var ordenespago []interface{}
+		var allMovimientos []map[string]interface{}
+		var params []interface{}
 		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=SubTipoOrdenPago.TipoOrdenPago.CodigoAbreviacion:OP-PROV,Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:-1", &ordenespago); err == nil && ordenespago != nil {
 			done := make(chan interface{})
 			defer close(done)
+			params = append(params, idNomina)
 			resch := utilidades.GenChanInterface(ordenespago...)
-			chlistaMovimientos := utilidades.Digest(done, getMovimeintosContables, resch, nil)
+			chlistaMovimientos := utilidades.Digest(done, getMovimeintosContables, resch, params)
 			for dataChListaMovimientos := range chlistaMovimientos {
-				if dataChListaMovimientos != nil {
-					DataMovimientoDescuento = append(DataMovimientoDescuento, dataChListaMovimientos.(interface{}))
+				if movimientosPorOrdenP, e := dataChListaMovimientos.([]interface{}); e {
+					for _, movimientoOp := range movimientosPorOrdenP {
+						if rowMovimiento, e := movimientoOp.(map[string]interface{}); e {
+							existe := false
+							for _, allM := range allMovimientos {
+								if allM["CuentaContable"] != nil && rowMovimiento["CuentaContable"] != nil && allM["CuentaContable"].(map[string]interface{})["Id"].(float64) == rowMovimiento["CuentaContable"].(map[string]interface{})["Id"].(float64) {
+									allM["Debito"] = allM["Debito"].(float64) + rowMovimiento["Debito"].(float64)
+									allM["Credito"] = allM["Credito"].(float64) + rowMovimiento["Credito"].(float64)
+									existe = true
+								}
+							}
+							if !existe {
+								allMovimientos = append(allMovimientos, rowMovimiento)
+							}
+						}
+					}
 				}
 			}
+			return allMovimientos
 		} else {
-			return nil // get ordenes
+			return nil
 		}
 	} else {
 		return nil
 	}
-	return
 }
 
 func getMovimeintosContables(listaOrdenesPago interface{}, params ...interface{}) (res interface{}) {
 	if ordenPago, e := listaOrdenesPago.(map[string]interface{}); e {
 		var movimientosContables []interface{}
+		var outputMovimientosContables []interface{}
 		// aray de regla
+		descuentosPermitidos := reglaGetDescuentosDeLiquidacion(params[0].(int))
+
 		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"movimiento_contable/?query=TipoDocumentoAfectante.CodigoAbreviacion:DA-OP,CuentaEspecial__isnull:false,CodigoDocumentoAfectante:"+strconv.Itoa(int(ordenPago["Id"].(float64)))+"&limit:-1", &movimientosContables); err == nil && movimientosContables != nil {
-			return movimientosContables
+			for _, movimientoContable := range movimientosContables {
+				if rowMovimientoC, e := movimientoContable.(map[string]interface{}); e {
+					for _, descuento := range descuentosPermitidos {
+						if rowDescuento, e := descuento.(map[string]interface{}); e {
+							if rowDescuento["Id"].(float64) == rowMovimientoC["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
+								outputMovimientosContables = append(outputMovimientosContables, rowMovimientoC)
+							}
+						}
+					}
+				}
+			}
+			return outputMovimientosContables
 		} else {
 			return nil
 		}
