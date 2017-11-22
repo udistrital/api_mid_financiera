@@ -910,6 +910,8 @@ func homologacionFunctionDispatcher(tipo string) (f func(data interface{}, param
 		return homologacionConceptosHC
 	case "HCH":
 		return homologacionConceptosHC
+	case "DP":
+		return homologacionConceptosDocentesPlanta
 	default:
 		return nil
 	}
@@ -931,7 +933,25 @@ func RegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params 
 		return RegistroOpProveedor
 	case "HCH":
 		return RegistroOpProveedor
+	case "DP":
+		return formatoRegistroOpDocentesPlanta
 	default:
 		return nil
+	}
+}
+
+func ConsultarDevengosNominaPorContrato(idLiquidacion float64, nContrato string, vigenciaContrato float64) (detalle []interface{}, err error) {
+	if err = getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:devengo,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &detalle); err == nil {
+		return
+	} else {
+		return nil, err
+	}
+}
+
+func ConsultarDescuentosNominaPorContrato(idLiquidacion float64, nContrato string, vigenciaContrato float64) (detalle []interface{}, err error) {
+	if err = getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &detalle); err == nil {
+		return
+	} else {
+		return nil, err
 	}
 }
