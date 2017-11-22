@@ -108,7 +108,7 @@ func (c *OrdenPagoSsController) ListaPagoSsPorPersona() {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
 		} else {
-			c.Data["json"] = nil
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 		}
 	} else {
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
@@ -146,57 +146,28 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 }
 
 func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp interface{}) {
-	var liquidacion interface{}
-	var periodoPago []interface{}
 	var pagosPorDetalle []interface{}
 	allData := make(map[string]interface{})
 	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
-		// get id preliquidacion
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
-			if liquidacion != nil {
-				if liquidacion.(map[string]interface{})["Id_Preliq"] != nil {
-					allData["IdPreliquidacion"] = liquidacion.(map[string]interface{})["Id_Preliq"]
+		if idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); idLiquidacion != 0 {
+			if idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); idPeriodoPago != 0 {
+				if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64), &pagosPorDetalle); err == nil && pagosPorDetalle != nil {
+					allData["Pagos"] = pagosPorDetalle
+					allData["IdPreliquidacion"] = idLiquidacion
+					allData["PeriodoPago"] = idPeriodoPago
+					return allData
 				} else {
-					allData["IdPreliquidacion"] = nil
+					return nil
 				}
 			} else {
-				allData["IdPreliquidacion"] = nil
+				return nil
 			}
 		} else {
 			return nil
 		}
-		// get periodo pago
-		if allData["IdPreliquidacion"] != nil {
-			idPeriodoLiquidacion := allData["IdPreliquidacion"].(float64)
-			if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.FormatFloat(idPeriodoLiquidacion, 'f', -1, 64)+"&limit:1", &periodoPago); err == nil {
-				if periodoPago != nil {
-					if periodoPago[0].(map[string]interface{})["Id"] != nil {
-						allData["PeriodoPago"] = periodoPago[0].(map[string]interface{})["Id"]
-					} else {
-						allData["PeriodoPago"] = nil
-					}
-				} else {
-					allData["PeriodoPago"] = nil
-				}
-			} else {
-				return nil
-			}
-		}
-		//get pagos por persona
-		if allData["PeriodoPago"] != nil {
-			if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64), &pagosPorDetalle); err == nil {
-				if pagosPorDetalle != nil {
-					allData["Pagos"] = pagosPorDetalle
-				} else {
-					allData["Pagos"] = nil
-				}
-			} else {
-				return nil
-			}
-		}
-		dataOutp = allData
+	} else {
+		return
 	}
-	return
 }
 
 // GetConceptosMovimeintosContablesSs ...
