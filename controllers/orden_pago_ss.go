@@ -261,15 +261,12 @@ func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion
 			fmt.Println("Liquidacion: ", idLiquidacion)
 			if idPeriodoPago, e := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); e == nil {
 				fmt.Println("periodo pago ", idPeriodoPago)
-				idNecesidad := getNecesidadByProcesoExternoSS(int(idPeriodoPago))
-				fmt.Println("Nececidad id", idNecesidad)
-				if idNecesidad != 0 {
-					solicitudCDP := getSolicitudDisponibilidad(int(idNecesidad))
-					fmt.Println("solicitud disponibilidad id, ", solicitudCDP)
-					if solicitudCDP != 0 {
-						disponibilidad := getDisponibilidad(int(solicitudCDP))
-						fmt.Println("disponibilidad", disponibilidad)
-						if disponibilidad != 0 {
+				if idNecesidad, e := getNecesidadByProcesoExternoSS(int(idPeriodoPago)); e == nil {
+					fmt.Println("Nececidad id", idNecesidad)
+					if solicitudCDP, e := getSolicitudDisponibilidad(int(idNecesidad)); e == nil {
+						fmt.Println("solicitud disponibilidad id, ", solicitudCDP)
+						if disponibilidad, e := getDisponibilidad(int(solicitudCDP)); e == nil {
+							fmt.Println("disponibilidad", disponibilidad)
 							if rpDisponibilidadApropiacion, outputError = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad)); outputError == nil {
 								fmt.Println("rp", rpDisponibilidadApropiacion[0]["Rp"].(map[string]interface{})["Id"])
 								return rpDisponibilidadApropiacion, nil
@@ -277,19 +274,13 @@ func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion
 								return nil, outputError
 							}
 						} else {
-							//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Disponibilidad para La Necesidad", Type: "error"}
-							outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Disponibilidad para La Necesidad", "Type": "error"}
-							return nil, outputError
+							return nil, e
 						}
 					} else {
-						//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Solicitud de Disponibilidad para La Necesidad", Type: "error"}
-						outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Disponibilidad para La Necesidad", "Type": "error"}
-						return nil, outputError
+						return nil, e
 					}
 				} else {
-					//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe necesidad para liquidacion de Seguridad Social en el periodo", Type: "error"}
-					outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe necesidad para liquidacion de Seguridad Social en el periodo", "Type": "error"}
-					return nil, outputError
+					return nil, e
 				}
 			} else {
 				return nil, e
@@ -298,8 +289,7 @@ func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion
 			return nil, e
 		}
 	} else {
-		//c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
-		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter", "Type": "error"}
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in GetRpDesdeNecesidadProcesoExterno", "Type": "error"}
 		return nil, outputError
 	}
 }
@@ -348,60 +338,54 @@ func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (
 	}
 }
 
-func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64) {
+func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64, outputError map[string]interface{}) {
 	var necesidadProcesoExterno []interface{}
 	if idPeriodoPagoSs != 0 {
 		//TipoNecesidad.CodigoAbreviacion:S  seguridad social
 		// Necesidad.EstadoNecesidad.CodigoAbreviacion:C  => Solicitud de CDP creada
-		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:S,ProcesoExterno:"+strconv.Itoa(idPeriodoPagoSs)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit:1", &necesidadProcesoExterno); err == nil {
-			if necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
-				necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
-			} else {
-				necesidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:S,ProcesoExterno:"+strconv.Itoa(idPeriodoPagoSs)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit:1", &necesidadProcesoExterno); err == nil && necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
+			necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
+			return necesidad, nil
 		} else {
-			necesidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe necesidad de proceso externo para liquidacion de Seguridad Social en el periodo", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		necesidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getNecesidadByProcesoExternoSS", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64) {
+func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64, outputError map[string]interface{}) {
 	var solicitudDisponibilidadData []interface{}
 	if idNecesidad != 0 {
-		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil {
-			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
-				solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
-			} else {
-				solicitudDisponibilidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+			solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			return solicitudDisponibilidad, nil
 		} else {
-			solicitudDisponibilidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe Solicitud de Disponibilidad para La Necesidad", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		solicitudDisponibilidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getSolicitudDisponibilidad", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64) {
+func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64, outputError map[string]interface{}) {
 	var solicitudDisponibilidadData []interface{}
 	if idSolicitudDisponibilidad != 0 {
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?query=Solicitud:"+strconv.Itoa(idSolicitudDisponibilidad)+"&limit:1", &solicitudDisponibilidadData); err == nil {
-			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
-				idDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
-			} else {
-				idDisponibilidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?query=Solicitud:"+strconv.Itoa(idSolicitudDisponibilidad)+"&limit:1", &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+			idDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			return idDisponibilidad, nil
 		} else {
-			idDisponibilidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe Disponibilidad para La Necesidad", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		idDisponibilidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getDisponibilidad", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
 func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
