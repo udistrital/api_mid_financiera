@@ -423,7 +423,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
 						beego.Info("acum. ", idrbRp)
-						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp >= valor {
+						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp <= valor {
 							comp = true
 							if concetosmap, e := acumConceptos[idrbRp]["Concepto"].([]interface{}); e {
 								for _, cpt := range concetosmap {
@@ -636,7 +636,7 @@ func resumenOpFunctionDispatcher(tipo string) (f func(data interface{}, params .
 	case "HCH":
 		return formatoResumenCargueOp
 	case "FP":
-		return formatoResumenCargueOpPlanta
+		return formatoResumenCargueOp
 	default:
 		return nil
 	}
@@ -661,7 +661,7 @@ func formatoRegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, 
 	case "HCH":
 		return formatoRegistroOpHC
 	case "FP":
-		return formatoRegistroOpDocentesPlanta
+		return formatoResumenOpPlanta
 	default:
 		return nil
 	}
