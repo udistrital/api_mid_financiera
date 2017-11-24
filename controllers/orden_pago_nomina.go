@@ -423,7 +423,7 @@ func formatoConceptoOrdenPago(desgrRp []map[string]interface{}, conceptos []map[
 					if acumConceptos[idrbRp] != nil {
 						saldorp := apRp["Saldo"].(float64)
 						beego.Info("acum. ", idrbRp)
-						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp <= valor {
+						if valor, e := acumConceptos[idrbRp]["Valor"].(float64); e && saldorp >= valor {
 							comp = true
 							if concetosmap, e := acumConceptos[idrbRp]["Concepto"].([]interface{}); e {
 								for _, cpt := range concetosmap {
