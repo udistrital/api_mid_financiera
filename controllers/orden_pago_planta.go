@@ -175,8 +175,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			res["Aprobado"] = false
-			res["Code"] = "OPM_E005"
+			//res["Aprobado"] = false
+			//res["Code"] = "OPM_E005"
 		}
 		return res
 	} else {
@@ -199,8 +199,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			res["Aprobado"] = false
-			res["Code"] = "OPM_E005"
+			//res["Aprobado"] = false
+			//res["Code"] = "OPM_E005"
 		}
 		return res
 	}
@@ -261,52 +261,52 @@ func homologacionConceptosDocentesPlanta(dataConcepto interface{}, params ...int
 
 func formatoPreViewCargueMasivoOpPlanta(liquidacion interface{}, params ...interface{}) (res interface{}) {
 	var respuesta []interface{}
-	var rp []map[string]interface{}
-	if params != nil {
-		done := make(chan interface{})
-		defer close(done)
-		_, e := liquidacion.(map[string]interface{})
-		if e {
-			if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
-				listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-				resch := utilidades.GenChanInterface(listaLiquidacion...)
-				var params2 []interface{}
+	//var rp []map[string]interface{}
+	done := make(chan interface{})
+	defer close(done)
+	_, e := liquidacion.(map[string]interface{})
+	if e {
+		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+			resch := utilidades.GenChanInterface(listaLiquidacion...)
+			var params2 []interface{}
 
-				params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
-				rp = formatoInfoRpById(params[0].(float64))
-				if rp != nil {
-					params2 = append(params2, rp)
-				}
-				f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-				//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-				if f != nil {
+			params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+			rp, err := GetRpDesdeNecesidadProcesoExternoGeneral(liquidacion.(map[string]interface{})["Id_Preliq"].(float64), "N")
+			beego.Info(err)
+			if rp != nil {
+				params2 = append(params2, rp)
+			}
+			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			if f != nil {
 
-					chlistaLiquidacion := utilidades.Digest(done, f, resch, params2)
-					for dataLiquidacion := range chlistaLiquidacion {
-						if dataLiquidacion != nil {
-							respuesta = append(respuesta, dataLiquidacion)
-						}
+				chlistaLiquidacion := utilidades.Digest(done, f, resch, params2)
+				for dataLiquidacion := range chlistaLiquidacion {
+					if dataLiquidacion != nil {
+						respuesta = append(respuesta, dataLiquidacion)
 					}
-					fresumen := resumenOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-					var resultado interface{}
-					if fresumen != nil {
-						resultado = fresumen(respuesta)
-					}
-					OrdenPagoReg := formatoRegistroOpPlanta(respuesta, rp, liquidacion.(map[string]interface{})["Id_Preliq"].(float64))
-					res = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado, "TipoLiquidacion": liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string), "OrdenPagoaRegistrar": OrdenPagoReg}
-				} else {
-					beego.Info("1")
-					res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 				}
+				fresumen := resumenOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+				var resultado interface{}
+				if fresumen != nil {
+					resultado = fresumen(respuesta)
+				}
+				OrdenPagoReg := formatoRegistroOpPlanta(respuesta, rp, liquidacion.(map[string]interface{})["Id_Preliq"].(float64))
+				res = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado, "TipoLiquidacion": liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string), "OrdenPagoaRegistrar": OrdenPagoReg}
 			} else {
-				beego.Info("2")
+				beego.Info("1")
 				res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 			}
 		} else {
-			beego.Info("3")
+			beego.Info("2")
 			res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 		}
+	} else {
+		beego.Info("3")
+		res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 	}
+
 	return
 }
 

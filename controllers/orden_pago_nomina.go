@@ -168,7 +168,6 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 // @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
 // @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
 // @Param   OrdenPago       map[string]string	true		"body for OrdenPago content"
-// @Param   idRp       map[string]string	false		"id del rp objetivo de la op (casos especiales)"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
 // @router /PreviewCargueMasivoOp [get]
@@ -177,7 +176,6 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	var params []interface{}
-	idRp := c.GetString("idRp")
 	if err1 == nil && err2 == nil && err3 == nil {
 		var liquidacion interface{}
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
@@ -185,8 +183,6 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 				f := formatoPreviewOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 				var res interface{}
 				if f != nil {
-					id, _ := strconv.ParseFloat(idRp, 64)
-					params = append(params, id)
 					res = f(liquidacion, params...)
 				}
 				c.Data["json"] = res
@@ -626,6 +622,53 @@ func formatoInfoRpById(idRp float64) (desagregacionrp []map[string]interface{}) 
 		}
 	} else {
 		return nil
+	}
+}
+
+func GetRpDesdeNecesidadProcesoExternoGeneral(idLiquidacion float64, CodigoAbreviacion string) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
+	//var outputError []map[string]interface{}
+	if idLiquidacion != 0 {
+		if idNecesidad, e := getNecesidadByProcesoExterno(int(idLiquidacion), CodigoAbreviacion); e == nil {
+			if solicitudCDP, e := getSolicitudDisponibilidad(int(idNecesidad)); e == nil {
+				if disponibilidad, e := getDisponibilidad(int(solicitudCDP)); e == nil {
+					if rpDisponibilidadApropiacion, outputError = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad)); outputError == nil {
+						fmt.Println("rp", rpDisponibilidadApropiacion[0]["Rp"].(map[string]interface{})["Id"])
+						return rpDisponibilidadApropiacion, nil
+					} else {
+						return nil, outputError
+					}
+				} else {
+					return nil, e
+				}
+			} else {
+				return nil, e
+			}
+		} else {
+			return nil, e
+		}
+
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in GetRpDesdeNecesidadProcesoExterno", "Type": "error"}
+		return nil, outputError
+	}
+}
+
+func getNecesidadByProcesoExterno(idLiquidacion int, CodigoAbreviacion string) (necesidad float64, outputError map[string]interface{}) {
+	var necesidadProcesoExterno []interface{}
+	if idLiquidacion != 0 {
+		//TipoNecesidad.CodigoAbreviacion:S  seguridad social
+		// Necesidad.EstadoNecesidad.CodigoAbreviacion:C  => Solicitud de CDP creada
+		fmt.Println("http://" + beego.AppConfig.String("argoService") + "necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:" + CodigoAbreviacion + ",ProcesoExterno:" + strconv.Itoa(idLiquidacion) + ",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit=1")
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:"+CodigoAbreviacion+",ProcesoExterno:"+strconv.Itoa(idLiquidacion)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit=1", &necesidadProcesoExterno); err == nil && necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
+			necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
+			return necesidad, nil
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe necesidad de proceso externo para liquidacion de Seguridad Social en el periodo", "Type": "error"}
+			return 0, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getNecesidadByProcesoExterno", "Type": "error"}
+		return 0, outputError
 	}
 }
 

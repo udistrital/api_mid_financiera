@@ -370,7 +370,7 @@ func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64, out
 func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64, outputError map[string]interface{}) {
 	var solicitudDisponibilidadData []interface{}
 	if idNecesidad != 0 {
-		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
 			solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
 			return solicitudDisponibilidad, nil
 		} else {
