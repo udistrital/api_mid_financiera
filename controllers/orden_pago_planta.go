@@ -175,8 +175,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			res["Aprobado"] = false
-			res["Code"] = "OPM_E005"
+			//res["Aprobado"] = false
+			//res["Code"] = "OPM_E005"
 		}
 		return res
 	} else {
@@ -199,8 +199,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			res["Aprobado"] = false
-			res["Code"] = "OPM_E005"
+			//res["Aprobado"] = false
+			//res["Code"] = "OPM_E005"
 		}
 		return res
 	}
@@ -261,130 +261,177 @@ func homologacionConceptosDocentesPlanta(dataConcepto interface{}, params ...int
 
 func formatoPreViewCargueMasivoOpPlanta(liquidacion interface{}, params ...interface{}) (res interface{}) {
 	var respuesta []interface{}
-	var rp []map[string]interface{}
-	if params != nil {
-		done := make(chan interface{})
-		defer close(done)
-		_, e := liquidacion.(map[string]interface{})
-		if e {
-			if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
-				listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-				resch := utilidades.GenChanInterface(listaLiquidacion...)
-				var params2 []interface{}
+	//var rp []map[string]interface{}
+	done := make(chan interface{})
+	defer close(done)
+	_, e := liquidacion.(map[string]interface{})
+	if e {
+		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
+			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
+			resch := utilidades.GenChanInterface(listaLiquidacion...)
+			var params2 []interface{}
 
-				params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
-				rp = formatoInfoRpById(params[0].(float64))
-				if rp != nil {
-					params2 = append(params2, rp)
-				}
-				f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-				//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-				if f != nil {
+			params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+			rp, err := GetRpDesdeNecesidadProcesoExternoGeneral(liquidacion.(map[string]interface{})["Id_Preliq"].(float64), "N")
+			beego.Info(err)
+			if rp != nil {
+				params2 = append(params2, rp)
+			}
+			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			if f != nil {
 
-					chlistaLiquidacion := utilidades.Digest(done, f, resch, params2)
-					for dataLiquidacion := range chlistaLiquidacion {
-						if dataLiquidacion != nil {
-							respuesta = append(respuesta, dataLiquidacion)
-						}
+				chlistaLiquidacion := utilidades.Digest(done, f, resch, params2)
+				for dataLiquidacion := range chlistaLiquidacion {
+					if dataLiquidacion != nil {
+						respuesta = append(respuesta, dataLiquidacion)
 					}
-					fresumen := resumenOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-					var resultado interface{}
-					if fresumen != nil {
-						resultado = fresumen(respuesta)
-					}
-					OrdenPagoReg := formatoRegistroOpPlanta(respuesta)
-					res = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado, "TipoLiquidacion": liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string), "OrdenPagoaRegistrar": OrdenPagoReg}
-				} else {
-					beego.Info("1")
-					res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 				}
+				fresumen := resumenOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+				var resultado interface{}
+				if fresumen != nil {
+					resultado = fresumen(respuesta)
+				}
+				OrdenPagoReg := formatoRegistroOpPlanta(respuesta, rp, liquidacion.(map[string]interface{})["Id_Preliq"].(float64))
+				res = map[string]interface{}{"DetalleCargueOp": respuesta, "ResumenCargueOp": resultado, "TipoLiquidacion": liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string), "OrdenPagoaRegistrar": OrdenPagoReg}
 			} else {
-				beego.Info("2")
+				beego.Info("1")
 				res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 			}
 		} else {
-			beego.Info("3")
+			beego.Info("2")
 			res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 		}
+	} else {
+		beego.Info("3")
+		res = map[string]interface{}{"Code": "E_0458", "Body": nil, "Type": "error"}
 	}
+
 	return
 }
 
-func formatoRegistroOpPlanta(detalleOP []interface{}) (res interface{}) {
+func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interface{}, idLiquidacion float64) (res interface{}) {
+	comp := false
+	code := "OPM_S001"
 	var conceptoOp []map[string]interface{}
 	var MovOp []map[string]interface{}
 	acumConceptOp := make(map[float64]map[float64]map[string]interface{})          //acumulacion de estructuras por  idConcepto, IdRegPresDispApr
 	acumMovsOp := make(map[float64]map[float64]map[float64]map[string]interface{}) //acumulacion de estructuras por  idConcepto, IdCuentaContable, idCuentaEspecial (0 si no aplica)
-	for _, auxDetalle := range detalleOP {
-		if auxMap, e := auxDetalle.(map[string]interface{}); e && auxMap["ConceptoOrdenPago"] != nil && auxMap["MovimientoContable"] != nil {
-			//detalleMap = append(detalleMap, auxMap)
-			ConcsOpMap, e := auxMap["ConceptoOrdenPago"].([]map[string]interface{})
-			var MovsMap []map[string]interface{}
-			err := utilidades.FillStruct(auxMap["MovimientoContable"], &MovsMap)
-			if e && err == nil {
-				//if e {
+	var op interface{}
+	if rpForm != nil {
+		if rpint, e := rpForm[0]["Rp"].(interface{}); e {
+			ordenPago := make(map[string]interface{})
+			ordenPago["RegistroPresupuestal"] = rpint
+			ordenPago["Liquidacion"] = idLiquidacion
+			op = ordenPago
+		}
+		for _, auxDetalle := range detalleOP {
 
-				for _, concepOP := range ConcsOpMap {
-					beego.Info(concepOP["Concepto"].(map[string]interface{})["Id"].(float64), concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64))
-					if acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] != nil {
+			if auxMap, e := auxDetalle.(map[string]interface{}); e && auxMap["ConceptoOrdenPago"] != nil && auxMap["MovimientoContable"] != nil && auxMap["Aprobado"].(bool) {
+				beego.Info(auxMap["Liquidacion"]) //detalleMap = append(detalleMap, auxMap)
+				ConcsOpMap, e := auxMap["ConceptoOrdenPago"].([]map[string]interface{})
+				var MovsMap []map[string]interface{}
+				err := utilidades.FillStruct(auxMap["MovimientoContable"], &MovsMap)
+				if e && err == nil {
+					//if e {
 
-						acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] = map[string]interface{}{"Concepto": concepOP["Concepto"], "RegistroPresupuestalDisponibilidadApropiacion": concepOP["RegistroPresupuestalDisponibilidadApropiacion"], "Valor": acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)]["Valor"].(float64) + concepOP["Valor"].(float64)}
-					} else {
+					for _, concepOP := range ConcsOpMap {
+						//beego.Info(concepOP["Concepto"].(map[string]interface{})["Id"].(float64), concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64))
+						if acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] != nil {
 
-						if acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)] == nil {
-							acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[string]interface{})
-						}
-						acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] = map[string]interface{}{"Concepto": concepOP["Concepto"], "RegistroPresupuestalDisponibilidadApropiacion": concepOP["RegistroPresupuestalDisponibilidadApropiacion"], "Valor": concepOP["Valor"].(float64)}
-
-					}
-
-				}
-
-				for _, movOp := range MovsMap {
-					var idCuentaEspecial float64
-					if movOp["CuentaEspecial"] != nil {
-						idCuentaEspecial = movOp["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
-					}
-					if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] != nil {
-						movOp["Debito"] = movOp["Debito"].(float64) + acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial]["Debito"].(float64)
-						movOp["Credito"] = movOp["Credito"].(float64) + acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial]["Credito"].(float64)
-						//beego.Info(movOp["Credito"])
-					} else {
-						if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)] == nil {
-							acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[float64]map[string]interface{})
-							acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[string]interface{})
-							acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = make(map[string]interface{})
-
+							acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] = map[string]interface{}{"Concepto": concepOP["Concepto"], "RegistroPresupuestalDisponibilidadApropiacion": concepOP["RegistroPresupuestalDisponibilidadApropiacion"], "Valor": acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)]["Valor"].(float64) + concepOP["Valor"].(float64)}
 						} else {
-							if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)] == nil {
+
+							if acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)] == nil {
+								acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[string]interface{})
+							}
+							acumConceptOp[concepOP["Concepto"].(map[string]interface{})["Id"].(float64)][concepOP["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{})["Id"].(float64)] = map[string]interface{}{"Concepto": concepOP["Concepto"], "RegistroPresupuestalDisponibilidadApropiacion": concepOP["RegistroPresupuestalDisponibilidadApropiacion"], "Valor": concepOP["Valor"].(float64)}
+
+						}
+
+					}
+
+					for _, movOp := range MovsMap {
+						var idCuentaEspecial float64
+						if movOp["CuentaEspecial"] != nil {
+							idCuentaEspecial = movOp["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
+						}
+						if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] != nil {
+							movOp["Debito"] = movOp["Debito"].(float64) + acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial]["Debito"].(float64)
+							movOp["Credito"] = movOp["Credito"].(float64) + acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial]["Credito"].(float64)
+							//beego.Info(movOp["Credito"])
+						} else {
+							if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)] == nil {
+								acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[float64]map[string]interface{})
 								acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[string]interface{})
 								acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = make(map[string]interface{})
+
 							} else {
-								acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = make(map[string]interface{})
+								if acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)] == nil {
+									acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)] = make(map[float64]map[string]interface{})
+									acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = make(map[string]interface{})
+								} else {
+									acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = make(map[string]interface{})
+								}
 							}
 						}
+						acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = movOp
+
 					}
-					acumMovsOp[movOp["Concepto"].(map[string]interface{})["Id"].(float64)][movOp["CuentaContable"].(map[string]interface{})["Id"].(float64)][idCuentaEspecial] = movOp
 
 				}
+			}
 
+		}
+		for _, indexIdConc := range acumConceptOp {
+			for _, indexIdRpDpAp := range indexIdConc {
+				beego.Info(indexIdRpDpAp["Valor"])
+				conceptoOp = append(conceptoOp, indexIdRpDpAp)
 			}
 		}
 
-	}
-	for _, indexIdConc := range acumConceptOp {
-		for _, indexIdRpDpAp := range indexIdConc {
-			beego.Info(indexIdRpDpAp["Valor"])
-			conceptoOp = append(conceptoOp, indexIdRpDpAp)
-		}
-	}
-
-	for _, indexIdConc := range acumMovsOp {
-		for _, indexIdCuentaCont := range indexIdConc {
-			for _, indexCuentaEsp := range indexIdCuentaCont {
-				MovOp = append(MovOp, indexCuentaEsp)
+		for _, indexIdConc := range acumMovsOp {
+			for _, indexIdCuentaCont := range indexIdConc {
+				for _, indexCuentaEsp := range indexIdCuentaCont {
+					MovOp = append(MovOp, indexCuentaEsp)
+				}
 			}
 		}
+		if acumConceptOp != nil {
+			for _, desgrRp := range rpForm {
+				if rpdispaprMap, e := desgrRp["RegistroPresupuestalDisponibilidadApropiacion"].(map[string]interface{}); e && rpdispaprMap["Id"] != nil {
+					id, _ := rpdispaprMap["Id"].(float64)
+					var valorAcum float64
+					for _, indexIdConc := range acumConceptOp {
+						if indexIdConc[id] != nil {
+							valorAcum = valorAcum + indexIdConc[id]["Valor"].(float64)
+						}
+					}
+					if valorAcum <= 0 {
+						code = "OPM_E001"
+						comp = false
+
+					} else if valorAcum <= desgrRp["Saldo"].(float64) {
+						comp = true
+						code = "OPM_S001"
+					} else {
+						code = "OPM_E002"
+						comp = false
+					}
+				}
+			}
+		} else {
+			code = "OPM_E003"
+			comp = false
+		}
+		if acumMovsOp == nil {
+			code = "OPM_E004"
+			comp = false
+		}
+	} else {
+		code = "OPM_E003"
+		comp = false
 	}
-	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp}
+
+	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp, "OrdenPago": op, "Aprobado": comp, "Code": code}
 }
