@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
@@ -227,10 +228,20 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							}
 							//estructura out fin
 							allDataOuput := make(map[string]interface{})
-							allDataOuput["MovimientoContable"] = movimientosContables
+							//totalizar los movimientos
+							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
+								if allMovimientos, e := afectarDescuentosDeOP(movimientosDeOP, movimientosContables); e == nil {
+									allDataOuput["MovimientoContable"] = allMovimientos
+								} else {
+									allDataOuput["MovimientoContable"] = e
+								}
+							} else {
+								allDataOuput["MovimientoContable"] = e
+							}
+							//allDataOuput["MovimientoContable"] = movimientosContables
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
-							allDataOuput["MovimientosDeDescuento"] = getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina)
+							allDataOuput["MovimientosDeDescuento"], _ = getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina)
 							c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
@@ -505,34 +516,7 @@ func getConceptosEnRpDisponibilidadApropiacion(listaRpDispoApropi interface{}, p
 		return nil
 	}
 }
-
-func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}) {
-	var nomina []interface{}
-	var idDescuentos [3]int
-	var descuento []interface{}
-
-	if err := getJson("http://"+beego.AppConfig.String("titanService")+"nomina/?query=Id:"+strconv.Itoa(idNomina), &nomina); err == nil && nomina != nil {
-		if nominaName, e := nomina[0].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"]; e {
-			if nominaName == "HCH" { //descuentos de homorarios
-				idDescuentos = [3]int{40, 42, 41}
-			} else {
-				idDescuentos = [3]int{43, 45, 44}
-			}
-			for _, id := range idDescuentos {
-				if err := getJson("http://"+beego.AppConfig.String("kronosService")+"cuenta_especial/?query=Id:"+strconv.Itoa(id)+"&limit:1", &descuento); err == nil && descuento != nil {
-					DataDescuentos = append(DataDescuentos, descuento[0])
-				}
-			}
-		} else {
-			return nil
-		}
-	} else {
-		return nil
-	}
-	return
-}
-
-func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovimientoDescuento []map[string]interface{}) {
+func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovimientoDescuento []map[string]interface{}, outputError map[string]interface{}) {
 	if idLiquidacion != 0 && idNomina != 0 {
 		var ordenespago []interface{}
 		var allMovimientos []map[string]interface{}
@@ -562,12 +546,14 @@ func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovi
 					}
 				}
 			}
-			return allMovimientos
+			return allMovimientos, nil
 		} else {
-			return nil
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron ordenes de pago relacionadas a la liquidacion", "Type": "error"}
+			return nil, outputError
 		}
 	} else {
-		return nil
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getMovimientosDescuentoDeLiquidacion", "Type": "error"}
+		return nil, outputError
 	}
 }
 
@@ -597,4 +583,99 @@ func getMovimeintosContables(listaOrdenesPago interface{}, params ...interface{}
 	} else {
 		return nil
 	}
+}
+
+func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}) {
+	var nomina []interface{}
+	var idDescuentos [3]int
+	var descuento []interface{}
+
+	if err := getJson("http://"+beego.AppConfig.String("titanService")+"nomina/?query=Id:"+strconv.Itoa(idNomina), &nomina); err == nil && nomina != nil {
+		if nominaName, e := nomina[0].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"]; e {
+			if nominaName == "HCH" {
+				idDescuentos = [3]int{40, 42, 41} //titan descuentos 239, 290, 291
+			} else {
+				idDescuentos = [3]int{43, 45, 44}
+			}
+			for _, id := range idDescuentos {
+				if err := getJson("http://"+beego.AppConfig.String("kronosService")+"cuenta_especial/?query=Id:"+strconv.Itoa(id)+"&limit:1", &descuento); err == nil && descuento != nil {
+					DataDescuentos = append(DataDescuentos, descuento[0])
+				}
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+	return
+}
+
+func reglaGetCuentaAfectarPorDescuento(codigoCuentaEspecial string) (codigoCuentaAfectar string, outputError map[string]interface{}) {
+	if codigoCuentaEspecial != "" {
+		var joinCuentaEspecial string
+		splitCuentaEspecial := strings.Split(codigoCuentaEspecial, "-")
+
+		if splitCuentaEspecial[len(splitCuentaEspecial)-1] == "02" {
+			splitCuentaEspecial[len(splitCuentaEspecial)-1] = "01"
+			joinCuentaEspecial = strings.Join(splitCuentaEspecial, "-")
+		} else if splitCuentaEspecial[len(splitCuentaEspecial)-1] == "01" {
+			splitCuentaEspecial[len(splitCuentaEspecial)-1] = "02"
+			joinCuentaEspecial = strings.Join(splitCuentaEspecial, "-")
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se especificaron mas casos para afectar la cuenta del descuento", "Type": "error"}
+			return "", outputError
+		}
+		return joinCuentaEspecial, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in reglaGetCuentaAfectarPorDescuento", "Type": "error"}
+	return "", outputError
+}
+
+func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuentas interface{}, outputError map[string]interface{}) {
+	if cuentasDescuentoOP != nil && cuentasSS != nil {
+		mapCuentasDescuentoOP, e1 := cuentasDescuentoOP.([]map[string]interface{})
+		mapCuentaSS, e2 := cuentasSS.([]interface{})
+		fmt.Println("inicial tamaño:---    ", len(mapCuentaSS))
+		if e1 && e2 {
+			for _, cuentaOP := range mapCuentasDescuentoOP {
+				codigoDescuentoOP := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string)
+				if CodigoDescuentoBuscar, e := reglaGetCuentaAfectarPorDescuento(codigoDescuentoOP); e == nil {
+					rowDescuento := make(map[string]interface{})
+					rowDescuento["Concepto"] = cuentaOP["Concepto"]
+					rowDescuento["Debito"] = cuentaOP["Credito"] //como son descuentos solo titnen credito
+					rowDescuento["Credito"] = 0
+					rowDescuento["CuentaContable"] = cuentaOP["CuentaContable"]
+					rowDescuento["CuentaEspecial"] = cuentaOP["CuentaEspecial"]
+					fmt.Println(CodigoDescuentoBuscar)
+					for _, cuentaSS := range mapCuentaSS {
+						if rowCuentaSS, e := cuentaSS.(map[string]interface{}); e {
+							if codeCuentaC, e := rowCuentaSS["CuentaContable"].(map[string]interface{}); e {
+								if codeCuentaC["Codigo"].(string) == CodigoDescuentoBuscar {
+									rowCuentaSS["Credito"] = rowCuentaSS["Credito"].(float64) + cuentaOP["Credito"].(float64)
+									mapCuentaSS = append(mapCuentaSS, rowDescuento)
+									fmt.Println("+1:   ", len(mapCuentaSS))
+								}
+							} else {
+								outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
+								return nil, outputError
+							}
+						} else {
+							outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
+							return nil, outputError
+						}
+					}
+				} else {
+					fmt.Println("errroe")
+					return nil, e
+				}
+			}
+			return mapCuentaSS, nil
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
+			return nil, outputError
+		}
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosDeOP", "Type": "error"}
+	return nil, outputError
 }
