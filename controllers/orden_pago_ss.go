@@ -17,104 +17,58 @@ type OrdenPagoSsController struct {
 
 // URLMapping ...
 func (c *OrdenPagoSsController) URLMapping() {
-	c.Mapping("ListaPagoSsPorPersona", c.ListaPagoSsPorPersona)
-
+	c.Mapping("GetConceptosMovimeintosContablesSs", c.GetConceptosMovimeintosContablesSs)
 }
 
-// DetalleListaPagoSsPorPersona ...
-// @Title DetalleListaPagoSsPorPersona
+// TestJota01 ...
+// @Title TestJota01
 // @Description lista pagos de seguridad socila por persona.
-// @Param	idPeriodoPago	query	string	false	"nomina a listar"
-// @Param	idDetalleLiquidacion	query	string	false	"mes de la liquidacion a listar"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /DetalleListaPagoSsPorPersona [get]
-func (c *OrdenPagoSsController) DetalleListaPagoSsPorPersona() {
-	idPeriodoPago, err1 := c.GetInt("idPeriodoPago")
-	idDetalleLiquidacion, err2 := c.GetInt("idDetalleLiquidacion")
-	if err1 == nil && err2 == nil {
-		var listaPagos []interface{}
-		var allData []interface{}
-		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil {
-			if listaPagos != nil {
-				done := make(chan interface{})
-				defer close(done)
-				resch := utilidades.GenChanInterface(listaPagos...)
-				chlistaPagos := utilidades.Digest(done, getTipoPagoTitan, resch, nil)
-				for dataChlistaPagos := range chlistaPagos {
-					if dataChlistaPagos != nil {
-						allData = append(allData, dataChlistaPagos.(interface{}))
-					}
-				}
-				c.Data["json"] = allData
-			} else {
-				c.Data["json"] = nil
-			}
-		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-		}
+// @router /TestJota01 [get]
+func (c *OrdenPagoSsController) TestJota01() {
+	if data, e := pagoSsPorPersona(23); e == nil {
+		c.Data["json"] = data
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		c.Data["json"] = e
 	}
 	c.ServeJSON()
 }
 
-func getTipoPagoTitan(listaPagos interface{}, params ...interface{}) (res interface{}) {
-	row, e := listaPagos.(map[string]interface{})
-	var tipoPago []interface{}
-	if e {
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"concepto_nomina/?query=Id:"+strconv.FormatFloat(row["TipoPago"].(float64), 'f', 0, 64)+"&limit=1", &tipoPago); err == nil {
-			row["TipoPago"] = tipoPago[0].(map[string]interface{})
-			return row
-		} else {
-			return nil
-		}
-	} else {
-		return nil
-	}
-}
-
-// ListaPagoSsPorPersona ...
-// @Title ListaPagoSsPorPersonaAllDetalle
-// @Description lista pagos de seguridad socila por persona.
-// @Param	idNomina	query	string	false	"nomina a listar"
-// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
-// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
-// @Success 201 {object} models.Alert
-// @Failure 403 body is empty
-// @router /ListaPagoSsPorPersona [get]
-func (c *OrdenPagoSsController) ListaPagoSsPorPersona() {
-	idNomina, err1 := c.GetInt("idNomina")
-	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
-	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
-	if err1 == nil && err2 == nil && err3 == nil {
-		var respuestaCV []interface{}
-		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
-		if pagosAgrupados != nil {
+// agrupa los pagos por detalle de liquidacion donde se referencia el contrato y usuario
+func pagoSsPorPersona(idPeriodoPago float64) (dataOutp interface{}, outputError map[string]interface{}) {
+	if idPeriodoPago != 0 {
+		var pagosPorDetalle []interface{}
+		var pagosVigenciaContrato []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64), &pagosPorDetalle); err == nil && pagosPorDetalle != nil {
 			done := make(chan interface{})
 			defer close(done)
-			if pagosAgrupados.(map[string]interface{})["Pagos"] != nil {
-				listaPagos := pagosAgrupados.(map[string]interface{})["Pagos"].([]interface{})
-				resch := utilidades.GenChanInterface(listaPagos...)
-				chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
-				for datalistaPagos := range chlistaPagos {
-					if datalistaPagos != nil {
-						respuestaCV = append(respuestaCV, datalistaPagos.(interface{}))
+			resch := utilidades.GenChanInterface(pagosPorDetalle...)
+			// add vigencia y contrato a la agrupacion de pagos
+			chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
+			for datalistaPagos := range chlistaPagos {
+				if datalistaPagos != nil {
+					pagosVigenciaContrato = append(pagosVigenciaContrato, datalistaPagos.(interface{}))
+				}
+			}
+			for _, pagoAgrupago := range pagosVigenciaContrato {
+				if rowPagoAgrupado, e := pagoAgrupago.(map[string]interface{}); e {
+					if detallePagos, e := ListaDetalleDePagoSsPorPersona(int(idPeriodoPago), int(rowPagoAgrupado["DetalleLiquidacion"].(float64))); e == nil {
+						rowPagoAgrupado["DetallePagos"] = detallePagos
+					} else {
+						rowPagoAgrupado["DetallePagos"] = e
 					}
 				}
-				res := pagosAgrupados.(map[string]interface{})
-				res["Pagos"] = respuestaCV
-				c.Data["json"] = res
-			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
+			return pagosVigenciaContrato, nil
 		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron pagos para el periodo pago establecido", "Type": "error"}
+			return nil, outputError
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in pagoSsPorPersona", "Type": "error"}
+		return nil, outputError
 	}
-	c.ServeJSON()
 }
 
 func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{}, params ...interface{}) (res interface{}) {
@@ -146,28 +100,43 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 	}
 }
 
-func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp interface{}) {
-	var pagosPorDetalle []interface{}
-	allData := make(map[string]interface{})
-	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
-		if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
-			if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
-				if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64), &pagosPorDetalle); err == nil && pagosPorDetalle != nil {
-					allData["Pagos"] = pagosPorDetalle
-					allData["IdPreliquidacion"] = idLiquidacion
-					allData["PeriodoPago"] = idPeriodoPago
-					return allData
-				} else {
-					return nil
+func ListaDetalleDePagoSsPorPersona(idPeriodoPago, idDetalleLiquidacion int) (DetallePagos []interface{}, outputError map[string]interface{}) {
+	if idPeriodoPago != 0 && idDetalleLiquidacion != 0 {
+		var listaPagos []interface{}
+		var allData []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil && listaPagos != nil {
+			done := make(chan interface{})
+			defer close(done)
+			resch := utilidades.GenChanInterface(listaPagos...)
+			chlistaPagos := utilidades.Digest(done, getTipoPagoTitan, resch, nil)
+			for dataChlistaPagos := range chlistaPagos {
+				if dataChlistaPagos != nil {
+					allData = append(allData, dataChlistaPagos.(interface{}))
 				}
-			} else {
-				return nil
 			}
+			return allData, nil
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron pagos para el periodo pago y detalle de liquidacion especificados", "Type": "error"}
+			return nil, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in ListaDetalleDePagoSsPorPersona", "Type": "error"}
+		return nil, outputError
+	}
+}
+
+func getTipoPagoTitan(listaPagos interface{}, params ...interface{}) (res interface{}) {
+	row, e := listaPagos.(map[string]interface{})
+	var tipoPago []interface{}
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"concepto_nomina/?query=Id:"+strconv.FormatFloat(row["TipoPago"].(float64), 'f', 0, 64)+"&limit=1", &tipoPago); err == nil {
+			row["TipoPago"] = tipoPago[0].(map[string]interface{})
+			return row
 		} else {
 			return nil
 		}
 	} else {
-		return
+		return nil
 	}
 }
 
@@ -187,7 +156,6 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	if err1 == nil && err2 == nil && err3 == nil {
 		var homologacionConceptos []map[string]interface{}
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
-			//c.Data["json"] = rpCorrespondiente
 			if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
 					fmt.Println("idLiquidacion ", idLiquidacion, " /idPeriodoPago", idPeriodoPago)
@@ -238,7 +206,12 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							} else {
 								allDataOuput["MovimientoContable"] = e
 							}
-							//allDataOuput["MovimientoContable"] = movimientosContables
+							// pintar pagos por personas
+							if data, e := pagoSsPorPersona(idPeriodoPago); e == nil {
+								allDataOuput["ViewPagosPorPersona"] = data
+							} else {
+								allDataOuput["ViewPagosPorPersona"] = e
+							}
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
 							allDataOuput["MovimientosDeDescuento"], _ = getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina)
