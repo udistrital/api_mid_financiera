@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/api_mid_financiera/utilidades"
 )
 
@@ -434,4 +435,37 @@ func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interf
 	}
 
 	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp, "OrdenPago": op, "Aprobado": comp, "Code": code}
+}
+
+func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res interface{}) {
+	//"http://"+beego.AppConfig.String("kronosService")+
+	data, _ := datain["OrdenPagoaRegistrar"].(interface{})
+	if auxmap, e := data.(map[string]interface{}); e {
+		if auxbool, e := auxmap["Aprobado"].(bool); e {
+			if auxbool {
+				valorBase, e2 := auxmap["ValorBase"].(float64)
+				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
+					Opmap = params[0].([]interface{})[0].(map[string]interface{})
+					Opmap["RegistroPresupuestal"] = auxmap["OrdenPago"].(map[string]interface{})["RegistroPresupuestal"]
+					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
+					Opmap["ValorBase"] = valorBase
+					auxmap["OrdenPago"] = Opmap
+					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
+
+					} else {
+						return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+					}
+				}
+			} else {
+				return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+			}
+		} else {
+			//si no se aprobo la op para su registro. (notificar a quien corresponda)
+			return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+		}
+	} else {
+		return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+	}
+
+	return
 }

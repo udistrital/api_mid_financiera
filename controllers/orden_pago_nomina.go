@@ -208,7 +208,7 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 // @router /RegistroCargueMasivoOp [post]
 func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 	var v map[string]interface{}
-	var alert []interface{}
+	var alert interface{}
 	var param []interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		if v != nil {
@@ -218,70 +218,60 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 			if tipo, e := v["TipoLiquidacion"].(string); e {
 				f := RegistroOpFunctionDispatcher(tipo)
 				if f != nil {
-					if dataOparr, e := v["DetalleCargueOp"].([]interface{}); e {
-						// resch := utilidades.GenChanInterface(dataOparr...)
-						// chlistaAlertas := utilidades.Digest(done, f, resch, param)
-						// for dataAlertas := range chlistaAlertas {
-						// 	if dataAlertas != nil {
-						// 		alert = append(alert, dataAlertas)
-						// 	}
-						// }
-						for _, row := range dataOparr {
-							dataAlertas := f(row, param)
-							if dataAlertas != nil {
-								alert = append(alert, dataAlertas)
-							}
-						}
-						c.Data["json"] = alert
-					} else {
-						alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
-					}
+					alert = f(v, param)
 				}
 			} else {
-				alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
+				var aux []interface{}
+				alert = append(aux, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
 
 			}
 
 		} else {
-			alert = append(alert, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
+			var aux []interface{}
+			alert = append(aux, models.Alert{Code: "E_0458", Body: nil, Type: "error"})
 
 		}
 	} else {
-		alert = append(alert, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
+		var aux []interface{}
+		alert = append(aux, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 
 	}
 	c.Data["json"] = alert
 	c.ServeJSON()
 }
 
-func RegistroOpProveedor(data interface{}, params ...interface{}) (res interface{}) {
+func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
-	if auxmap, e := data.(map[string]interface{}); e {
-		if auxbool, e := auxmap["Aprobado"].(bool); e {
-			if auxbool {
-				valorBase, e2 := auxmap["ValorBase"].(float64)
-				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
-					Opmap["UnidadEjecutora"], e = params[0].([]interface{})[0].(map[string]interface{})["UnidadEjecutora"]
-					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
-					Opmap["FormaPago"], e = params[0].([]interface{})[0].(map[string]interface{})["FormaPago"]
-					Opmap["Vigencia"], e = params[0].([]interface{})[0].(map[string]interface{})["Vigencia"]
-					Opmap["ValorBase"] = valorBase
-					auxmap["OrdenPago"] = Opmap
-					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
+	dataconv, _ := datain["DetalleCargueOp"].([]interface{})
+	alerts := []models.Alert{}
+	for _, data := range dataconv {
+		if auxmap, e := data.(map[string]interface{}); e {
+			if auxbool, e := auxmap["Aprobado"].(bool); e {
+				if auxbool {
+					valorBase, e2 := auxmap["ValorBase"].(float64)
+					if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
+						Opmap["UnidadEjecutora"], e = params[0].([]interface{})[0].(map[string]interface{})["UnidadEjecutora"]
+						Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
+						Opmap["FormaPago"], e = params[0].([]interface{})[0].(map[string]interface{})["FormaPago"]
+						Opmap["Vigencia"], e = params[0].([]interface{})[0].(map[string]interface{})["Vigencia"]
+						Opmap["ValorBase"] = valorBase
+						auxmap["OrdenPago"] = Opmap
+						if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
 
-					} else {
-						return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+						} else {
+							alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})
+						}
 					}
+				} else {
+					alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})
 				}
 			} else {
-				return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+				//si no se aprobo la op para su registro. (notificar a quien corresponda)
+				alerts = append(alerts, models.Alert{Code: "OPM_E005", Body: data, Type: "error"})
 			}
 		} else {
-			//si no se aprobo la op para su registro. (notificar a quien corresponda)
-			return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+			alerts = append(alerts, models.Alert{Code: "OPM_E005", Body: data, Type: "error"})
 		}
-	} else {
-		return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
 	}
 
 	return
@@ -723,11 +713,13 @@ func formatoPreviewOpFunctionDispatcher(tipo string) (f func(data interface{}, p
 	}
 }
 
-func RegistroOpFunctionDispatcher(tipo string) (f func(data interface{}, params ...interface{}) interface{}) {
+func RegistroOpFunctionDispatcher(tipo string) (f func(data map[string]interface{}, params ...interface{}) interface{}) {
 	switch os := tipo; os {
 	case "HCS":
 		return RegistroOpProveedor
 	case "HCH":
+		return RegistroOpProveedor
+	case "FP":
 		return RegistroOpProveedor
 	default:
 		return nil
