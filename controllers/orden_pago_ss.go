@@ -214,7 +214,11 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							}
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
-							allDataOuput["MovimientosDeDescuento"], _ = getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina)
+							if movimientosSoloDescuentos, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
+								allDataOuput["MovimientosDeDescuento"] = movimientosSoloDescuentos
+							} else {
+								allDataOuput["MovimientosDeDescuento"] = e
+							}
 							c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
@@ -615,7 +619,7 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 				codigoDescuentoOP := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string)
 				if CodigoDescuentoBuscar, e := reglaGetCuentaAfectarPorDescuento(codigoDescuentoOP); e == nil {
 					rowDescuento := make(map[string]interface{})
-					rowDescuento["Concepto"] = cuentaOP["Concepto"]
+					//rowDescuento["Concepto"] = cuentaOP["Concepto"]
 					rowDescuento["Debito"] = cuentaOP["Credito"] //como son descuentos solo titnen credito
 					rowDescuento["Credito"] = 0
 					rowDescuento["CuentaContable"] = cuentaOP["CuentaContable"]
@@ -625,6 +629,7 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 						if rowCuentaSS, e := cuentaSS.(map[string]interface{}); e {
 							if codeCuentaC, e := rowCuentaSS["CuentaContable"].(map[string]interface{}); e {
 								if codeCuentaC["Codigo"].(string) == CodigoDescuentoBuscar {
+									rowDescuento["Concepto"] = rowCuentaSS["Concepto"].(map[string]interface{})
 									rowCuentaSS["Credito"] = rowCuentaSS["Credito"].(float64) + cuentaOP["Credito"].(float64)
 									mapCuentaSS = append(mapCuentaSS, rowDescuento)
 									fmt.Println("+1:   ", len(mapCuentaSS))
