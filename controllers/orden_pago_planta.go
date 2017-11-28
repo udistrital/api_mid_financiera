@@ -176,8 +176,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			//res["Aprobado"] = false
-			//res["Code"] = "OPM_E005"
+			res["Aprobado"] = false
+			res["Code"] = "OPM_E005"
 		}
 		return res
 	} else {
@@ -200,8 +200,8 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 			res["infoPersona"], e = auxmap["infoPersona"]
 		} else {
 			res["infoPersona"] = make(map[string]interface{})
-			//res["Aprobado"] = false
-			//res["Code"] = "OPM_E005"
+			res["Aprobado"] = false
+			res["Code"] = "OPM_E005"
 		}
 		return res
 	}
@@ -273,10 +273,13 @@ func formatoPreViewCargueMasivoOpPlanta(liquidacion interface{}, params ...inter
 			var params2 []interface{}
 
 			params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+			//rp, err := GetRpDesdeNecesidadProcesoExternoGeneral(23, "S")
 			rp, err := GetRpDesdeNecesidadProcesoExternoGeneral(liquidacion.(map[string]interface{})["Id_Preliq"].(float64), "N")
 			beego.Info(err)
 			if rp != nil {
 				params2 = append(params2, rp)
+			} else {
+				res = map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
 			}
 			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
@@ -314,6 +317,7 @@ func formatoPreViewCargueMasivoOpPlanta(liquidacion interface{}, params ...inter
 func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interface{}, idLiquidacion float64) (res interface{}) {
 	comp := false
 	code := "OPM_S001"
+	var valorBase float64
 	var conceptoOp []map[string]interface{}
 	var MovOp []map[string]interface{}
 	acumConceptOp := make(map[float64]map[float64]map[string]interface{})          //acumulacion de estructuras por  idConcepto, IdRegPresDispApr
@@ -384,9 +388,11 @@ func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interf
 			}
 
 		}
+
 		for _, indexIdConc := range acumConceptOp {
 			for _, indexIdRpDpAp := range indexIdConc {
 				beego.Info(indexIdRpDpAp["Valor"])
+				valorBase = valorBase + indexIdRpDpAp["Valor"].(float64)
 				conceptoOp = append(conceptoOp, indexIdRpDpAp)
 			}
 		}
@@ -434,12 +440,14 @@ func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interf
 		comp = false
 	}
 
-	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp, "OrdenPago": op, "Aprobado": comp, "Code": code}
+	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp, "OrdenPago": op, "Aprobado": comp, "Code": code, "ValorBase": valorBase}
 }
 
 func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
 	data, _ := datain["OrdenPagoaRegistrar"].(interface{})
+	alerts := []models.Alert{}
+	alert := models.Alert{}
 	if auxmap, e := data.(map[string]interface{}); e {
 		if auxbool, e := auxmap["Aprobado"].(bool); e {
 			if auxbool {
@@ -450,22 +458,26 @@ func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res
 					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
 					Opmap["ValorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
-					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
-
+					beego.Info(Opmap)
+					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &alert, &auxmap); err == nil {
+						alerts = append(alerts, alert)
 					} else {
-						return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+						alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})
 					}
+				} else {
+					beego.Info(e, e2)
+					alerts = append(alerts, models.Alert{Code: "E_0458", Body: "Conversion Problem", Type: "error"})
 				}
 			} else {
-				return models.Alert{Code: "E_0458", Body: data, Type: "error"}
+				alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})
 			}
 		} else {
 			//si no se aprobo la op para su registro. (notificar a quien corresponda)
-			return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+			alerts = append(alerts, models.Alert{Code: "OPM_E005", Body: data, Type: "error"})
 		}
 	} else {
-		return models.Alert{Code: "OPM_E005", Body: data, Type: "error"}
+		alerts = append(alerts, models.Alert{Code: "OPM_E005", Body: data, Type: "error"})
 	}
 
-	return
+	return alerts
 }
