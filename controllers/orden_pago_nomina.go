@@ -244,6 +244,7 @@ func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (
 	//"http://"+beego.AppConfig.String("kronosService")+
 	dataconv, _ := datain["DetalleCargueOp"].([]interface{})
 	alerts := []models.Alert{}
+	alert := models.Alert{}
 	for _, data := range dataconv {
 		if auxmap, e := data.(map[string]interface{}); e {
 			if auxbool, e := auxmap["Aprobado"].(bool); e {
@@ -256,8 +257,8 @@ func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (
 						Opmap["Vigencia"], e = params[0].([]interface{})[0].(map[string]interface{})["Vigencia"]
 						Opmap["ValorBase"] = valorBase
 						auxmap["OrdenPago"] = Opmap
-						if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &res, &auxmap); err == nil {
-
+						if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &alert, &auxmap); err == nil {
+							alerts = append(alerts, alert)
 						} else {
 							alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})
 						}
@@ -274,7 +275,7 @@ func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (
 		}
 	}
 
-	return
+	return alerts
 }
 
 func formatoResumenCargueOp(infoDetalleCargueint interface{}, params ...interface{}) (resumen interface{}) {
