@@ -186,7 +186,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 						//c.Data["json"] = homologacionConceptos
 						// -- movimeintos
 						if homologacionConceptos != nil {
-							var movimientosContables []interface{}
+							var movimientosContables []map[string]interface{}
 							for _, concepto := range homologacionConceptos {
 								movimientoContable := formatoMovimientosContablesOp(concepto)
 								for _, aux := range movimientoContable {
@@ -197,8 +197,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput := make(map[string]interface{})
 							//totalizar los movimientos
 							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
-								//cuentasDescuentoOP, cuentasSS => []map[string]interface{}  --  []interface{}
-								if allMovimientos, allAfectacion, e := afectarDescuentosDeOP(movimientosDeOP, movimientosContables); e == nil {
+								if allMovimientos, allAfectacion, e := afectarDescuentosToMovimientos(movimientosDeOP, movimientosContables); e == nil {
 									allDataOuput["MovimientoContable"] = allMovimientos
 									if AllConceptos, e := afectarDescuentosToConceptos(allAfectacion, homologacionConceptos); e == nil {
 										allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, AllConceptos)
@@ -218,7 +217,6 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 								allDataOuput["ViewPagosPorPersona"] = e
 							}
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
-
 							// for test
 							if movimientosSoloDescuentos, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
 								allDataOuput["MovimientosDeDescuento"] = movimientosSoloDescuentos
@@ -616,13 +614,10 @@ func reglaGetCuentaAfectarPorDescuento(codigoCuentaEspecial string) (codigoCuent
 	return "", outputError
 }
 
-func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuentas interface{}, allAfectacionConceto []map[string]interface{}, outputError map[string]interface{}) {
-	if cuentasDescuentoOP != nil && cuentasSS != nil {
-		mapCuentasDescuentoOP, e1 := cuentasDescuentoOP.([]map[string]interface{})
-		mapCuentaSS, e2 := cuentasSS.([]interface{})
-		if e1 && e2 {
-			for _, cuentaOP := range mapCuentasDescuentoOP {
-				codigoDescuentoOP := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string)
+func afectarDescuentosToMovimientos(cuentasDescuentoOP, allMovimientos []map[string]interface{}) (totalCuentas interface{}, allAfectacionConceto []map[string]interface{}, outputError map[string]interface{}) {
+	if cuentasDescuentoOP != nil && allMovimientos != nil {
+		for _, cuentaOP := range cuentasDescuentoOP {
+			if codigoDescuentoOP, e := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string); e {
 				if CodigoDescuentoBuscar, e := reglaGetCuentaAfectarPorDescuento(codigoDescuentoOP); e == nil {
 					rowDescuento := make(map[string]interface{})
 					//rowDescuento["Concepto"] = cuentaOP["Concepto"]
@@ -630,37 +625,31 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 					rowDescuento["Credito"] = 0
 					rowDescuento["CuentaContable"] = cuentaOP["CuentaContable"]
 					rowDescuento["CuentaEspecial"] = cuentaOP["CuentaEspecial"]
-					for _, cuentaSS := range mapCuentaSS {
-						if rowCuentaSS, e := cuentaSS.(map[string]interface{}); e {
-							if codeCuentaC, e := rowCuentaSS["CuentaContable"].(map[string]interface{}); e {
-								if codeCuentaC["Codigo"].(string) == CodigoDescuentoBuscar {
-									rowDescuento["Concepto"] = rowCuentaSS["Concepto"].(map[string]interface{})
-									rowCuentaSS["Credito"] = rowCuentaSS["Credito"].(float64) + cuentaOP["Credito"].(float64)
-									mapCuentaSS = append(mapCuentaSS, rowDescuento)
-									allAfectacionConceto = append(allAfectacionConceto, rowDescuento)
-								}
-							} else {
-								outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
-								return nil, nil, outputError
+					for _, movimineto := range allMovimientos {
+						if codeCuentaC, e := movimineto["CuentaContable"].(map[string]interface{}); e {
+							if codeCuentaC["Codigo"].(string) == CodigoDescuentoBuscar {
+								rowDescuento["Concepto"] = movimineto["Concepto"].(map[string]interface{})
+								movimineto["Credito"] = movimineto["Credito"].(float64) + cuentaOP["Credito"].(float64)
+								allMovimientos = append(allMovimientos, rowDescuento)
+								allAfectacionConceto = append(allAfectacionConceto, rowDescuento)
 							}
 						} else {
-							outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
+							outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allMovimientos en  afectarDescuentosToMovimientos", "Type": "error"}
 							return nil, nil, outputError
 						}
 					}
 				} else {
 					return nil, nil, e
 				}
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos en el  parametro cuentasDescuentoOP de  afectarDescuentosToMovimientos", "Type": "error"}
+				return nil, nil, outputError
 			}
-			return mapCuentaSS, allAfectacionConceto, nil
-		} else {
-			outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
-			return nil, nil, outputError
 		}
-	} else {
-		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosDeOP", "Type": "error"}
-		return nil, nil, outputError
+		return allMovimientos, allAfectacionConceto, nil
 	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToMovimientos", "Type": "error"}
+	return nil, nil, outputError
 }
 
 func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string]interface{}) (conceptos []map[string]interface{}, outputError map[string]interface{}) {
