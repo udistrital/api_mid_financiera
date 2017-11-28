@@ -721,7 +721,7 @@ func RegistroOpFunctionDispatcher(tipo string) (f func(data map[string]interface
 	case "HCH":
 		return RegistroOpProveedor
 	case "FP":
-		return RegistroOpProveedor
+		return RegistroOpPlanta
 	default:
 		return nil
 	}
