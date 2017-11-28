@@ -197,6 +197,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput := make(map[string]interface{})
 							//totalizar los movimientos
 							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
+								//cuentasDescuentoOP, cuentasSS => []map[string]interface{}  --  []interface{}
 								if allMovimientos, allAfectacion, e := afectarDescuentosDeOP(movimientosDeOP, movimientosContables); e == nil {
 									allDataOuput["MovimientoContable"] = allMovimientos
 									if AllConceptos, e := afectarDescuentosToConceptos(allAfectacion, homologacionConceptos); e == nil {
@@ -615,31 +616,6 @@ func reglaGetCuentaAfectarPorDescuento(codigoCuentaEspecial string) (codigoCuent
 	return "", outputError
 }
 
-func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string]interface{}) (conceptos []map[string]interface{}, outputError map[string]interface{}) {
-	if ConceptosDescuentos != nil && allConceptos != nil {
-		for _, conceptoDesc := range ConceptosDescuentos {
-			if codigoAfectado, e := conceptoDesc["Concepto"].(map[string]interface{})["Codigo"].(string); e {
-				for _, concepto := range allConceptos {
-					if codigoConcepto, e := concepto["Concepto"].(map[string]interface{})["Codigo"].(string); e {
-						if codigoAfectado == codigoConcepto {
-							concepto["Valor"] = concepto["Valor"].(float64) + conceptoDesc["Debito"].(float64)
-						}
-					} else {
-						outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allConceptos en afectarDescuentosToConceptos", "Type": "error"}
-						return nil, outputError
-					}
-				}
-			} else {
-				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro ConceptosDescuentos en afectarDescuentosToConceptos", "Type": "error"}
-				return nil, outputError
-			}
-		}
-		return allConceptos, nil
-	}
-	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToConceptos", "Type": "error"}
-	return nil, outputError
-}
-
 func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuentas interface{}, allAfectacionConceto []map[string]interface{}, outputError map[string]interface{}) {
 	if cuentasDescuentoOP != nil && cuentasSS != nil {
 		mapCuentasDescuentoOP, e1 := cuentasDescuentoOP.([]map[string]interface{})
@@ -685,5 +661,29 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosDeOP", "Type": "error"}
 		return nil, nil, outputError
 	}
+}
 
+func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string]interface{}) (conceptos []map[string]interface{}, outputError map[string]interface{}) {
+	if ConceptosDescuentos != nil && allConceptos != nil {
+		for _, conceptoDesc := range ConceptosDescuentos {
+			if codigoAfectado, e := conceptoDesc["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+				for _, concepto := range allConceptos {
+					if codigoConcepto, e := concepto["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+						if codigoAfectado == codigoConcepto {
+							concepto["Valor"] = concepto["Valor"].(float64) + conceptoDesc["Debito"].(float64)
+						}
+					} else {
+						outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allConceptos en afectarDescuentosToConceptos", "Type": "error"}
+						return nil, outputError
+					}
+				}
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro ConceptosDescuentos en afectarDescuentosToConceptos", "Type": "error"}
+				return nil, outputError
+			}
+		}
+		return allConceptos, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToConceptos", "Type": "error"}
+	return nil, outputError
 }
