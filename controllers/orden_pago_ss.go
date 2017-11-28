@@ -158,7 +158,6 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
-					fmt.Println("idLiquidacion ", idLiquidacion, " /idPeriodoPago", idPeriodoPago)
 					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
 					if allPago != nil {
 						done := make(chan interface{})
@@ -198,8 +197,13 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 							allDataOuput := make(map[string]interface{})
 							//totalizar los movimientos
 							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
-								if allMovimientos, e := afectarDescuentosDeOP(movimientosDeOP, movimientosContables); e == nil {
+								if allMovimientos, allAfectacion, e := afectarDescuentosDeOP(movimientosDeOP, movimientosContables); e == nil {
 									allDataOuput["MovimientoContable"] = allMovimientos
+									if AllConceptos, e := afectarDescuentosToConceptos(allAfectacion, homologacionConceptos); e == nil {
+										allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, AllConceptos)
+									} else {
+										allDataOuput["ConceptoOrdenPago"] = e
+									}
 								} else {
 									allDataOuput["MovimientoContable"] = e
 								}
@@ -213,12 +217,14 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 								allDataOuput["ViewPagosPorPersona"] = e
 							}
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
-							allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
+
+							// for test
 							if movimientosSoloDescuentos, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
 								allDataOuput["MovimientosDeDescuento"] = movimientosSoloDescuentos
 							} else {
 								allDataOuput["MovimientosDeDescuento"] = e
 							}
+							// for test
 							c.Data["json"] = allDataOuput
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
@@ -609,11 +615,35 @@ func reglaGetCuentaAfectarPorDescuento(codigoCuentaEspecial string) (codigoCuent
 	return "", outputError
 }
 
-func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuentas interface{}, outputError map[string]interface{}) {
+func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string]interface{}) (conceptos []map[string]interface{}, outputError map[string]interface{}) {
+	if ConceptosDescuentos != nil && allConceptos != nil {
+		for _, conceptoDesc := range ConceptosDescuentos {
+			if codigoAfectado, e := conceptoDesc["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+				for _, concepto := range allConceptos {
+					if codigoConcepto, e := concepto["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+						if codigoAfectado == codigoConcepto {
+							concepto["Valor"] = concepto["Valor"].(float64) + conceptoDesc["Debito"].(float64)
+						}
+					} else {
+						outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allConceptos en afectarDescuentosToConceptos", "Type": "error"}
+						return nil, outputError
+					}
+				}
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro ConceptosDescuentos en afectarDescuentosToConceptos", "Type": "error"}
+				return nil, outputError
+			}
+		}
+		return allConceptos, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToConceptos", "Type": "error"}
+	return nil, outputError
+}
+
+func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuentas interface{}, allAfectacionConceto []map[string]interface{}, outputError map[string]interface{}) {
 	if cuentasDescuentoOP != nil && cuentasSS != nil {
 		mapCuentasDescuentoOP, e1 := cuentasDescuentoOP.([]map[string]interface{})
 		mapCuentaSS, e2 := cuentasSS.([]interface{})
-		fmt.Println("inicial tamaño:---    ", len(mapCuentaSS))
 		if e1 && e2 {
 			for _, cuentaOP := range mapCuentasDescuentoOP {
 				codigoDescuentoOP := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string)
@@ -624,7 +654,6 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 					rowDescuento["Credito"] = 0
 					rowDescuento["CuentaContable"] = cuentaOP["CuentaContable"]
 					rowDescuento["CuentaEspecial"] = cuentaOP["CuentaEspecial"]
-					fmt.Println(CodigoDescuentoBuscar)
 					for _, cuentaSS := range mapCuentaSS {
 						if rowCuentaSS, e := cuentaSS.(map[string]interface{}); e {
 							if codeCuentaC, e := rowCuentaSS["CuentaContable"].(map[string]interface{}); e {
@@ -632,28 +661,29 @@ func afectarDescuentosDeOP(cuentasDescuentoOP, cuentasSS interface{}) (totalCuen
 									rowDescuento["Concepto"] = rowCuentaSS["Concepto"].(map[string]interface{})
 									rowCuentaSS["Credito"] = rowCuentaSS["Credito"].(float64) + cuentaOP["Credito"].(float64)
 									mapCuentaSS = append(mapCuentaSS, rowDescuento)
-									fmt.Println("+1:   ", len(mapCuentaSS))
+									allAfectacionConceto = append(allAfectacionConceto, rowDescuento)
 								}
 							} else {
 								outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
-								return nil, outputError
+								return nil, nil, outputError
 							}
 						} else {
 							outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
-							return nil, outputError
+							return nil, nil, outputError
 						}
 					}
 				} else {
-					fmt.Println("errroe")
-					return nil, e
+					return nil, nil, e
 				}
 			}
-			return mapCuentaSS, nil
+			return mapCuentaSS, allAfectacionConceto, nil
 		} else {
 			outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos de los parametros de entrada afectarDescuentosDeOP", "Type": "error"}
-			return nil, outputError
+			return nil, nil, outputError
 		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosDeOP", "Type": "error"}
+		return nil, nil, outputError
 	}
-	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosDeOP", "Type": "error"}
-	return nil, outputError
+
 }
