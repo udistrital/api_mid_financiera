@@ -155,8 +155,17 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
 		var homologacionConceptos []map[string]interface{}
+		var idLiquidacion float64
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
-			if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
+			//if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
+			if liquidacionTipoNomina, outputError := getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
+				idLiquidacion = liquidacionTipoNomina["Id_Preliq"].(float64)
+				// 	beego.Info(liquidacionTipoNomina["Nombre_tipo_nomina"].(string))
+				// 	beego.Info(liquidacionTipoNomina["Id_Preliq"].(float64))
+				// } else {
+				// 	fmt.Println(outputError)
+				// }
+
 				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
 					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
 					if allPago != nil {
@@ -194,13 +203,22 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 								}
 							}
 							//estructura out fin
+							ordenData := make(map[string]interface{})
+							ordenData["Liquidacion"] = idPeriodoPago
+							ordenData["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput := make(map[string]interface{})
+							allDataOuput["OrdenPago"] = ordenData
 							//totalizar los movimientos
 							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
 								if allMovimientos, allAfectacion, e := afectarDescuentosToMovimientos(movimientosDeOP, movimientosContables); e == nil {
 									allDataOuput["MovimientoContable"] = allMovimientos
 									if AllConceptos, e := afectarDescuentosToConceptos(allAfectacion, homologacionConceptos); e == nil {
 										allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, AllConceptos)
+										if valorBase, e := getTotalAfectacionOfConceptos(AllConceptos); e == nil {
+											allDataOuput["ValorBase"] = valorBase
+										} else {
+											allDataOuput["ValorBase"] = e
+										}
 									} else {
 										allDataOuput["ConceptoOrdenPago"] = e
 									}
@@ -224,7 +242,13 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 								allDataOuput["MovimientosDeDescuento"] = e
 							}
 							// for test
-							c.Data["json"] = allDataOuput
+							var dataformato []map[string]interface{}
+							dataformato = append(dataformato, allDataOuput)
+							output := make(map[string]interface{})
+							output["TipoLiquidacion"] = liquidacionTipoNomina["Nombre_tipo_nomina"].(string)
+							output["DetalleCargueOp"] = dataformato
+
+							c.Data["json"] = output
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
 						}
@@ -306,6 +330,27 @@ func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiq
 	} else {
 		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdliquidacionForSs", "Type": "error"}
 		return 0, outputError
+	}
+}
+
+// se consulta servicio que retorna las liquidacions en un mes, año y titpo nomina que ya esten en estado EnOrdenPago
+func getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiquidacion map[string]interface{}, outputError map[string]interface{}) {
+	var liquidacion map[string]interface{}
+	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil && liquidacion["Id_Preliq"].(float64) != 0 {
+				return liquidacion, nil
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo in getIdliquidacionTipoNominaForSs", "Type": "error"}
+				return nil, outputError
+			}
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo in getIdliquidacionTipoNominaForSs", "Type": "error"}
+			return nil, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdliquidacionTipoNominaForSs", "Type": "error"}
+		return nil, outputError
 	}
 }
 
@@ -675,4 +720,16 @@ func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string
 	}
 	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToConceptos", "Type": "error"}
 	return nil, outputError
+}
+
+func getTotalAfectacionOfConceptos(allConceptos []map[string]interface{}) (total float64, outputError map[string]interface{}) {
+	if allConceptos != nil {
+		var acumulador float64
+		for _, concepto := range allConceptos {
+			acumulador = acumulador + concepto["Valor"].(float64)
+		}
+		return acumulador, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getTotalAfectacionOfConceptos", "Type": "error"}
+	return 0, outputError
 }
