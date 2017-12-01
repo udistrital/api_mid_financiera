@@ -50,6 +50,12 @@ func init() {
 				&controllers.HomologacionController{},
 			),
 		),
+
+		beego.NSNamespace("/reportes",
+			beego.NSInclude(
+				&controllers.ReportesController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
