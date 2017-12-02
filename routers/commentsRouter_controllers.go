@@ -41,16 +41,24 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"],
 		beego.ControllerComments{
-			Method: "ValorMovimientoFuenteTraslado",
-			Router: `/ValorMovimientoFuenteTraslado`,
+			Method: "ValorMovimientoFuenteLista",
+			Router: `/ValorMovimientoFuenteLista`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"],
 		beego.ControllerComments{
-			Method: "ValorMovimientoFuenteLista",
-			Router: `/ValorMovimientoFuenteLista`,
+			Method: "ValorMovimientoFuenteListaFunc",
+			Router: `/ValorMovimientoFuenteListaFunc`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionFuenteController"],
+		beego.ControllerComments{
+			Method: "ValorMovimientoFuenteTraslado",
+			Router: `/ValorMovimientoFuenteTraslado`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
@@ -278,6 +286,5 @@ func init() {
 			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
-
 
 }

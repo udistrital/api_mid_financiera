@@ -20,7 +20,6 @@ func (c *AprobacionFuenteController) URLMapping() {
 //http://localhost:8080/v1/aprobacion_fuente/ValorMovimientoFuenteTraslado?idfuente=37&idapropiacion=256&iddependencia=122&traslado=40000000
 //http://localhost:8080/v1/aprobacion_fuente/ValorMovimientoFuente?idfuente=37&idapropiacion=256&iddependencia=122
 
-
 // ValorMovimientoFuente ...
 // @Title ValorMovimientoFuente
 // @Description muestra el valor comprometido de una fuente especifica por dependencia y apropiacion
@@ -45,8 +44,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 						for _, Movimientos := range Movimiento {
 							resfuente = append(resfuente, Movimientos)
 						}
-
-
 						var valorGastado map[string]interface{}
 						if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"&iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
 							fmt.Println(valorGastado)
@@ -94,7 +91,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,"ValorDisponible": valor, "ValorGastado": 0 , "ValorTotal": valor}
 						}
 					} else {
-						fmt.Println("aqui")
 						c.Data["json"] = nil
 					}
 				} else {
@@ -133,7 +129,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 	var resfuente []interface{}
 	var predicados []models.Predicado
 	if idfuente, err := c.GetInt("idfuente"); err == nil {
-		fmt.Println(idfuente)
 		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
 			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
 				if valortraslado, err := c.GetFloat("traslado"); err == nil {
@@ -149,7 +144,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 
 						var valorGastado map[string]interface{}
 						if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"&iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
-							fmt.Println(valorGastado)
 							if valorGastado != nil {
 							for _, valores := range valorGastado {
 								res = append(res, valores)
@@ -187,9 +181,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 
 								var trasladar bool
 								trasladar = f
-
-								fmt.Println("reglas: ", reglas)
-								fmt.Println("RESP: ", resp)
 
 								c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar }
 							  }
@@ -232,7 +223,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 							c.Data["json"] = map[string]interface{}{ "Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente,  "Trasladar": trasladar}
 						}
 					} else {
-						fmt.Println("aqui")
 						c.Data["json"] = nil
 					}
 				} else {
@@ -277,7 +267,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 			 if idfuente, err := c.GetInt("idfuente"); err == nil {
 
-				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
 					 if Movimiento != nil {
 
 						 for _, Movimientos := range Movimiento {
@@ -318,7 +308,6 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 						 c.Data["json"] = resfuente
 
 					 } else {
-						 fmt.Println("aqui")
 						 c.Data["json"] = nil
 					 }
 				 } else {
@@ -330,7 +319,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 			 }else{
 
-				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1", &Movimiento); err == nil {
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-", &Movimiento); err == nil {
 					 if Movimiento != nil {
 
 						 for _, Movimientos := range Movimiento {
@@ -371,7 +360,130 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 						 c.Data["json"] = resfuente
 
 					 } else {
-						 fmt.Println("aqui")
+						 c.Data["json"] = nil
+					 }
+				 } else {
+					 fmt.Println("err4 ", err.Error())
+					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				 }
+			 }
+
+	c.ServeJSON()
+}
+
+
+
+
+// ValorMovimientoFuenteListaFunc ...
+// @Title ValorMovimientoFuenteListaFunc
+// @Description devuelve una lista de las fuentes, dependecias y apropiaciones con los valores de la fuente (comprometido, disponible y el valor total)
+// @Param	idfuente	query	int	false	"id de la fuente a consultar"
+// @Param	iddependencia	query	int	false	"id de la dependencia a consultar"
+// @Param	idapropiacion	query	int	false	"id de la apropiacion a consultar"
+// @Success 201 {int}
+// @Failure 403 body is empty
+// @router /ValorMovimientoFuenteListaFunc [get]
+func (c *AprobacionFuenteController) ValorMovimientoFuenteListaFunc() {
+	var res []interface{}
+	var resfuente []models.MovimientoFuenteFinanciamientoApropiacion
+
+			var Movimiento []models.MovimientoFuenteFinanciamientoApropiacion
+
+			 if idfuente, err := c.GetInt("idfuente"); err == nil {
+
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
+					 if Movimiento != nil {
+
+						 for _, Movimientos := range Movimiento {
+
+							 var valorGastado map[string]interface{}
+							 if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+								 if valorGastado != nil {
+								 for _, valores := range valorGastado {
+									 res = append(res, valores)
+								 }
+
+									 if res != nil{
+
+									 var valorcdp float64
+									 valorcdp = 0
+									 valorcdp = res[0].(float64)
+
+									 Movimientos.ValorGastado = valorcdp
+									 Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
+									 }
+
+									 }else{
+
+										 Movimientos.ValorGastado = 0
+										 Movimientos.ValorDisponible = Movimientos.Valor
+
+								 }
+
+							 }else {
+								 Movimientos.ValorGastado = 0
+								 Movimientos.ValorDisponible = Movimientos.Valor
+							 }
+
+							 resfuente = append(resfuente, Movimientos)
+
+						 }
+
+						 c.Data["json"] = resfuente
+
+					 } else {
+						 c.Data["json"] = nil
+					 }
+				 } else {
+					 fmt.Println("err4 ", err.Error())
+					 c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				 }
+
+
+
+			 }else{
+
+				 if err := getJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-", &Movimiento); err == nil {
+					 if Movimiento != nil {
+
+						 for _, Movimientos := range Movimiento {
+
+							 var valorGastado map[string]interface{}
+							 if err := getJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+								 if valorGastado != nil {
+								 for _, valores := range valorGastado {
+									 res = append(res, valores)
+								 }
+
+									 if res != nil{
+
+									 var valorcdp float64
+									 valorcdp = 0
+									 valorcdp = res[0].(float64)
+
+									 Movimientos.ValorGastado = valorcdp
+									 Movimientos.ValorDisponible = Movimientos.Valor - valorcdp
+									 }
+
+									 }else{
+
+										 Movimientos.ValorGastado = 0
+										 Movimientos.ValorDisponible = Movimientos.Valor
+
+								 }
+
+							 }else {
+								 Movimientos.ValorGastado = 0
+								 Movimientos.ValorDisponible = Movimientos.Valor
+							 }
+
+							 resfuente = append(resfuente, Movimientos)
+
+						 }
+
+						 c.Data["json"] = resfuente
+
+					 } else {
 						 c.Data["json"] = nil
 					 }
 				 } else {
