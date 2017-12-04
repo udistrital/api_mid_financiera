@@ -275,7 +275,7 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 	if err1 == nil && err2 == nil {
 		var solicitudes_rp []interface{}
 		var respuesta []models.SolicitudRp
-		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Masivo:true,Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
 			if solicitudes_rp != nil {
 				//encontrar datos del CDP objetivo del RP Solicitado
 
@@ -676,9 +676,9 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 
 			//consultar por rangos los jefes de dependencia asociados a la dependencia objetivo por toda la vigencia
 			//si no se establece un rango de fechas.
-			//fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
+			fInicio := time.Date(vigencia, time.January, 1, 0, 0, 0, 0, time.Local)
 			fFin := time.Date(vigencia+1, time.January, 1, 0, 0, 0, 0, time.Local)
-			query = "FechaInicio__lte:" + fFin.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
+			query = "FechaInicio__lte:" + fInicio.Format("2006-01-02") + ",FechaFin__lte:" + fFin.Format("2006-01-02")
 
 			fmt.Println(query)
 			//consulta del servicio para determinar el filtro de la necesidad.
@@ -730,6 +730,7 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 						}
 						var solicitudRp []interface{}
 						var respuesta []interface{}
+						//fmt.Println("http://" + beego.AppConfig.String("argoService") + "solicitud_rp?limit=-1&query=Masivo:true,Expedida:false,JustificacionRechazo:,Cdp__in:" + inQuery + queryF)
 						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Masivo:true,Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery+queryF, &solicitudRp); err == nil && solicitudRp != nil {
 							done := make(chan interface{})
 							defer close(done)

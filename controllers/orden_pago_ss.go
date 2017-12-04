@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
@@ -16,104 +17,58 @@ type OrdenPagoSsController struct {
 
 // URLMapping ...
 func (c *OrdenPagoSsController) URLMapping() {
-	c.Mapping("ListaPagoSsPorPersona", c.ListaPagoSsPorPersona)
-
+	c.Mapping("GetConceptosMovimeintosContablesSs", c.GetConceptosMovimeintosContablesSs)
 }
 
-// DetalleListaPagoSsPorPersona ...
-// @Title DetalleListaPagoSsPorPersona
+// TestJota01 ...
+// @Title TestJota01
 // @Description lista pagos de seguridad socila por persona.
-// @Param	idPeriodoPago	query	string	false	"nomina a listar"
-// @Param	idDetalleLiquidacion	query	string	false	"mes de la liquidacion a listar"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /DetalleListaPagoSsPorPersona [get]
-func (c *OrdenPagoSsController) DetalleListaPagoSsPorPersona() {
-	idPeriodoPago, err1 := c.GetInt("idPeriodoPago")
-	idDetalleLiquidacion, err2 := c.GetInt("idDetalleLiquidacion")
-	if err1 == nil && err2 == nil {
-		var listaPagos []interface{}
-		var allData []interface{}
-		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil {
-			if listaPagos != nil {
-				done := make(chan interface{})
-				defer close(done)
-				resch := utilidades.GenChanInterface(listaPagos...)
-				chlistaPagos := utilidades.Digest(done, getTipoPagoTitan, resch, nil)
-				for dataChlistaPagos := range chlistaPagos {
-					if dataChlistaPagos != nil {
-						allData = append(allData, dataChlistaPagos.(interface{}))
-					}
-				}
-				c.Data["json"] = allData
-			} else {
-				c.Data["json"] = nil
-			}
-		} else {
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-		}
+// @router /TestJota01 [get]
+func (c *OrdenPagoSsController) TestJota01() {
+	if data, e := pagoSsPorPersona(23); e == nil {
+		c.Data["json"] = data
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		c.Data["json"] = e
 	}
 	c.ServeJSON()
 }
 
-func getTipoPagoTitan(listaPagos interface{}, params ...interface{}) (res interface{}) {
-	row, e := listaPagos.(map[string]interface{})
-	var tipoPago []interface{}
-	if e {
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"concepto_nomina/?query=Id:"+strconv.FormatFloat(row["TipoPago"].(float64), 'f', 0, 64)+"&limit=1", &tipoPago); err == nil {
-			row["TipoPago"] = tipoPago[0].(map[string]interface{})
-			return row
-		} else {
-			return nil
-		}
-	} else {
-		return nil
-	}
-}
-
-// ListaPagoSsPorPersona ...
-// @Title ListaPagoSsPorPersonaAllDetalle
-// @Description lista pagos de seguridad socila por persona.
-// @Param	idNomina	query	string	false	"nomina a listar"
-// @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
-// @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
-// @Success 201 {object} models.Alert
-// @Failure 403 body is empty
-// @router /ListaPagoSsPorPersona [get]
-func (c *OrdenPagoSsController) ListaPagoSsPorPersona() {
-	idNomina, err1 := c.GetInt("idNomina")
-	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
-	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
-	if err1 == nil && err2 == nil && err3 == nil {
-		var respuestaCV []interface{}
-		pagosAgrupados := pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion)
-		if pagosAgrupados != nil {
+// agrupa los pagos por detalle de liquidacion donde se referencia el contrato y usuario
+func pagoSsPorPersona(idPeriodoPago float64) (dataOutp interface{}, outputError map[string]interface{}) {
+	if idPeriodoPago != 0 {
+		var pagosPorDetalle []interface{}
+		var pagosVigenciaContrato []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64), &pagosPorDetalle); err == nil && pagosPorDetalle != nil {
 			done := make(chan interface{})
 			defer close(done)
-			if pagosAgrupados.(map[string]interface{})["Pagos"] != nil {
-				listaPagos := pagosAgrupados.(map[string]interface{})["Pagos"].([]interface{})
-				resch := utilidades.GenChanInterface(listaPagos...)
-				chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
-				for datalistaPagos := range chlistaPagos {
-					if datalistaPagos != nil {
-						respuestaCV = append(respuestaCV, datalistaPagos.(interface{}))
+			resch := utilidades.GenChanInterface(pagosPorDetalle...)
+			// add vigencia y contrato a la agrupacion de pagos
+			chlistaPagos := utilidades.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
+			for datalistaPagos := range chlistaPagos {
+				if datalistaPagos != nil {
+					pagosVigenciaContrato = append(pagosVigenciaContrato, datalistaPagos.(interface{}))
+				}
+			}
+			for _, pagoAgrupago := range pagosVigenciaContrato {
+				if rowPagoAgrupado, e := pagoAgrupago.(map[string]interface{}); e {
+					if detallePagos, e := ListaDetalleDePagoSsPorPersona(int(idPeriodoPago), int(rowPagoAgrupado["DetalleLiquidacion"].(float64))); e == nil {
+						rowPagoAgrupado["DetallePagos"] = detallePagos
+					} else {
+						rowPagoAgrupado["DetallePagos"] = e
 					}
 				}
-				res := pagosAgrupados.(map[string]interface{})
-				res["Pagos"] = respuestaCV
-				c.Data["json"] = res
-			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
+			return pagosVigenciaContrato, nil
 		} else {
-			c.Data["json"] = nil
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron pagos para el periodo pago establecido", "Type": "error"}
+			return nil, outputError
 		}
 	} else {
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in pagoSsPorPersona", "Type": "error"}
+		return nil, outputError
 	}
-	c.ServeJSON()
 }
 
 func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{}, params ...interface{}) (res interface{}) {
@@ -145,81 +100,73 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 	}
 }
 
-func pagoSsPorPersonaF(idNomina, mesLiquidacion, anioLiquidacion int) (dataOutp interface{}) {
-	var liquidacion interface{}
-	var periodoPago []interface{}
-	var pagosPorDetalle []interface{}
-	allData := make(map[string]interface{})
-	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
-		// get id preliquidacion
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
-			if liquidacion != nil {
-				if liquidacion.(map[string]interface{})["Id_Preliq"] != nil {
-					allData["IdPreliquidacion"] = liquidacion.(map[string]interface{})["Id_Preliq"]
-				} else {
-					allData["IdPreliquidacion"] = nil
+func ListaDetalleDePagoSsPorPersona(idPeriodoPago, idDetalleLiquidacion int) (DetallePagos []interface{}, outputError map[string]interface{}) {
+	if idPeriodoPago != 0 && idDetalleLiquidacion != 0 {
+		var listaPagos []interface{}
+		var allData []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil && listaPagos != nil {
+			done := make(chan interface{})
+			defer close(done)
+			resch := utilidades.GenChanInterface(listaPagos...)
+			chlistaPagos := utilidades.Digest(done, getTipoPagoTitan, resch, nil)
+			for dataChlistaPagos := range chlistaPagos {
+				if dataChlistaPagos != nil {
+					allData = append(allData, dataChlistaPagos.(interface{}))
 				}
-			} else {
-				allData["IdPreliquidacion"] = nil
 			}
+			return allData, nil
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron pagos para el periodo pago y detalle de liquidacion especificados", "Type": "error"}
+			return nil, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in ListaDetalleDePagoSsPorPersona", "Type": "error"}
+		return nil, outputError
+	}
+}
+
+func getTipoPagoTitan(listaPagos interface{}, params ...interface{}) (res interface{}) {
+	row, e := listaPagos.(map[string]interface{})
+	var tipoPago []interface{}
+	if e {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"concepto_nomina/?query=Id:"+strconv.FormatFloat(row["TipoPago"].(float64), 'f', 0, 64)+"&limit=1", &tipoPago); err == nil {
+			row["TipoPago"] = tipoPago[0].(map[string]interface{})
+			return row
 		} else {
 			return nil
 		}
-		// get periodo pago
-		if allData["IdPreliquidacion"] != nil {
-			idPeriodoLiquidacion := allData["IdPreliquidacion"].(float64)
-			if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.FormatFloat(idPeriodoLiquidacion, 'f', -1, 64)+"&limit:1", &periodoPago); err == nil {
-				if periodoPago != nil {
-					if periodoPago[0].(map[string]interface{})["Id"] != nil {
-						allData["PeriodoPago"] = periodoPago[0].(map[string]interface{})["Id"]
-					} else {
-						allData["PeriodoPago"] = nil
-					}
-				} else {
-					allData["PeriodoPago"] = nil
-				}
-			} else {
-				return nil
-			}
-		}
-		//get pagos por persona
-		if allData["PeriodoPago"] != nil {
-			if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(allData["PeriodoPago"].(float64), 'f', -1, 64), &pagosPorDetalle); err == nil {
-				if pagosPorDetalle != nil {
-					allData["Pagos"] = pagosPorDetalle
-				} else {
-					allData["Pagos"] = nil
-				}
-			} else {
-				return nil
-			}
-		}
-		dataOutp = allData
+	} else {
+		return nil
 	}
-	return
 }
 
-// Getjota ...
-// @Title Getjota
+// GetConceptosMovimeintosContablesSs ...
+// @Title GetConceptosMovimeintosContablesSs
 // @Description lista pagos de seguridad socila por persona.
 // @Param	idNomina	query	string	false	"nomina a listar"
 // @Param	mesLiquidacion	query	string	false	"mes de la liquidacion a listar"
 // @Param	anioLiquidacion	query	string	false	"anio de la liquidacion a listar"
 // @Success 201 {object} models.Alert
 // @Failure 403 body is empty
-// @router /Getjota [get]
-func (c *OrdenPagoSsController) Getjota() {
+// @router /GetConceptosMovimeintosContablesSs [get]
+func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	idNomina, err1 := c.GetInt("idNomina")
 	mesLiquidacion, err2 := c.GetInt("mesLiquidacion")
 	anioLiquidacion, err3 := c.GetInt("anioLiquidacion")
 	if err1 == nil && err2 == nil && err3 == nil {
 		var homologacionConceptos []map[string]interface{}
+		var idLiquidacion float64
 		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
-			idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
-			if idLiquidacion != 0 {
-				idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
-				if idPeriodoPago != 0 {
-					fmt.Println("idLiquidacion ", idLiquidacion, " /idPeriodoPago", idPeriodoPago)
+			//if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
+			if liquidacionTipoNomina, outputError := getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
+				idLiquidacion = liquidacionTipoNomina["Id_Preliq"].(float64)
+				// 	beego.Info(liquidacionTipoNomina["Nombre_tipo_nomina"].(string))
+				// 	beego.Info(liquidacionTipoNomina["Id_Preliq"].(float64))
+				// } else {
+				// 	fmt.Println(outputError)
+				// }
+
+				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
 					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
 					if allPago != nil {
 						done := make(chan interface{})
@@ -248,19 +195,60 @@ func (c *OrdenPagoSsController) Getjota() {
 						//c.Data["json"] = homologacionConceptos
 						// -- movimeintos
 						if homologacionConceptos != nil {
-							var movimientosContables []interface{}
+							var movimientosContables []map[string]interface{}
 							for _, concepto := range homologacionConceptos {
 								movimientoContable := formatoMovimientosContablesOp(concepto)
 								for _, aux := range movimientoContable {
 									movimientosContables = append(movimientosContables, aux)
 								}
 							}
-							// estructura out fin
+							//estructura out fin
+							ordenData := make(map[string]interface{})
+							ordenData["Liquidacion"] = idPeriodoPago
+							ordenData["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
 							allDataOuput := make(map[string]interface{})
-							allDataOuput["MovimientoContable"] = movimientosContables
+							allDataOuput["OrdenPago"] = ordenData
+							//totalizar los movimientos
+							if movimientosDeOP, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
+								if allMovimientos, allAfectacion, e := afectarDescuentosToMovimientos(movimientosDeOP, movimientosContables); e == nil {
+									allDataOuput["MovimientoContable"] = allMovimientos
+									if AllConceptos, e := afectarDescuentosToConceptos(allAfectacion, homologacionConceptos); e == nil {
+										allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, AllConceptos)
+										if valorBase, e := getTotalAfectacionOfConceptos(AllConceptos); e == nil {
+											allDataOuput["ValorBase"] = valorBase
+										} else {
+											allDataOuput["ValorBase"] = e
+										}
+									} else {
+										allDataOuput["ConceptoOrdenPago"] = e
+									}
+								} else {
+									allDataOuput["MovimientoContable"] = e
+								}
+							} else {
+								allDataOuput["MovimientoContable"] = e
+							}
+							// pintar pagos por personas
+							if data, e := pagoSsPorPersona(idPeriodoPago); e == nil {
+								allDataOuput["ViewPagosPorPersona"] = data
+							} else {
+								allDataOuput["ViewPagosPorPersona"] = e
+							}
 							allDataOuput["RegistroPresupuestal"] = rpCorrespondiente[0]["Rp"].(interface{})
-							//allDataOuput["ConceptoOrdenPago"], allDataOuput["Aprobado"], allDataOuput["Code"] = formatoConceptoOrdenPago(rpCorrespondiente, homologacionConceptos)
-							c.Data["json"] = allDataOuput
+							// for test
+							if movimientosSoloDescuentos, e := getMovimientosDescuentoDeLiquidacion(int(idLiquidacion), idNomina); e == nil {
+								allDataOuput["MovimientosDeDescuento"] = movimientosSoloDescuentos
+							} else {
+								allDataOuput["MovimientosDeDescuento"] = e
+							}
+							// for test
+							var dataformato []map[string]interface{}
+							dataformato = append(dataformato, allDataOuput)
+							output := make(map[string]interface{})
+							output["TipoLiquidacion"] = liquidacionTipoNomina["Nombre_tipo_nomina"].(string)
+							output["DetalleCargueOp"] = dataformato
+
+							c.Data["json"] = output
 						} else {
 							c.Data["json"] = models.Alert{Code: "E_0458", Body: "Erro en la homologacion de los conceptos", Type: "error"}
 						}
@@ -268,10 +256,10 @@ func (c *OrdenPagoSsController) Getjota() {
 						c.Data["json"] = models.Alert{Code: "E_0458", Body: "no se logro asocial informacion del detalle de liquidacion a los pagos de Seguridad Social para el periodo", Type: "error"}
 					}
 				} else {
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
+					c.Data["json"] = outputError
 				}
 			} else {
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
+				c.Data["json"] = outputError
 			}
 
 		} else {
@@ -283,195 +271,214 @@ func (c *OrdenPagoSsController) Getjota() {
 	c.ServeJSON()
 }
 
-func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion int) (rpDisponibilidadApropiacion []map[string]interface{}, ouputError map[string]interface{}) {
-	//var ouputError []map[string]interface{}
+func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion int) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
+	//var outputError []map[string]interface{}
 	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
-		idLiquidacion := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion)
-		fmt.Println("Liquidacion: ", idLiquidacion)
-		if idLiquidacion != 0 {
-			idPeriodoPago := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion)
-			fmt.Println("periodo pago ", idPeriodoPago)
-			if idPeriodoPago != 0 {
-				idNecesidad := getNecesidadByProcesoExternoSS(int(idPeriodoPago))
-				fmt.Println("Nececidad id", idNecesidad)
-				if idNecesidad != 0 {
-					solicitudCDP := getSolicitudDisponibilidad(int(idNecesidad))
-					fmt.Println("solicitud disponibilidad id, ", solicitudCDP)
-					if solicitudCDP != 0 {
-						disponibilidad := getDisponibilidad(int(solicitudCDP))
-						fmt.Println("disponibilidad", disponibilidad)
-						if disponibilidad != 0 {
-							rpDisponibilidadApropiacion = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad))
-							if rpDisponibilidadApropiacion != nil {
+		if idLiquidacion, e := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
+			fmt.Println("Liquidacion: ", idLiquidacion)
+			if idPeriodoPago, e := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); e == nil {
+				fmt.Println("periodo pago ", idPeriodoPago)
+				if idNecesidad, e := getNecesidadByProcesoExternoSS(int(idPeriodoPago)); e == nil {
+					fmt.Println("Nececidad id", idNecesidad)
+					if solicitudCDP, e := getSolicitudDisponibilidad(int(idNecesidad)); e == nil {
+						fmt.Println("solicitud disponibilidad id, ", solicitudCDP)
+						if disponibilidad, e := getDisponibilidad(int(solicitudCDP)); e == nil {
+							fmt.Println("disponibilidad", disponibilidad)
+							if rpDisponibilidadApropiacion, outputError = getRegistroPresupuestalDisponibilidadApropiacion(int(disponibilidad)); outputError == nil {
 								fmt.Println("rp", rpDisponibilidadApropiacion[0]["Rp"].(map[string]interface{})["Id"])
 								return rpDisponibilidadApropiacion, nil
 							} else {
-								//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Registro Presupuestal para La Necesidad", Type: "error"}
-								ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Registro Presupuestal para La Necesidad", "Type": "error"}
-								return nil, ouputError
+								return nil, outputError
 							}
 						} else {
-							//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Disponibilidad para La Necesidad", Type: "error"}
-							ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Disponibilidad para La Necesidad", "Type": "error"}
-							return nil, ouputError
+							return nil, e
 						}
 					} else {
-						//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe Solicitud de Disponibilidad para La Necesidad", Type: "error"}
-						ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Disponibilidad para La Necesidad", "Type": "error"}
-						return nil, ouputError
+						return nil, e
 					}
 				} else {
-					//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe necesidad para liquidacion de Seguridad Social en el periodo", Type: "error"}
-					ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe necesidad para liquidacion de Seguridad Social en el periodo", "Type": "error"}
-					return nil, ouputError
+					return nil, e
 				}
 			} else {
-				//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe periodo pago de Seguridad Social para el periodo", Type: "error"}
-				ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe periodo pago de Seguridad Social para el periodo", "Type": "error"}
-				return nil, ouputError
+				return nil, e
 			}
 		} else {
-			//c.Data["json"] = models.Alert{Code: "E_0458", Body: "no existe liquidacion en estado EnOrdenPago para el periodo", Type: "error"}
-			ouputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe liquidacion en estado EnOrdenPago para el periodo", "Type": "error"}
-			return nil, ouputError
+			return nil, e
 		}
 	} else {
-		//c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
-		ouputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter", "Type": "error"}
-		return nil, ouputError
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in GetRpDesdeNecesidadProcesoExterno", "Type": "error"}
+		return nil, outputError
 	}
 }
 
 // se consulta servicio que retorna las liquidacions en un mes, año y titpo nomina que ya esten en estado EnOrdenPago
-func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiquidacion float64) {
+func getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiquidacion float64, outputError map[string]interface{}) {
 	var liquidacion interface{}
 	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
-			if liquidacion != nil && liquidacion.(map[string]interface{})["Id_Preliq"] != nil {
+			if liquidacion != nil && liquidacion.(map[string]interface{})["Id_Preliq"].(float64) != 0 {
 				IdLiquidacion = liquidacion.(map[string]interface{})["Id_Preliq"].(float64)
+				return IdLiquidacion, nil
 			} else {
-				IdLiquidacion = 0
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo", "Type": "error"}
+				return 0, outputError
 			}
 		} else {
-			return 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		return 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdliquidacionForSs", "Type": "error"}
+		return 0, outputError
 	}
-	return
+}
+
+// se consulta servicio que retorna las liquidacions en un mes, año y titpo nomina que ya esten en estado EnOrdenPago
+func getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion int) (IdLiquidacion map[string]interface{}, outputError map[string]interface{}) {
+	var liquidacion map[string]interface{}
+	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
+		if err := getJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
+			if liquidacion != nil && liquidacion["Id_Preliq"].(float64) != 0 {
+				return liquidacion, nil
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo in getIdliquidacionTipoNominaForSs", "Type": "error"}
+				return nil, outputError
+			}
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe liquidacion en estado EnOrdenPago para el periodo in getIdliquidacionTipoNominaForSs", "Type": "error"}
+			return nil, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdliquidacionTipoNominaForSs", "Type": "error"}
+		return nil, outputError
+	}
 }
 
 // se consulta servicio de periodo_pago en un mes, año y con id liquidacion
-func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64) {
+func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64, outputError map[string]interface{}) {
 	var periodoPago []interface{}
 	if idLiquidacion != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		if err := getJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:1", &periodoPago); err == nil {
 			if periodoPago != nil && periodoPago[0].(map[string]interface{})["Id"] != nil {
 				idPeriodoPago = periodoPago[0].(map[string]interface{})["Id"].(float64)
+				return idPeriodoPago, nil
 			} else {
-				idPeriodoPago = 0
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe periodo pago de Seguridad Social para el periodo", "Type": "error"}
+				return 0, outputError
 			}
 		} else {
-			idPeriodoPago = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe periodo pago de Seguridad Social para el periodo", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		idPeriodoPago = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdPeriodoPagoForSs", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64) {
+func getNecesidadByProcesoExternoSS(idPeriodoPagoSs int) (necesidad float64, outputError map[string]interface{}) {
 	var necesidadProcesoExterno []interface{}
 	if idPeriodoPagoSs != 0 {
 		//TipoNecesidad.CodigoAbreviacion:S  seguridad social
 		// Necesidad.EstadoNecesidad.CodigoAbreviacion:C  => Solicitud de CDP creada
-		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:S,ProcesoExterno:"+strconv.Itoa(idPeriodoPagoSs)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit:1", &necesidadProcesoExterno); err == nil {
-			if necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
-				necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
-			} else {
-				necesidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"necesidad_proceso_externo?query=TipoNecesidad.CodigoAbreviacion:S,ProcesoExterno:"+strconv.Itoa(idPeriodoPagoSs)+",Necesidad.EstadoNecesidad.CodigoAbreviacion:C&limit:1", &necesidadProcesoExterno); err == nil && necesidadProcesoExterno != nil && necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"] != nil {
+			necesidad = necesidadProcesoExterno[0].(map[string]interface{})["Necesidad"].(map[string]interface{})["Id"].(float64)
+			return necesidad, nil
 		} else {
-			necesidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe necesidad de proceso externo para liquidacion de Seguridad Social en el periodo", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		necesidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getNecesidadByProcesoExternoSS", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64) {
+func getSolicitudDisponibilidad(idNecesidad int) (solicitudDisponibilidad float64, outputError map[string]interface{}) {
 	var solicitudDisponibilidadData []interface{}
 	if idNecesidad != 0 {
-		if err := getJson("http://"+beego.AppConfig.String("argoServiceFlayway")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil {
-			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
-				solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
-			} else {
-				solicitudDisponibilidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?query=Expedida:true,Necesidad.Id:"+strconv.Itoa(idNecesidad), &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+			solicitudDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			return solicitudDisponibilidad, nil
 		} else {
-			solicitudDisponibilidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe Solicitud de Disponibilidad para La Necesidad", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		solicitudDisponibilidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getSolicitudDisponibilidad", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64) {
+func getDisponibilidad(idSolicitudDisponibilidad int) (idDisponibilidad float64, outputError map[string]interface{}) {
 	var solicitudDisponibilidadData []interface{}
 	if idSolicitudDisponibilidad != 0 {
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?query=Solicitud:"+strconv.Itoa(idSolicitudDisponibilidad)+"&limit:1", &solicitudDisponibilidadData); err == nil {
-			if solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
-				idDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
-			} else {
-				idDisponibilidad = 0
-			}
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"disponibilidad?query=Solicitud:"+strconv.Itoa(idSolicitudDisponibilidad)+"&limit:1", &solicitudDisponibilidadData); err == nil && solicitudDisponibilidadData != nil && solicitudDisponibilidadData[0].(map[string]interface{})["Id"] != nil {
+			idDisponibilidad = solicitudDisponibilidadData[0].(map[string]interface{})["Id"].(float64)
+			return idDisponibilidad, nil
 		} else {
-			idDisponibilidad = 0
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No existe Disponibilidad para La Necesidad", "Type": "error"}
+			return 0, outputError
 		}
 	} else {
-		idDisponibilidad = 0
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getDisponibilidad", "Type": "error"}
+		return 0, outputError
 	}
-	return
 }
 
-func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}) {
-	var dataRpDisponibilidadApropiacio []interface{}
+func getRegistroPresupuestalDisponibilidadApropiacion(idDisponibilidad int) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
+	var dataSolicitudRp []interface{}
+	var dataRp []interface{}
 	var saldoRp map[string]float64
 	if idDisponibilidad != 0 {
-		//fmt.Println("http://" + beego.AppConfig.String("kronosService") + "registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:" + strconv.Itoa(idDisponibilidad))
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal_disponibilidad_apropiacion?query=DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.Itoa(idDisponibilidad), &dataRpDisponibilidadApropiacio); err == nil {
-			if dataRpDisponibilidadApropiacio != nil {
-				for _, infoRpDispoApro := range dataRpDisponibilidadApropiacio {
-					outpuRow := make(map[string]interface{})
-					if row, e := infoRpDispoApro.(map[string]interface{}); e {
-						if dispoApr, e := row["DisponibilidadApropiacion"].(map[string]interface{}); e {
-							outpuRow["RegistroPresupuestalDisponibilidadApropiacion"] = row
-							outpuRow["Rp"] = row["RegistroPresupuestal"]
-							outpuRow["Apropiacion"] = dispoApr["Apropiacion"]
-							outpuRow["FuenteFinanciacion"] = dispoApr["FuenteFinanciamiento"]
-							if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, outpuRow); err == nil {
-								outpuRow["Saldo"] = saldoRp["saldo"]
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Expedida:true,Cdp:"+strconv.Itoa(int(idDisponibilidad)), &dataSolicitudRp); err == nil && dataSolicitudRp != nil {
+			if idSolicitudRp, e := dataSolicitudRp[0].(map[string]interface{})["Id"].(float64); e {
+				if err = getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Solicitud:"+strconv.Itoa(int(idSolicitudRp)), &dataRp); err == nil && dataRp != nil {
+					if rpmap, e := dataRp[0].(map[string]interface{}); e {
+						if desagregacionpresrp, e := rpmap["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{}); e {
+							for _, infopresrp := range desagregacionpresrp {
+								row := make(map[string]interface{})
+								if info, e := infopresrp.(map[string]interface{}); e {
+									if dispoap, e := info["DisponibilidadApropiacion"].(map[string]interface{}); e {
+										row["RegistroPresupuestalDisponibilidadApropiacion"] = info
+										row["Rp"] = dataRp[0]
+										row["Apropiacion"] = dispoap["Apropiacion"]
+										row["FuenteFinanciacion"] = dispoap["FuenteFinanciamiento"]
+										if err = sendJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/SaldoRp", "POST", &saldoRp, row); err == nil && dataRp != nil {
+											row["Saldo"] = saldoRp["saldo"]
+										}
+										rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, row)
+									}
+								}
 							}
-							rpDisponibilidadApropiacion = append(rpDisponibilidadApropiacion, outpuRow)
+							return rpDisponibilidadApropiacion, nil
 						} else {
-							rpDisponibilidadApropiacion = nil
+							//get data rp
+							outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+							return nil, outputError
 						}
 					} else {
-						rpDisponibilidadApropiacion = nil
+						// conversion data del rp
+						outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+						return nil, outputError
 					}
+				} else {
+					//get data registro presupuestal
+					outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Resistro Presupuestal para La Necesidad", "Type": "error"}
+					return nil, outputError
 				}
 			} else {
-				rpDisponibilidadApropiacion = nil
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Rp para La Necesidad", "Type": "error"}
+				return nil, outputError
 			}
 		} else {
-			rpDisponibilidadApropiacion = nil
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Solicitud de Rp para La Necesidad", "Type": "error"}
+			return nil, outputError
 		}
 	} else {
-		rpDisponibilidadApropiacion = nil
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "no existe Dispinibildida para La Necesidad", "Type": "error"}
+		return nil, outputError
 	}
-	return
 }
 
 func getPagosConDetalleLiquidacion(idPeriodoPago int) (respuestaCV []interface{}) {
@@ -535,4 +542,194 @@ func getConceptosEnRpDisponibilidadApropiacion(listaRpDispoApropi interface{}, p
 	} else {
 		return nil
 	}
+}
+func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovimientoDescuento []map[string]interface{}, outputError map[string]interface{}) {
+	if idLiquidacion != 0 && idNomina != 0 {
+		var ordenespago []interface{}
+		var allMovimientos []map[string]interface{}
+		var params []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=SubTipoOrdenPago.TipoOrdenPago.CodigoAbreviacion:OP-PROV,Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:-1", &ordenespago); err == nil && ordenespago != nil {
+			done := make(chan interface{})
+			defer close(done)
+			params = append(params, idNomina)
+			resch := utilidades.GenChanInterface(ordenespago...)
+			chlistaMovimientos := utilidades.Digest(done, getMovimeintosContables, resch, params)
+			for dataChListaMovimientos := range chlistaMovimientos {
+				if movimientosPorOrdenP, e := dataChListaMovimientos.([]interface{}); e {
+					for _, movimientoOp := range movimientosPorOrdenP {
+						if rowMovimiento, e := movimientoOp.(map[string]interface{}); e {
+							existe := false
+							for _, allM := range allMovimientos {
+								if allM["CuentaContable"] != nil && rowMovimiento["CuentaContable"] != nil && allM["CuentaContable"].(map[string]interface{})["Id"].(float64) == rowMovimiento["CuentaContable"].(map[string]interface{})["Id"].(float64) {
+									allM["Debito"] = allM["Debito"].(float64) + rowMovimiento["Debito"].(float64)
+									allM["Credito"] = allM["Credito"].(float64) + rowMovimiento["Credito"].(float64)
+									existe = true
+								}
+							}
+							if !existe {
+								allMovimientos = append(allMovimientos, rowMovimiento)
+							}
+						}
+					}
+				}
+			}
+			return allMovimientos, nil
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron ordenes de pago relacionadas a la liquidacion", "Type": "error"}
+			return nil, outputError
+		}
+	} else {
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getMovimientosDescuentoDeLiquidacion", "Type": "error"}
+		return nil, outputError
+	}
+}
+
+func getMovimeintosContables(listaOrdenesPago interface{}, params ...interface{}) (res interface{}) {
+	if ordenPago, e := listaOrdenesPago.(map[string]interface{}); e {
+		var movimientosContables []interface{}
+		var outputMovimientosContables []interface{}
+		// aray de regla
+		descuentosPermitidos := reglaGetDescuentosDeLiquidacion(params[0].(int))
+
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"movimiento_contable/?query=TipoDocumentoAfectante.CodigoAbreviacion:DA-OP,CuentaEspecial__isnull:false,CodigoDocumentoAfectante:"+strconv.Itoa(int(ordenPago["Id"].(float64)))+"&limit:-1", &movimientosContables); err == nil && movimientosContables != nil {
+			for _, movimientoContable := range movimientosContables {
+				if rowMovimientoC, e := movimientoContable.(map[string]interface{}); e {
+					for _, descuento := range descuentosPermitidos {
+						if rowDescuento, e := descuento.(map[string]interface{}); e {
+							if rowDescuento["Id"].(float64) == rowMovimientoC["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
+								outputMovimientosContables = append(outputMovimientosContables, rowMovimientoC)
+							}
+						}
+					}
+				}
+			}
+			return outputMovimientosContables
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+}
+
+func reglaGetDescuentosDeLiquidacion(idNomina int) (DataDescuentos []interface{}) {
+	var nomina []interface{}
+	var idDescuentos [3]int
+	var descuento []interface{}
+
+	if err := getJson("http://"+beego.AppConfig.String("titanService")+"nomina/?query=Id:"+strconv.Itoa(idNomina), &nomina); err == nil && nomina != nil {
+		if nominaName, e := nomina[0].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"]; e {
+			if nominaName == "HCH" {
+				idDescuentos = [3]int{40, 42, 41} //titan descuentos 239, 290, 291
+			} else {
+				idDescuentos = [3]int{43, 45, 44}
+			}
+			for _, id := range idDescuentos {
+				if err := getJson("http://"+beego.AppConfig.String("kronosService")+"cuenta_especial/?query=Id:"+strconv.Itoa(id)+"&limit:1", &descuento); err == nil && descuento != nil {
+					DataDescuentos = append(DataDescuentos, descuento[0])
+				}
+			}
+		} else {
+			return nil
+		}
+	} else {
+		return nil
+	}
+	return
+}
+
+func reglaGetCuentaAfectarPorDescuento(codigoCuentaEspecial string) (codigoCuentaAfectar string, outputError map[string]interface{}) {
+	if codigoCuentaEspecial != "" {
+		var joinCuentaEspecial string
+		splitCuentaEspecial := strings.Split(codigoCuentaEspecial, "-")
+
+		if splitCuentaEspecial[len(splitCuentaEspecial)-1] == "02" {
+			splitCuentaEspecial[len(splitCuentaEspecial)-1] = "01"
+			joinCuentaEspecial = strings.Join(splitCuentaEspecial, "-")
+		} else if splitCuentaEspecial[len(splitCuentaEspecial)-1] == "01" {
+			splitCuentaEspecial[len(splitCuentaEspecial)-1] = "02"
+			joinCuentaEspecial = strings.Join(splitCuentaEspecial, "-")
+		} else {
+			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se especificaron mas casos para afectar la cuenta del descuento", "Type": "error"}
+			return "", outputError
+		}
+		return joinCuentaEspecial, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in reglaGetCuentaAfectarPorDescuento", "Type": "error"}
+	return "", outputError
+}
+
+func afectarDescuentosToMovimientos(cuentasDescuentoOP, allMovimientos []map[string]interface{}) (totalCuentas interface{}, allAfectacionConceto []map[string]interface{}, outputError map[string]interface{}) {
+	if cuentasDescuentoOP != nil && allMovimientos != nil {
+		for _, cuentaOP := range cuentasDescuentoOP {
+			if codigoDescuentoOP, e := cuentaOP["CuentaContable"].(map[string]interface{})["Codigo"].(string); e {
+				if CodigoDescuentoBuscar, e := reglaGetCuentaAfectarPorDescuento(codigoDescuentoOP); e == nil {
+					rowDescuento := make(map[string]interface{})
+					//rowDescuento["Concepto"] = cuentaOP["Concepto"]
+					rowDescuento["Debito"] = cuentaOP["Credito"] //como son descuentos solo titnen credito
+					rowDescuento["Credito"] = 0
+					rowDescuento["CuentaContable"] = cuentaOP["CuentaContable"]
+					rowDescuento["CuentaEspecial"] = cuentaOP["CuentaEspecial"]
+					for _, movimineto := range allMovimientos {
+						if codeCuentaC, e := movimineto["CuentaContable"].(map[string]interface{}); e {
+							if codeCuentaC["Codigo"].(string) == CodigoDescuentoBuscar {
+								rowDescuento["Concepto"] = movimineto["Concepto"].(map[string]interface{})
+								movimineto["Credito"] = movimineto["Credito"].(float64) + cuentaOP["Credito"].(float64)
+								allMovimientos = append(allMovimientos, rowDescuento)
+								allAfectacionConceto = append(allAfectacionConceto, rowDescuento)
+							}
+						} else {
+							outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allMovimientos en  afectarDescuentosToMovimientos", "Type": "error"}
+							return nil, nil, outputError
+						}
+					}
+				} else {
+					return nil, nil, e
+				}
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos en el  parametro cuentasDescuentoOP de  afectarDescuentosToMovimientos", "Type": "error"}
+				return nil, nil, outputError
+			}
+		}
+		return allMovimientos, allAfectacionConceto, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToMovimientos", "Type": "error"}
+	return nil, nil, outputError
+}
+
+func afectarDescuentosToConceptos(ConceptosDescuentos, allConceptos []map[string]interface{}) (conceptos []map[string]interface{}, outputError map[string]interface{}) {
+	if ConceptosDescuentos != nil && allConceptos != nil {
+		for _, conceptoDesc := range ConceptosDescuentos {
+			if codigoAfectado, e := conceptoDesc["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+				for _, concepto := range allConceptos {
+					if codigoConcepto, e := concepto["Concepto"].(map[string]interface{})["Codigo"].(string); e {
+						if codigoAfectado == codigoConcepto {
+							concepto["Valor"] = concepto["Valor"].(float64) + conceptoDesc["Debito"].(float64)
+						}
+					} else {
+						outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro allConceptos en afectarDescuentosToConceptos", "Type": "error"}
+						return nil, outputError
+					}
+				}
+			} else {
+				outputError = map[string]interface{}{"Code": "E_0458", "Body": "Error En la estructura de datos del parametro ConceptosDescuentos en afectarDescuentosToConceptos", "Type": "error"}
+				return nil, outputError
+			}
+		}
+		return allConceptos, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in afectarDescuentosToConceptos", "Type": "error"}
+	return nil, outputError
+}
+
+func getTotalAfectacionOfConceptos(allConceptos []map[string]interface{}) (total float64, outputError map[string]interface{}) {
+	if allConceptos != nil {
+		var acumulador float64
+		for _, concepto := range allConceptos {
+			acumulador = acumulador + concepto["Valor"].(float64)
+		}
+		return acumulador, nil
+	}
+	outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getTotalAfectacionOfConceptos", "Type": "error"}
+	return 0, outputError
 }

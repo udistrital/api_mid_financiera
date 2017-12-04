@@ -137,24 +137,16 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"],
 		beego.ControllerComments{
-			Method: "DetalleListaPagoSsPorPersona",
-			Router: `/DetalleListaPagoSsPorPersona`,
+			Method: "GetConceptosMovimeintosContablesSs",
+			Router: `/GetConceptosMovimeintosContablesSs`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"],
 		beego.ControllerComments{
-			Method: "Getjota",
-			Router: `/Getjota`,
-			AllowHTTPMethods: []string{"get"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoSsController"],
-		beego.ControllerComments{
-			Method: "ListaPagoSsPorPersona",
-			Router: `/ListaPagoSsPorPersona`,
+			Method: "TestJota01",
+			Router: `/TestJota01`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
