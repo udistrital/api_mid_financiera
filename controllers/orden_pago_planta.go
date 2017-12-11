@@ -455,6 +455,7 @@ func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res
 				if Opmap, e := auxmap["OrdenPago"].(map[string]interface{}); e && e2 {
 					Opmap = params[0].([]interface{})[0].(map[string]interface{})
 					Opmap["RegistroPresupuestal"] = auxmap["OrdenPago"].(map[string]interface{})["RegistroPresupuestal"]
+					Opmap["Liquidacion"] = auxmap["OrdenPago"].(map[string]interface{})["Liquidacion"]
 					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
 					Opmap["ValorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
