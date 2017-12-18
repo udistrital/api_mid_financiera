@@ -27,7 +27,7 @@ func formatoListaCDPDispatcher(tipo int) (f func(data map[string]interface{}, pa
 	case 1:
 		return formatoListaCDPConSolicitud
 	case 2:
-		return formatoListaCDPConSolicitud
+		return formatoListaCDPMovimiento
 	default:
 		return nil
 	}
@@ -64,11 +64,30 @@ func formatoListaCDP(disponibilidad interface{}, params ...interface{}) (res int
 	return
 }
 
+func formatoListaCDPMovimiento(disponibilidad map[string]interface{}, params ...interface{}) (res interface{}) {
+	var solicitud []map[string]interface{}
+	solicitudArr, ee := disponibilidad["DisponibilidadProcesoExterno"].([]interface{})
+	solicitudMap, ee := solicitudArr[0].(map[string]interface{})
+	solicitudNo, ee := solicitudMap["ProcesoExterno"].(float64)
+	if params != nil && ee {
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"movimiento_apropiacion?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64), &solicitud); err == nil {
+			disponibilidad["Solicitud"] = solicitud[0]
+		} else {
+			return map[string]interface{}{"Code": "E_0458", "Body": "kronos Service", "Type": "error"}
+		}
+	} else {
+		return map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in Disponibilidad Procses", "Type": "error"}
+	}
+	return disponibilidad
+}
+
 func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params ...interface{}) (res interface{}) {
-	beego.Info("Entro")
 	var solicitud []models.SolicitudDisponibilidad
-	if params != nil {
-		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(disponibilidad["Solicitud"].(float64), 'f', -1, 64), &solicitud); err == nil {
+	solicitudArr, ee := disponibilidad["DisponibilidadProcesoExterno"].([]interface{})
+	solicitudMap, ee := solicitudArr[0].(map[string]interface{})
+	solicitudNo, ee := solicitudMap["ProcesoExterno"].(float64)
+	if params != nil && ee {
+		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64), &solicitud); err == nil {
 
 			for _, resultado := range solicitud {
 
