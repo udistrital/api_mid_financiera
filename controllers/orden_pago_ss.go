@@ -160,12 +160,6 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 			//if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 			if liquidacionTipoNomina, outputError := getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 				idLiquidacion = liquidacionTipoNomina["Id_Preliq"].(float64)
-				// 	beego.Info(liquidacionTipoNomina["Nombre_tipo_nomina"].(string))
-				// 	beego.Info(liquidacionTipoNomina["Id_Preliq"].(float64))
-				// } else {
-				// 	fmt.Println(outputError)
-				// }
-
 				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
 					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
 					if allPago != nil {
@@ -217,15 +211,23 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 										if valorBase, e := getTotalAfectacionOfConceptos(AllConceptos); e == nil {
 											allDataOuput["ValorBase"] = valorBase
 										} else {
+											allDataOuput["Aprobado"] = false
+											allDataOuput["Code"] = e["Code"]
 											allDataOuput["ValorBase"] = e
 										}
 									} else {
+										allDataOuput["Aprobado"] = false
+										allDataOuput["Code"] = e["Code"]
 										allDataOuput["ConceptoOrdenPago"] = e
 									}
 								} else {
+									allDataOuput["Aprobado"] = false
+									allDataOuput["Code"] = e["Code"]
 									allDataOuput["MovimientoContable"] = e
 								}
 							} else {
+								allDataOuput["Aprobado"] = false
+								allDataOuput["Code"] = e["Code"]
 								allDataOuput["MovimientoContable"] = e
 							}
 							// pintar pagos por personas
@@ -575,7 +577,7 @@ func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovi
 			}
 			return allMovimientos, nil
 		} else {
-			outputError = map[string]interface{}{"Code": "E_0458", "Body": "No se encontraron ordenes de pago relacionadas a la liquidacion", "Type": "error"}
+			outputError = map[string]interface{}{"Code": "E_OPM_0001", "Body": "No se encontraron ordenes de pago relacionadas a la liquidacion", "Type": "error"}
 			return nil, outputError
 		}
 	} else {
