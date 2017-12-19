@@ -457,6 +457,7 @@ func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res
 					Opmap["RegistroPresupuestal"] = auxmap["OrdenPago"].(map[string]interface{})["RegistroPresupuestal"]
 					Opmap["Liquidacion"] = auxmap["OrdenPago"].(map[string]interface{})["Liquidacion"]
 					Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
+					Opmap["Documento"], e = params[0].([]interface{})[0].(map[string]interface{})["Documento"]
 					Opmap["ValorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
 					beego.Info(Opmap)
