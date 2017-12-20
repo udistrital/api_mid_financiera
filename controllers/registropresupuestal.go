@@ -166,6 +166,7 @@ func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
 // @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	query	query	string	false	"query de filtrado para la lista de los cdp"
 // @Success 200 {object} models.RegistroPresupuestal
 // @Failure 403
 // @router ListaRp/:vigencia [get]
@@ -179,6 +180,7 @@ func (c *RegistroPresupuestalController) ListaRp() {
 	var startrange string
 	var endrange string
 	var query string
+	var querybase string
 	// limit: 10 (default is 10)
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
@@ -196,9 +198,15 @@ func (c *RegistroPresupuestalController) ListaRp() {
 		endrange = r
 
 	}
-	if startrange != "" && endrange != "" {
-		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+	if r := c.GetString("query"); r != "" {
+		querybase = r
 
+	}
+	if startrange != "" && endrange != "" {
+		query = querybase + ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	} else if querybase != "" {
+		query = "," + querybase
 	}
 	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
 	if err1 == nil && err2 == nil {
