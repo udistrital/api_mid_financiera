@@ -255,6 +255,7 @@ func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (
 						Opmap["SubTipoOrdenPago"], e = params[0].([]interface{})[0].(map[string]interface{})["SubTipoOrdenPago"]
 						Opmap["FormaPago"], e = params[0].([]interface{})[0].(map[string]interface{})["FormaPago"]
 						Opmap["Vigencia"], e = params[0].([]interface{})[0].(map[string]interface{})["Vigencia"]
+						Opmap["Documento"], e = params[0].([]interface{})[0].(map[string]interface{})["Documento"]
 						Opmap["ValorBase"] = valorBase
 						auxmap["OrdenPago"] = Opmap
 						if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &alert, &auxmap); err == nil {
