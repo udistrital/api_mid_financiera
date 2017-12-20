@@ -183,6 +183,7 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
 // @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	query	query	string	false	"query de filtrado para la lista de los cdp"
 // @Success 200 {object} models.Disponibilidad
 // @Failure 403
 // @router ListaDisponibilidades/:vigencia [get]
@@ -194,6 +195,7 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 	var startrange string
 	var endrange string
 	var query string
+	var querybase string
 	// limit: 10 (default is 10)
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
@@ -211,13 +213,21 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 		endrange = r
 
 	}
-	if startrange != "" && endrange != "" {
-		query = ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
 
+	if r := c.GetString("query"); r != "" {
+		querybase = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = querybase + ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	} else if querybase != "" {
+		query = "," + querybase
 	}
 	vigenciaStr := c.Ctx.Input.Param(":vigencia")
 	vigencia, err1 := strconv.Atoi(vigenciaStr)
 	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
+	beego.Info("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=Vigencia:" + strconv.Itoa(vigencia) + ",DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora:" + strconv.Itoa(UnidadEjecutora) + query)
 	if err1 == nil && err2 == nil {
 		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+",DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora:"+strconv.Itoa(UnidadEjecutora)+query, &disponibilidades); err == nil {
 			if disponibilidades != nil {
