@@ -373,6 +373,7 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 // @Param	UnidadEjecutora	query	string	false	"unidad ejecutora de las solicitudes a consultar"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	query	query	string	false	"query de filtrado para la lista de los cdp"
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
 // @Param	rangofin	query	string	false	"rango final del periodo a consultar"
 // @Success 200 {object} models.InfoSolDisp
@@ -386,6 +387,7 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 	var startrange string
 	var endrange string
 	var query string
+	var querybase string
 	// limit: 10 (default is 10)
 	if v, err := this.GetInt64("limit"); err == nil {
 		limit = v
@@ -393,6 +395,10 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 	// offset: 0 (default is 0)
 	if v, err := this.GetInt64("offset"); err == nil {
 		offset = v
+	}
+	if r := this.GetString("query"); r != "" {
+		querybase = r
+
 	}
 	if r := this.GetString("rangoinicio"); r != "" {
 		startrange = r
@@ -404,8 +410,10 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 
 	}
 	if startrange != "" && endrange != "" {
-		query = ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
+		query = querybase + ",FechaSolicitud__gte:" + startrange + ",FechaSolicitud__lte:" + endrange
 
+	} else if querybase != "" {
+		query = "," + querybase
 	}
 	vigenciaStr := this.Ctx.Input.Param(":vigencia")
 	vigencia, err1 := strconv.Atoi(vigenciaStr)
