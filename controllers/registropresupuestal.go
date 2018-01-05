@@ -40,6 +40,8 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 			if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
 
 				for _, disp_apro := range disp_apr_sol {
+					solicitud.Cdp = int(disp_apro["Disponibilidad"].(map[string]interface{})["Id"].(float64))
+					beego.Info("CDP ", solicitud.Cdp)
 					disp_apro["ValorAsignado"] = afect["Monto"]
 					disp_apro["FuenteFinanciacion"] = disp_apro["FuenteFinanciamiento"]
 					rubros = append(rubros, disp_apro)
@@ -47,7 +49,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 
 			} else {
 				//si sale mal la consulta de la afectacion del cdp objetivo.
-
+				return
 			}
 		}
 		solicitud.Rubros = rubros
@@ -61,7 +63,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		if cdp_objtvo != nil {
 			solicitud.DatosDisponibilidad = &cdp_objtvo[0]
 			var necesidad_cdp []models.SolicitudDisponibilidad
-			if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.Solicitud), &necesidad_cdp); err == nil {
+			if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DisponibilidadProcesoExterno[0].ProcesoExterno), &necesidad_cdp); err == nil {
 				if necesidad_cdp != nil {
 					solicitud.DatosDisponibilidad.DatosNecesidad = necesidad_cdp[0].Necesidad
 					var depNes []models.DependenciaNecesidad
@@ -144,7 +146,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 //funcion para recopilar datos externos de los rp a listar
 func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
-	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["Solicitud"].(float64))
+	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
 	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
 	if err == nil {
