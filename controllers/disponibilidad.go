@@ -306,6 +306,7 @@ func (this *DisponibilidadController) DisponibilidadByNecesidad() {
 func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res interface{}) {
 	var depNes []models.DependenciaNecesidad
 	var jefe_dep_sol []models.JefeDependencia
+	var jefe_dep_dest []models.JefeDependencia
 	var depSol []models.Dependencia
 	var depDest []models.Dependencia
 	var necesidad []models.Necesidad
@@ -320,10 +321,22 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 					if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
 						if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
 							if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
-								if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depDest); err == nil {
-								} else {
-									fmt.Println("error4: ", err)
-									////return nil
+								if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaDestino), &jefe_dep_dest); err == nil {
+									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest); err == nil {
+										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia); err == nil {
+											if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador); err == nil {
+												
+											}else{
+
+											}
+										}else{
+
+										}
+									}else{
+
+									}
+								}else{
+
 								}
 							} else {
 								fmt.Println("error5: ", err)
@@ -926,6 +939,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 	var alertas []models.Alert
 	var rubrosSolicitud []map[string]interface{}
 	var mapSaldoApropiacion map[string]float64
+	VigActual := time.Now().Year() 
 	disponibilidad := make(map[string]interface{})
 	infoDisponibilidad := make(map[string]interface{})
 	aprobada := true
@@ -956,12 +970,17 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 						afectacion = append(afectacion, disponibilidadApropiacion)
 
 					} else {
+						aprobada = false
 						alertas = append(alertas, models.Alert{Code: "E_CDP001", Body: solicitud, Type: "error"})
 					}
 				} else {
 					//si hay error al consultar las reglas de negocio. protocolo dentro de la peticion
 					aprobada = false
 					alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
+				}
+				if VigActual != int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64)){
+					aprobada = false
+					alertas = append(alertas, models.Alert{Code: "E_CDP003", Body: solicitud, Type: "error"})
 				}
 			}
 			if aprobada {
