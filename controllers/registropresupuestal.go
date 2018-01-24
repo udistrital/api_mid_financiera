@@ -462,7 +462,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	var dataRpRegistro []models.DatosRegistroPresupuestal
 	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
 	var saldoCDP map[string]float64
-
+	VigActual := time.Now().Year()
 	tool := new(tools.EntornoReglas)
 	var respuestaServices interface{}
 	//------------------------------------------------------
@@ -499,24 +499,29 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 			if rp_a_registrar.Rubros != nil {
 				err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
 				if err == nil { //
-					if res == "1" { // si se aprueba la solicitud
-						rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
-						var comprobacion models.DatosRegistroPresupuestal
-						if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
-							dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
-							rp_a_registrar.Rp.DatosSolicitud.Expedida = true
-							if err := sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/"+strconv.Itoa(rp_a_registrar.Rp.Solicitud), "PUT", &respuestaServices, &rp_a_registrar.Rp.DatosSolicitud); err == nil {
-								//dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP002", Body: respuestaServices, Type: "success"})
+					if int(rp_a_registrar.Rp.Vigencia) == VigActual {
+						if res == "1" { // si se aprueba la solicitud
+							rp_a_registrar.Rp.FechaRegistro = time.Now().Local()
+							var comprobacion models.DatosRegistroPresupuestal
+							if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal", "POST", &comprobacion, &rp_a_registrar); err == nil {
+								dataAlertas = append(dataAlertas, models.Alert{Code: "S_543", Body: comprobacion, Type: "success"})
+								rp_a_registrar.Rp.DatosSolicitud.Expedida = true
+								if err := sendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/"+strconv.Itoa(rp_a_registrar.Rp.Solicitud), "PUT", &respuestaServices, &rp_a_registrar.Rp.DatosSolicitud); err == nil {
+									//dataAlertas = append(dataAlertas, models.Alert{Code: "S_RP002", Body: respuestaServices, Type: "success"})
 
+								} else {
+									dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP002", Body: rp_a_registrar, Type: "success"})
+								}
 							} else {
-								dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP002", Body: rp_a_registrar, Type: "success"})
+								dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 							}
 						} else {
-							dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
+							dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP001", Body: rp_a_registrar, Type: "error"})
+
 						}
 					} else {
-						dataAlertas = append(dataAlertas, models.Alert{Code: "E_RP001", Body: rp_a_registrar, Type: "error"})
 
+						dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
 					}
 				} else {
 					dataAlertas = append(dataAlertas, models.Alert{Code: "E_0458", Body: rp_a_registrar, Type: "error"})
