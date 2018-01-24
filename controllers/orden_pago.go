@@ -41,7 +41,6 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 		respuestas := make(map[string]interface{})
 		// search registro_presupuestal
 		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.FuenteFinanciamiento.Id:"+fuente+",Vigencia:"+vigencia+"&limit:-1", &registro_presupuestales); err == nil && registro_presupuestales != nil {
-			println("1111111")
 			var outputOrdenPago []interface{}
 			done := make(chan interface{})
 			defer close(done)
@@ -84,6 +83,13 @@ func searchOrdenPagoByRpId(registro_resupuestal interface{}, params ...interface
 				row := orden.(map[string]interface{})
 				row["RegistroPresupuestal"] = rowRp
 			}
+			// seach dependencia de necesidad
+			beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
+			if err, necesidad := getNecesidadDesdeRp(registro_resupuestal); err == nil {
+				beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
+				beego.Info(necesidad)
+			}
+
 			return ordenes_pagos
 		}
 	}
