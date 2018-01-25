@@ -16,7 +16,7 @@ type NecesidadController struct {
 	beego.Controller
 }
 
-func getNecesidadDesdeRp(registroPresupuestal interface{}) (outputNecesidad interface{}) {
+func getNecesidadDesdeRp(registroPresupuestal interface{}, unidadEjecutora string) (outputNecesidad interface{}) {
 	if rowRp, e := registroPresupuestal.(map[string]interface{}); e {
 		var solicitudRp []interface{}
 		if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp/?query=Id:"+strconv.Itoa(int(rowRp["Solicitud"].(float64)))+"&limit:1", &solicitudRp); err == nil && solicitudRp != nil {
@@ -29,7 +29,7 @@ func getNecesidadDesdeRp(registroPresupuestal interface{}) (outputNecesidad inte
 				rowDisponibilidad := disponibilidad[0].(map[string]interface{})
 				// Solicitud de disponibilidad
 				var solicitudDisponibilidad []interface{}
-				if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/?query=Id:"+strconv.Itoa(int(rowDisponibilidad["Solicitud"].(float64)))+"&limit:1", &solicitudDisponibilidad); err == nil && solicitudDisponibilidad != nil {
+				if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/?query=Id:"+strconv.Itoa(int(rowDisponibilidad["Solicitud"].(float64)))+",Necesidad.UnidadEjecutora:"+unidadEjecutora+"&limit:1", &solicitudDisponibilidad); err == nil && solicitudDisponibilidad != nil {
 					//beego.Info("solicitudDisponibilidad: ", solicitudDisponibilidad[0].(map[string]interface{})["Id"])
 					outputNecesidad := solicitudDisponibilidad[0].(map[string]interface{})["Necesidad"].(map[string]interface{})
 					//beego.Info("Necesidad return : ", outputNecesidad)
