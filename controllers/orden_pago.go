@@ -85,7 +85,7 @@ func searchOrdenPagoByRpId(registro_resupuestal interface{}, params ...interface
 			}
 			// seach dependencia de necesidad
 			beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
-			if err, necesidad := getNecesidadDesdeRp(registro_resupuestal); err == nil {
+			if necesidad := getNecesidadDesdeRp(registro_resupuestal); necesidad != nil {
 				beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
 				beego.Info(necesidad)
 			}
