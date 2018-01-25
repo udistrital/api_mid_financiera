@@ -1,16 +1,11 @@
 package controllers
 
 import (
-	// "fmt"
-	// "strconv"
-	// "strings"
-
 	"strconv"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_financiera/utilidades"
 	"github.com/udistrital/ss_crud_api/models"
-	// "github.com/udistrital/api_mid_financiera/utilidades"
 )
 
 // OrdenPagoController operations for Orden_pago
@@ -73,24 +68,19 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 func searchOrdenPagoByRpId(registro_resupuestal interface{}, params ...interface{}) (res interface{}) {
 	rowRp, e := registro_resupuestal.(map[string]interface{})
 	if e {
-		var ordenes_pagos []interface{}
-		// if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:200", &ordenes_pagos); err == nil && ordenes_pagos != nil {
-		// 	return ordenes_pagos
-		// }
-
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:"+strconv.Itoa(int(rowRp["Id"].(float64))), &ordenes_pagos); err == nil && ordenes_pagos != nil {
-			for _, orden := range ordenes_pagos {
+		var ordenesPagos []interface{}
+		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:"+strconv.Itoa(int(rowRp["Id"].(float64))), &ordenesPagos); err == nil && ordenesPagos != nil {
+			for _, orden := range ordenesPagos {
 				row := orden.(map[string]interface{})
 				row["RegistroPresupuestal"] = rowRp
+				// seach dependencia de necesidad
+				if necesidad := getNecesidadDesdeRp(registro_resupuestal); necesidad != nil {
+					if areaNecesidad := getAreaDeNecesidad(necesidad); areaNecesidad != nil {
+						row["Necesidad"] = areaNecesidad
+					}
+				}
 			}
-			// seach dependencia de necesidad
-			beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
-			if necesidad := getNecesidadDesdeRp(registro_resupuestal); necesidad != nil {
-				beego.Info("AAAAAAAAAAAAAAAAAAAAAaaa")
-				beego.Info(necesidad)
-			}
-
-			return ordenes_pagos
+			return ordenesPagos
 		}
 	}
 	return
