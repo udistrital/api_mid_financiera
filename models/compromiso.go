@@ -12,6 +12,6 @@ type Compromiso struct {
 	FechaFin              time.Time              `orm:"column(fecha_fin);type(date)"`
 	FechaModificacion     time.Time              `orm:"column(fecha_modificacion);type(date)"`
 	EstadoCompromiso      *EstadoCompromiso      `orm:"column(estado_compromiso);rel(fk)"`
-	TipoCompromisoTesoral *TipoCompromisoTesoral `orm:"column(tipo_compromiso_tesoral);rel(fk)"`
-	UnidadEjecutora       *UnidadEjecutora       `orm:"column(unidad_ejecutora);rel(fk)"`
+	TipoCompromisoTesoral *TipoCompromisoTesoral `orm:"column(tipo_compromiso_financiero);rel(fk)"`
+	UnidadEjecutora       int                    `orm:"column(unidad_ejecutora)"`
 }

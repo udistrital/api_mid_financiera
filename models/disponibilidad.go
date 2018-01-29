@@ -5,14 +5,31 @@ import (
 )
 
 type Disponibilidad struct {
-	Id                   int                   `orm:"column(id);pk"`
-	Vigencia             float64               `orm:"column(vigencia)"`
-	NumeroDisponibilidad float64               `orm:"column(numero_disponibilidad);null"`
-	Responsable          int                   `orm:"column(responsable);null"`
-	FechaRegistro        time.Time             `orm:"column(fecha_registro);type(date);null"`
-	Estado               *EstadoDisponibilidad `orm:"column(estado);rel(fk)"`
-	Solicitud            int                   `orm:"column(solicitud)"`
-	DatosNecesidad       *Necesidad
+	Id                           int                             `orm:"auto;column(id);pk"`
+	Vigencia                     float64                         `orm:"column(vigencia)"`
+	NumeroDisponibilidad         float64                         `orm:"column(numero_disponibilidad);null"`
+	Responsable                  int                             `orm:"column(responsable);null"`
+	FechaRegistro                time.Time                       `orm:"column(fecha_registro);type(date);null"`
+	Estado                       *EstadoDisponibilidad           `orm:"column(estado);rel(fk)"`
+	Solicitud                    int                             `orm:"column(solicitud)"`
+	DisponibilidadApropiacion    []*DisponibilidadApropiacion    `orm:"reverse(many)"`
+	DisponibilidadProcesoExterno []*DisponibilidadProcesoExterno `orm:"reverse(many)"`
+	DatosNecesidad               *Necesidad
+}
+
+type DisponibilidadProcesoExterno struct {
+	Id                 int                 `orm:"auto;column(id);pk"`
+	TipoDisponibilidad *TipoDisponibilidad `orm:"column(tipo_disponibilidad);rel(fk)"`
+	ProcesoExterno     int                 `orm:"column(proceso_externo)"`
+	Disponibilidad     *Disponibilidad     `orm:"column(disponibilidad);rel(fk)"`
+}
+
+type TipoDisponibilidad struct {
+	Id          int     `orm:"auto;column(id);pk"`
+	Nombre      string  `orm:"column(nombre)"`
+	Descripcion string  `orm:"column(descripcion);null"`
+	Activo      bool    `orm:"column(activo)"`
+	NumeroOrden float64 `orm:"column(numero_orden);null"`
 }
 
 type InfoSolDisp struct {

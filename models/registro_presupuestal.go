@@ -5,16 +5,18 @@ import (
 )
 
 type RegistroPresupuestal struct {
-	Id                         int                         `orm:"auto;column(id);pk"`
-	Vigencia                   float64                     `orm:"column(vigencia)"`
-	FechaRegistro              time.Time                   `orm:"column(fecha_registro);type(date);null"`
-	Responsable                int                         `orm:"column(responsable);null"`
-	Estado                     *EstadoRegistroPresupuestal `orm:"column(estado);rel(fk)"`
-	NumeroRegistroPresupuestal int                         `orm:"column(numero_registro_presupuestal)"`
-	Beneficiario               int                         `orm:"column(beneficiario);rel(fk)"`
-	Compromiso                 *Compromiso                 `orm:"column(compromiso);rel(fk)"`
-	Solicitud                  int
-	DatosSolicitud             *SolicitudRp
+	Id                                            int                                              `orm:"column(id);pk;auto"`
+	Vigencia                                      float64                                          `orm:"column(vigencia)"`
+	FechaRegistro                                 time.Time                                        `orm:"column(fecha_registro);type(date);null"`
+	Responsable                                   int                                              `orm:"column(responsable);null"`
+	Estado                                        *EstadoRegistroPresupuestal                      `orm:"column(estado);rel(fk)"`
+	NumeroRegistroPresupuestal                    int                                              `orm:"column(numero_registro_presupuestal)"`
+	Beneficiario                                  int                                              `orm:"column(beneficiario);null"`
+	TipoCompromiso                                *Compromiso                                      `orm:"column(tipo_compromiso);rel(fk)"`
+	NumeroCompromiso                              int                                              `orm:"column(numero_compromiso)"`
+	Solicitud                                     int                                              `orm:"column(solicitud)"`
+	RegistroPresupuestalDisponibilidadApropiacion []*RegistroPresupuestalDisponibilidadApropiacion `orm:"reverse(many)"`
+	DatosSolicitud                                *SolicitudRp
 }
 type DatosRubroRegistroPresupuestal struct {
 	Id                 int
