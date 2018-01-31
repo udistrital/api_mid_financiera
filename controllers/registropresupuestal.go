@@ -165,6 +165,7 @@ func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
 // @Param	rangofin	query	string	false	"rango final del periodo a consultar"
 // @Param	query	query	string	false	"query de filtrado para la lista de los cdp"
+// @Param	UnidadEjecutora	query	string	false	"query de filtrado para la lista de los cdp"
 // @Success 200 {object} models.RegistroPresupuestal
 // @Failure 403
 // @router ListaRp/:vigencia [get]
