@@ -325,17 +325,17 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest); err == nil {
 										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia); err == nil {
 											if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador); err == nil {
-												
-											}else{
+
+											} else {
 
 											}
-										}else{
+										} else {
 
 										}
-									}else{
+									} else {
 
 									}
-								}else{
+								} else {
 
 								}
 							} else {
@@ -939,7 +939,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 	var alertas []models.Alert
 	var rubrosSolicitud []map[string]interface{}
 	var mapSaldoApropiacion map[string]float64
-	VigActual := time.Now().Year() 
+	VigActual := time.Now().Year()
 	disponibilidad := make(map[string]interface{})
 	infoDisponibilidad := make(map[string]interface{})
 	aprobada := true
@@ -978,7 +978,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 					aprobada = false
 					alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 				}
-				if VigActual != int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64)){
+				if VigActual != int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64)) {
 					aprobada = false
 					alertas = append(alertas, models.Alert{Code: "E_CDP003", Body: solicitud, Type: "error"})
 				}
@@ -1053,7 +1053,7 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 									for _, solicitud_disponibilidad := range solicitud_disponibilidades {
 										var disponibilidades []map[string]interface{}
 										fmt.Println("/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:" + strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64))) + ",Apropiacion.Id:" + strconv.Itoa(idapropiacion))
-										if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:"+strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64)))+",Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamiento:"+strconv.Itoa(idfuente), &disponibilidades); err == nil {
+										if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?query=Disponibilidad.DisponibilidadProcesoExterno.ProcesoExterno:"+strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64)))+",Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamiento:"+strconv.Itoa(idfuente), &disponibilidades); err == nil {
 											if disponibilidades != nil {
 												for _, disponibilidad := range disponibilidades {
 													res = append(res, disponibilidad)
