@@ -27,6 +27,16 @@ type rowPac struct {
 	Idrubro     interface{}
 	Reporte     []*reportePacData
 }
+type rowCierre struct {
+	IdAprop     interface{}
+	Idrubro     interface{}
+	CodigoRub   interface{}
+	Descrubro   interface{}
+	Idfuente    interface{}
+	Fdescrip    interface{}
+	valoresPac  *valoresPac
+}
+
 type reportePacData struct {
 	Mes     interface{}
 	N_mes   interface{}
@@ -527,6 +537,24 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	cuerpo["egresos"] = ingresos
 	//fmt.Println(cuerpo["egresos"])
 	err = mapstructure.Decode(cuerpo, &res)
+	if err != nil {
+		fmt.Println("err2 ", err)
+		return
+	}
+
+	return
+}
+
+func cierreIngresosEgresos(inicio time.Time, fin time.Time,vigencia string,codigo string) (res rowCierre, err error){
+	mesinicio := int(inicio.Month())
+	mesfin := int(fin.Month())
+	var cierreRow[]map[string]interface{}
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre/?vigencia="+vigencia+"&codigo="+codigo+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &cierreRow)
+	if err(!=nil){
+		fmt.Println("err ", err)
+		return
+	}
+	err = mapstructure.Decode(&cierreRow, &res)
 	if err != nil {
 		fmt.Println("err2 ", err)
 		return
