@@ -545,20 +545,59 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	return
 }
 
-func cierreIngresosEgresos(inicio time.Time, fin time.Time,vigencia string,codigo string) (res rowCierre, err error){
+func cierreIngresosEgresos(inicio time.Time, fin time.Time,codigo string, alert *models.Alert) (res rowCierre, err error){
 	mesinicio := int(inicio.Month())
 	mesfin := int(fin.Month())
+	vigencia:=inicio.Year()
 	var cierreRow[]map[string]interface{}
 	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre/?vigencia="+vigencia+"&codigo="+codigo+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &cierreRow)
 	if err(!=nil){
 		fmt.Println("err ", err)
+		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		return
 	}
-	err = mapstructure.Decode(&cierreRow, &res)
+	err = mapstructure.Decode(cierreRow, &res)
 	if err != nil {
 		fmt.Println("err2 ", err)
+		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		return
 	}
 
 	return
+}
+func (c *RubroController) GenerarCierre() {
+	defer c.ServeJSON()
+	var pacData map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
+	var finicio time.Time
+	var ffin time.Time
+	var codigo string
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pacData); err == nil {
+		err = utilidades.FillStruct(pacData["inicio"], &finicio)
+		err = utilidades.FillStruct(pacData["fin"], &ffin)
+		err = utilidades.FillStruct(pacData["codigo"], &codigo)
+		vigencia := finicio.Year();
+		var alert models.Alert
+		if err == nil {
+			if rowCierre, err := cierreIngresosEgresos(finicio, ffin,codigo,alert); err == nil {
+				if alert.Body == nil {
+					fmt.Println("no alert")
+				} else {
+					fmt.Println("alert ", alert)
+				}
+				c.Data["json"] = reporteData
+				fmt.Println("reporte data ", reporteData)
+
+			} else {
+				fmt.Println("err 2")
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		} else {
+			fmt.Println("err 1 ", err.Error())
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+
+	} else {
+		fmt.Println("err 1")
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
 }
