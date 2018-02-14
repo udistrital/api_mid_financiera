@@ -28,13 +28,16 @@ type rowPac struct {
 	Reporte     []*reportePacData
 }
 type rowCierre struct {
-	IdAprop     interface{}
-	Idrubro     interface{}
-	CodigoRub   interface{}
-	Descrubro   interface{}
-	Idfuente    interface{}
-	Fdescrip    interface{}
-	valoresPac  *valoresPac
+	Proyeccion interface{}
+	Pvariacion interface{}
+	Valor      interface{}
+	Variacion  interface{}
+	IdAprop    interface{}
+	Idrubro    interface{}
+	CodigoRub  interface{}
+	Descrubro  interface{}
+	Idfuente   interface{}
+	Fdescrip   interface{}
 }
 
 type reportePacData struct {
@@ -51,6 +54,10 @@ type valoresPac struct {
 type cuerpoPac struct {
 	Ingresos []*rowPac
 	Egresos  []*rowPac
+}
+type cuerpoCierre struct {
+	Ingresos []*rowCierre
+	Egresos  []*rowCierre
 }
 
 var (
@@ -543,4 +550,75 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	}
 
 	return
+}
+func cierreIngresosEgresos(inicio time.Time, fin time.Time, codigo string, alert *models.Alert) (res cuerpoCierre, err error) {
+	vigencia := inicio.Year()
+	var cierreRow []map[string]interface{}
+	mapCierre := make(map[string]interface{})
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo="+codigo+"&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRow)
+	if err != nil {
+		fmt.Println("err ", err)
+		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		return
+	}
+	fmt.Println("cierreRow ", cierreRow)
+	var ingresos interface{}
+	err = utilidades.FillStruct(cierreRow, &ingresos)
+	if err != nil {
+		fmt.Println("err2 ", err)
+		return
+	}
+	mapCierre["ingresos"] = ingresos
+	err = mapstructure.Decode(mapCierre, &res)
+
+	if err != nil {
+		fmt.Println("error decode ", err)
+		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		return
+	}
+	return
+}
+
+// GenerarCierre ...
+// @Title GenerarCierre
+// @Description Get all information to close PAC
+// @Param    request        query     interface{}    true        "objeto con parametros cierre"
+// @Success 200 {object} interface{}
+// @Failure 403
+// @router /GenerarCierre/ [post]
+func (c *RubroController) GenerarCierre() {
+	defer c.ServeJSON()
+	var request map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
+	var finicio time.Time
+	var ffin time.Time
+	var codigo string
+	var alert models.Alert
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &request); err == nil {
+		err = utilidades.FillStruct(request["inicio"], &finicio)
+		err = utilidades.FillStruct(request["fin"], &ffin)
+		err = utilidades.FillStruct(request["codigo"], &codigo)
+		if err == nil {
+
+			if cuerpoCierre, err := cierreIngresosEgresos(finicio, ffin, codigo, &alert); err == nil {
+				if alert.Body == nil {
+					fmt.Println("no alert")
+				} else {
+					fmt.Println("alert ", alert)
+				}
+				c.Data["json"] = cuerpoCierre
+			} else {
+				fmt.Println("err 2")
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+
+		} else {
+			fmt.Println("err 1 ", err.Error())
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
+		}
+
+	} else {
+		fmt.Println("err 1")
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	}
 }
