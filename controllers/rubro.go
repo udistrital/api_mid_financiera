@@ -551,24 +551,37 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	return
 }
-func cierreIngresosEgresos(inicio time.Time, fin time.Time, codigo string, alert *models.Alert) (res cuerpoCierre, err error) {
+func cierreIngresosEgresos(inicio time.Time, fin time.Time, alert *models.Alert) (res cuerpoCierre, err error) {
 	vigencia := inicio.Year()
 	var cierreRow []map[string]interface{}
+	var cierreRowEg []map[string]interface{}
+	var ingresos interface{}
+	var egresos interface{}
 	mapCierre := make(map[string]interface{})
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo="+codigo+"&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRow)
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=2&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRow)
 	if err != nil {
 		fmt.Println("err ", err)
 		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		return
 	}
-	fmt.Println("cierreRow ", cierreRow)
-	var ingresos interface{}
+	
 	err = utilidades.FillStruct(cierreRow, &ingresos)
 	if err != nil {
 		fmt.Println("err2 ", err)
 		return
 	}
+
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=3&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRowEg)
+	
+	err = utilidades.FillStruct(cierreRowEg, &egresos)
+	if err != nil {
+		fmt.Println("err2 ", err)
+		return
+	}
+
 	mapCierre["ingresos"] = ingresos
+	mapCierre["egresos"] = egresos
+
 	err = mapstructure.Decode(mapCierre, &res)
 
 	if err != nil {
@@ -577,6 +590,51 @@ func cierreIngresosEgresos(inicio time.Time, fin time.Time, codigo string, alert
 		return
 	}
 	return
+}
+func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,nperiodos int64){
+	
+	var rubro string
+	var fuente string
+	tool := new(tools.EntornoReglas)
+	tool.Agregar_dominio("Presupuesto")
+
+	for _, ingresosRow := range reporte.Ingresos {
+		err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+		err = utilidades.FillStruct(ingresosRow.Idfuente, &fuente)
+		if err == nil {
+			var valorIngresos interface{}
+			for i := 1; i <= nperiodos; i++ {
+				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetPacValue?vigencia="+strconv.Itoa(vigencia - i)+"&mes="+strconv.Itoa(mes)+"&rubro="+rubro+"&fuente="+fuente, &valorIngresos); err == nil {
+					var dataIngresos []map[string]interface{}
+					err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+						if err == nil {
+							for _, valorData := range dataIngresos {
+								fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", vigencia - i) + "," + fmt.Sprintf("%v", mes) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
+								tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", vigencia - i) + "," + fmt.Sprintf("%v", mes) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
+							}							
+						}else {
+							fmt.Println("err v", err.Error())
+							alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+						}	
+				}
+			}
+		}
+		else{
+			fmt.Println("err ", err.Error())
+			alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
+		}
+		ingresosRow.Proyeccion =  tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", ingresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R");
+		ingresosRow.Variacion = math.Abs(ingresosRow.Valor - ingresosRow.Proyeccion)
+		if ingresosRow.Valor  <= 0 {
+			ingresosRow.Pvariacion  = (ingresosRow.Variacion / ingresosRow.Variacion)
+		} 
+		else {
+			ingresosRow.Pvariacion = (ingresosRow.Variacion  / ingresosRow.Valor)
+		}
+		tool.Quitar_predicados()
+	}
+	
 }
 
 // GenerarCierre ...
@@ -591,15 +649,12 @@ func (c *RubroController) GenerarCierre() {
 	var request map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
-	var codigo string
 	var alert models.Alert
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &request); err == nil {
 		err = utilidades.FillStruct(request["inicio"], &finicio)
 		err = utilidades.FillStruct(request["fin"], &ffin)
-		err = utilidades.FillStruct(request["codigo"], &codigo)
 		if err == nil {
-
-			if cuerpoCierre, err := cierreIngresosEgresos(finicio, ffin, codigo, &alert); err == nil {
+			if cuerpoCierre, err := cierreIngresosEgresos(finicio, ffin, &alert); err == nil {
 				if alert.Body == nil {
 					fmt.Println("no alert")
 				} else {
