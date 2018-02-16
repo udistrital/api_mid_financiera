@@ -591,7 +591,7 @@ func cierreIngresosEgresos(inicio time.Time, fin time.Time, alert *models.Alert)
 	}
 	return
 }
-func ProyeccionIngresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,nperiodos int64){
+func ProyeccionIngresosCierre(reporte *cuerpoCierre,mes int,vigencia int,nperiodos int, alert *models.Alert){
 
 	var rubro string
 	var fuente string
@@ -607,6 +607,7 @@ func ProyeccionIngresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,npe
 				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetPacValue?vigencia="+strconv.Itoa(vigencia - i)+"&mes="+strconv.Itoa(mes)+"&rubro="+rubro+"&fuente="+fuente, &valorIngresos); err == nil {
 					var dataIngresos []map[string]interface{}
 					err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+
 						if err == nil {
 							for _, valorData := range dataIngresos {
 								fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", vigencia - i) + "," + fmt.Sprintf("%v", mes) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
@@ -618,25 +619,38 @@ func ProyeccionIngresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,npe
 						}
 				}
 			}
-		}
-		else{
+		} else{
 			fmt.Println("err ", err.Error())
 			alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			}
+		var valProyectado float64
+		var valEjecutado float64
+		var variacion float64
+		var pVariacion float64
 
+		err = utilidades.FillStruct(ingresosRow.Valor,&valEjecutado)
+
+		ingresosRow.Proyeccion  =  tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", ingresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R")
+		
+		err = utilidades.FillStruct(ingresosRow.Proyeccion,&valProyectado)
+
+		ingresosRow.Variacion = math.Abs(valEjecutado - valProyectado)
+		
+		err = utilidades.FillStruct(ingresosRow.Variacion,&variacion)
+		
+		if valEjecutado <= 0 {
+			 pVariacion = (variacion / variacion)
+		} else {
+			pVariacion = (variacion / valEjecutado)
 		}
-		ingresosRow.Proyeccion =  tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", ingresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R");
-		ingresosRow.Variacion = math.Abs(ingresosRow.Valor - ingresosRow.Proyeccion)
-		if ingresosRow.Valor  <= 0 {
-			ingresosRow.Pvariacion  = (ingresosRow.Variacion / ingresosRow.Variacion)
-		}
-		else {
-			ingresosRow.Pvariacion = (ingresosRow.Variacion  / ingresosRow.Valor)
-		}
+
+		ingresosRow.Pvariacion = pVariacion
 		tool.Quitar_predicados()
 	}
 	wg.Done()
+	return
 }
-func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,nperiodos int64){
+func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int,vigencia int,nperiodos int, alert *models.Alert){
 
 	var rubro string
 	var fuente string
@@ -648,39 +662,53 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,nper
 		err := utilidades.FillStruct(egresosRow.Idrubro, &rubro)
 		err = utilidades.FillStruct(egresosRow.Idfuente, &fuente)
 		if err == nil {
-			var valorIngresos interface{}
+			var valorEgresos interface{}
 			for i := 1; i <= nperiodos; i++ {
-				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetPacValue?vigencia="+strconv.Itoa(vigencia - i)+"&mes="+strconv.Itoa(mes)+"&rubro="+rubro+"&fuente="+fuente, &valorIngresos); err == nil {
+				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetPacValue?vigencia="+strconv.Itoa(vigencia - i)+"&mes="+strconv.Itoa(mes)+"&rubro="+rubro+"&fuente="+fuente, &valorEgresos); err == nil {
 					var dataEgresos []map[string]interface{}
-					err := utilidades.FillStruct(valorIngresos, &dataEgresos)
-						if err == nil {
+					err := utilidades.FillStruct(valorEgresos, &dataEgresos)
+						if err != nil {
+								fmt.Println("error v", err.Error())
+							} else {
+							
 							for _, valorData := range dataEgresos {
 								fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", egresosRow.Idrubro) + "," + fmt.Sprintf("%v", vigencia - i) + "," + fmt.Sprintf("%v", mes) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
 								tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", egresosRow.Idrubro) + "," + fmt.Sprintf("%v", vigencia - i) + "," + fmt.Sprintf("%v", mes) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
 							}
-						}else {
-							fmt.Println("err v", err.Error())
-							alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 						}
 				}
 			}
-		}
-		else{
+		} else{
 			fmt.Println("err ", err.Error())
 			alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+		var valProyectado float64
+		var valEjecutado float64
+		var variacion float64
+		var pVariacion float64
 
+		err = utilidades.FillStruct(egresosRow.Valor,&valEjecutado)
+
+		fmt.Println("minimos_cuadrados_rubr("+fmt.Sprintf("%v", egresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R")
+		egresosRow.Proyeccion  =  tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", egresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R")
+		
+		err = utilidades.FillStruct(egresosRow.Proyeccion,&valProyectado)
+
+		egresosRow.Variacion = math.Abs(valEjecutado - valProyectado)
+
+		err = utilidades.FillStruct(egresosRow.Variacion,&variacion)
+
+		if valEjecutado <= 0 {
+			 pVariacion = (variacion / variacion)
+		} else {
+			pVariacion = (variacion / valEjecutado)
 		}
-		egresosRow.Proyeccion =  tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", egresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R");
-		egresosRow.Variacion = math.Abs(egresosRow.Valor - egresosRow.Proyeccion)
-		if ingresosRow.Valor  <= 0 {
-			egresosRow.Pvariacion  = (egresosRow.Variacion / egresosRow.Variacion)
-		}
-		else {
-			egresosRow.Pvariacion = (egresosRow.Variacion  / egresosRow.Valor)
-		}
+
+		egresosRow.Pvariacion = pVariacion
 		tool.Quitar_predicados()
 	}
 	wg.Done()
+	return
 }
 // GenerarCierre ...
 // @Title GenerarCierre
@@ -691,11 +719,11 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int64,vigencia int64,nper
 // @router /GenerarCierre/ [post]
 func (c *RubroController) GenerarCierre() {
 	defer c.ServeJSON()
-	wg.Add(4)
+	wg.Add(2)
 	var request map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
-	var nperiodos int64
+	var nperiodos int
 	var alert models.Alert
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &request); err == nil {
 		err = utilidades.FillStruct(request["inicio"], &finicio)
@@ -710,8 +738,8 @@ func (c *RubroController) GenerarCierre() {
 				} else {
 					fmt.Println("alert ", alert)
 				}
-				go ProyeccionEgresosCierre(&cuerpoCierre,mes,vigencia,nperiodos)
-				go ProyeccionIngresosCierre(&cuerpoCierre,mes,vigencia,nperiodos)
+				go ProyeccionEgresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
+				go ProyeccionIngresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
 				wg.Wait()
 				c.Data["json"] = cuerpoCierre
 			} else {
