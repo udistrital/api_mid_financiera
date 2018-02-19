@@ -719,7 +719,7 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int,vigencia int,nperiodo
 // @router /GenerarCierre/ [post]
 func (c *RubroController) GenerarCierre() {
 	defer c.ServeJSON()
-	wg.Add(2)
+	//wg.Add(2)
 	var request map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
@@ -729,8 +729,8 @@ func (c *RubroController) GenerarCierre() {
 		err = utilidades.FillStruct(request["inicio"], &finicio)
 		err = utilidades.FillStruct(request["fin"], &ffin)
 		err = utilidades.FillStruct(request["nperiodos"],&nperiodos)
-		mes:=  int(finicio.Month())
-		vigencia:= finicio.Year()
+		//mes:=  int(finicio.Month())
+		//vigencia:= finicio.Year()
 		if err == nil {
 			if cuerpoCierre, err := cierreIngresosEgresos(finicio, ffin, &alert); err == nil {
 				if alert.Body == nil {
@@ -738,9 +738,9 @@ func (c *RubroController) GenerarCierre() {
 				} else {
 					fmt.Println("alert ", alert)
 				}
-				go ProyeccionEgresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
-				go ProyeccionIngresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
-				wg.Wait()
+				//go ProyeccionEgresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
+				//go ProyeccionIngresosCierre(&cuerpoCierre,mes,vigencia,nperiodos,&alert)
+				//wg.Wait()
 				c.Data["json"] = cuerpoCierre
 			} else {
 				fmt.Println("err 2")
