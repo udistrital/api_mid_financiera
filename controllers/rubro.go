@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
+
 
 	"github.com/astaxie/beego"
 	"github.com/mitchellh/mapstructure"
@@ -73,7 +75,7 @@ var (
 // @router /GenerarPac/ [post]
 func (c *RubroController) GenerarPac() {
 	defer c.ServeJSON()
-	wg.Add(4)
+	//wg.Add(4)
 	var pacData map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
 	var finicio time.Time
 	var ffin time.Time
@@ -85,11 +87,12 @@ func (c *RubroController) GenerarPac() {
 		if err == nil {
 			if reporteData, err := cuerpoReporte(finicio, ffin); err == nil {
 				var alert models.Alert
-				go c.calcularEjecutadoIngresos(&reporteData, finicio, ffin, &alert)
-				go c.calcularEjecutadoEngresos(&reporteData, finicio, ffin, &alert)
-				go c.calcularProyeccionIngresos(&reporteData, finicio, ffin, periodos, &alert)
-				go c.calcularProyeccionEgresos(&reporteData, finicio, ffin, periodos, &alert)
-				wg.Wait()
+				//go c.calcularEjecutadoIngresos(&reporteData, finicio, ffin, &alert)
+				//go c.calcularEjecutadoEngresos(&reporteData, finicio, ffin, &alert)
+				//go c.calcularProyeccionIngresos(&reporteData, finicio, ffin, periodos, &alert)
+				//go c.calcularProyeccionEgresos(&reporteData, finicio, ffin, periodos, &alert)
+				//wg.Wait()
+				c.agregarSumaFuente(&reporteData)
 				if alert.Body == nil {
 					fmt.Println("no alert")
 				} else {
@@ -454,6 +457,46 @@ func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, fini
 	return
 }
 
+func (c *RubroController)  agregarSumaFuente(reporteData *cuerpoPac){
+	//var valores valoresPac
+	//var valorSuma int64
+	var Mes  string 
+	var N_mes  string
+	var idFuente string
+	var idFuenteAnt string
+	var DescripcionF string
+	for _,filaIngresos := range reporteData.Egresos {
+		_ = utilidades.FillStruct(filaIngresos.Idfuente, &idFuente)
+		_=utilidades.FillStruct(filaIngresos.Fdescrip ,&DescripcionF)
+		if val:= strings.Compare(idFuente,idFuenteAnt);val!= 0 {
+			fmt.Println("valores  cambian de ","fuenteAnt = "+idFuenteAnt,"fuente "+idFuente)
+			Reporte:= make([]*reportePacData,0)
+			for _,valoresMes:= range filaIngresos.Reporte{
+				valorSuma := valoresPac { Proyeccion:-1,
+										   Valor:-1} 
+				err:=utilidades.FillStruct(valoresMes.Mes,&Mes)
+				err=utilidades.FillStruct(valoresMes.N_mes,N_mes)
+				if err!= nil{
+					fmt.Println("Error",err.Error())
+
+				} 
+				valoresN := &reportePacData { Mes:Mes,
+											  N_mes:N_mes,
+											  Valores:&valorSuma, 
+							}
+				Reporte = append(Reporte,valoresN)
+			}
+			nuevaFIla := &rowPac { Fdescrip:"Total Rubro" + DescripcionF,
+									Reporte:Reporte, 
+									}
+			reporteData.Egresos = append(reporteData.Egresos,nuevaFIla)
+		}
+			idFuenteAnt = idFuente
+	}
+	fmt.Println("cuerpo reporte modificado ",reporteData)
+
+}
+
 func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	mesinicio := int(inicio.Month())
@@ -654,6 +697,10 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int,vigencia int,nperiodo
 
 	var rubro string
 	var fuente string
+	var valProyectado float64
+	var valEjecutado float64
+	var variacion float64
+	var pVariacion float64
 
 	tool := new(tools.EntornoReglas)
 	tool.Agregar_dominio("Presupuesto")
@@ -682,10 +729,6 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre,mes int,vigencia int,nperiodo
 			fmt.Println("err ", err.Error())
 			alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
-		var valProyectado float64
-		var valEjecutado float64
-		var variacion float64
-		var pVariacion float64
 
 		err = utilidades.FillStruct(egresosRow.Valor,&valEjecutado)
 
