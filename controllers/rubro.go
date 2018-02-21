@@ -472,11 +472,17 @@ func (c *RubroController) agregarSumaFuente(reporteData *cuerpoPac, vigencia int
 	var mapValorSumaF map[string]interface{}
 	var ejecutado float64
 	var proyectado float64
+	
+	fmt.Println("tamaño array ",len(reporteData.Egresos))
+	//reporteData.Egresos = append(reporteData.Egresos,nil)
+	//fmt.Println("len after append  ",len(reporteData.Egresos))
+
 	for _, filaIngresos := range reporteData.Egresos {
 		err = utilidades.FillStruct(filaIngresos.Idfuente, &idFuente)
 		err = utilidades.FillStruct(filaIngresos.Fdescrip, &descripcionF)
 		if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
 			Reporte := make([]*reportePacData, 0)
+			filaIngresos.Reporte = append(filaIngresos.Reporte,nil)
 			for _, valoresMes := range filaIngresos.Reporte {
 
 				err = utilidades.FillStruct(valoresMes.Mes, &Mes)
