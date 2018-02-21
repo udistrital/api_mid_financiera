@@ -9,8 +9,9 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/tools"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
 type DisponibilidadController struct {
@@ -233,8 +234,8 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 			if disponibilidades != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(disponibilidades...)
-				chdisponibilidades := utilidades.Digest(done, formatoListaCDP, resch, nil)
+				resch := formatdata.GenChanInterface(disponibilidades...)
+				chdisponibilidades := optimize.Digest(done, formatoListaCDP, resch, nil)
 				for disponibilidad := range chdisponibilidades {
 					respuesta = append(respuesta, disponibilidad.(map[string]interface{}))
 				}
@@ -270,7 +271,7 @@ func (this *DisponibilidadController) DisponibilidadByNecesidad() {
 	idStr := this.Ctx.Input.Param(":id")                                                                                                                                    //id de la necesidad.
 	if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Expedida:true,Necesidad.Id:"+idStr, &solicitud); err == nil { //traer solicitudes por id de necesidad
 		var id int64
-		err = utilidades.FillStruct(solicitud[0]["Id"], &id)
+		err = formatdata.FillStruct(solicitud[0]["Id"], &id)
 		if err != nil {
 			this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
 			this.ServeJSON()
@@ -278,7 +279,7 @@ func (this *DisponibilidadController) DisponibilidadByNecesidad() {
 		fmt.Println("id solicitud", id)
 		fmt.Println("peticion: " + "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad?limit=-1&query=Solicitud:" + strconv.FormatInt(id, 10))
 		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Solicitud:"+strconv.FormatInt(id, 10), &resdisponibilidad); err == nil {
-			err = utilidades.FillStruct(resdisponibilidad[0]["Id"], &id)
+			err = formatdata.FillStruct(resdisponibilidad[0]["Id"], &id)
 			if err != nil {
 				this.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
 				this.ServeJSON()
@@ -325,17 +326,17 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 									if err := getJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest); err == nil {
 										if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia); err == nil {
 											if err := getJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador); err == nil {
-												
-											}else{
+
+											} else {
 
 											}
-										}else{
+										} else {
 
 										}
-									}else{
+									} else {
 
 									}
-								}else{
+								} else {
 
 								}
 							} else {
@@ -436,8 +437,8 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 			if solicitud != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(solicitud...)
-				chsolicitud := utilidades.Digest(done, formatoSolicitudCDP, resch, nil)
+				resch := formatdata.GenChanInterface(solicitud...)
+				chsolicitud := optimize.Digest(done, formatoSolicitudCDP, resch, nil)
 				for solicitud := range chsolicitud {
 					aux, e := solicitud.(map[string]interface{})
 					if e {
@@ -801,14 +802,14 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 		if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:102,FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &responsable_pres); err == nil {
 			//cargar necesidad que dio origen al cdp
 
-			err = utilidades.FillStructDeep(solicitudAnulacion, "AnulacionDisponibilidadApropiacion", &res)
+			err = formatdata.FillStructDeep(solicitudAnulacion, "AnulacionDisponibilidadApropiacion", &res)
 			//fmt.Println("err ", solicitudAnulacion)
 			if err != nil {
 				//err fill idsolicitud
 				this.Data["json"] = err.Error()
 				this.ServeJSON()
 			}
-			err = utilidades.FillStructDeep(res[0], "DisponibilidadApropiacion.Disponibilidad.Solicitud", &id)
+			err = formatdata.FillStructDeep(res[0], "DisponibilidadApropiacion.Disponibilidad.Solicitud", &id)
 			res[0] = make(map[string]interface{})
 			//fmt.Println("err ", solicitudAnulacion)
 			if err != nil {
@@ -818,7 +819,7 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 			}
 			if err := getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(id), &res); err == nil { //traer solicitudes por id de necesidad
 
-				err = utilidades.FillStructDeep(res[0], "Necesidad.Id", &id)
+				err = formatdata.FillStructDeep(res[0], "Necesidad.Id", &id)
 				res[0] = make(map[string]interface{})
 				if err != nil {
 					//err fill idsolicitud
@@ -827,7 +828,7 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 				}
 				if err := getJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(id), &res); err == nil {
 
-					err = utilidades.FillStructDeep(res[0], "JefeDependenciaDestino", &id)
+					err = formatdata.FillStructDeep(res[0], "JefeDependenciaDestino", &id)
 					res[0] = make(map[string]interface{})
 					if err != nil {
 						//err fill idsolicitud
@@ -835,7 +836,7 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 						this.ServeJSON()
 					}
 					if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(id), &res); err == nil {
-						err = utilidades.FillStructDeep(res[0], "DependenciaId", &id)
+						err = formatdata.FillStructDeep(res[0], "DependenciaId", &id)
 						res[0] = make(map[string]interface{})
 						fmt.Println("res ", id)
 						if err != nil {
@@ -845,7 +846,7 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 						}
 						if err := getJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=DependenciaId:"+strconv.Itoa(id)+",FechaInicio__lte:"+time.Now().Format("2006-01-02")+",FechaFin__gte:"+time.Now().Format("2006-01-02"), &res); err == nil {
 							fmt.Println("http://" + beego.AppConfig.String("coreService") + "jefe_dependencia?limit=0&query=Id:" + strconv.Itoa(id))
-							err = utilidades.FillStructDeep(res[0], "TerceroId", &id)
+							err = formatdata.FillStructDeep(res[0], "TerceroId", &id)
 							res[0] = make(map[string]interface{})
 							fmt.Println("res ", id)
 							if err != nil {
@@ -887,7 +888,7 @@ func (this *DisponibilidadController) AprobarAnulacion() {
 	/*var v map[string]interface{}
 	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &v); err == nil {
 		var id interface{}
-		err = utilidades.FillStructDeep(v, "nivel1.nivel2.value", &id)
+		err = formatdata.FillStructDeep(v, "nivel1.nivel2.value", &id)
 		if err != nil {
 			this.Data["json"] = err.Error()
 		} else {
@@ -935,11 +936,11 @@ func (c *DisponibilidadController) ExpedirDisponibilidad() {
 }
 
 func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{}, params ...interface{}) (res interface{}) {
-	tool := new(tools.EntornoReglas)
+	tool := new(ruler.EntornoReglas)
 	var alertas []models.Alert
 	var rubrosSolicitud []map[string]interface{}
 	var mapSaldoApropiacion map[string]float64
-	VigActual := time.Now().Year() 
+	VigActual := time.Now().Year()
 	disponibilidad := make(map[string]interface{})
 	infoDisponibilidad := make(map[string]interface{})
 	aprobada := true
@@ -958,7 +959,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 				}
 				var res string
 				//aqui condicion saldos fuentes.
-				err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_cdp("+strconv.Itoa(int(infoRubro["Apropiacion"].(float64)))+",Y).", "Y"), &res)
+				err := formatdata.FillStruct(tool.Ejecutar_result("aprobacion_cdp("+strconv.Itoa(int(infoRubro["Apropiacion"].(float64)))+",Y).", "Y"), &res)
 				if err == nil {
 					if res == "1" {
 						//-----
@@ -978,7 +979,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 					aprobada = false
 					alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 				}
-				if VigActual != int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64)){
+				if VigActual != int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Necesidad"].(map[string]interface{})["Vigencia"].(float64)) {
 					aprobada = false
 					alertas = append(alertas, models.Alert{Code: "E_CDP003", Body: solicitud, Type: "error"})
 				}

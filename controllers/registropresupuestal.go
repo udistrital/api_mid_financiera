@@ -8,8 +8,10 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/tools"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
 // RegistroPresupuestalController operations for RegistroPresupuestal
@@ -28,7 +30,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	//recuperar datos del CDP objetivo de la solicitud
 	var rubros []interface{}
 	solicitud := models.SolicitudRp{}
-	err := utilidades.FillStruct(solicitudintfc, &solicitud)
+	err := request.FillStruct(solicitudintfc, &solicitud)
 	fmt.Println(err)
 	var afectacion_solicitud []map[string]interface{}
 	if err := getJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=-1&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacion_solicitud); err == nil {
@@ -212,8 +214,8 @@ func (c *RegistroPresupuestalController) ListaRp() {
 			if rpresupuestal != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(rpresupuestal...)
-				chrpresupuestal := utilidades.Digest(done, FormatoListaRP, resch, nil)
+				resch := formatdata.GenChanInterface(rpresupuestal...)
+				chrpresupuestal := optimize.Digest(done, FormatoListaRP, resch, nil)
 				for rp := range chrpresupuestal {
 					if rp != nil {
 						respuesta = append(respuesta, rp.(map[string]interface{}))
@@ -295,8 +297,8 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(solicitudes_rp...)
-				chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
+				resch := formatdata.GenChanInterface(solicitudes_rp...)
+				chsolicitud := optimize.Digest(done, formatoSolicitudRP, resch, nil)
 				for solicitud := range chsolicitud {
 					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
 				}
@@ -463,7 +465,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 	var dataAlertas []models.Alert //array con las alertas generadas en aprobacion masiva de solicitudes
 	var saldoCDP map[string]float64
 	VigActual := time.Now().Year()
-	tool := new(tools.EntornoReglas)
+	tool := new(ruler.EntornoReglas)
 	var respuestaServices interface{}
 	//------------------------------------------------------
 	tool.Agregar_dominio("Presupuesto")
@@ -497,7 +499,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 			var res string
 			fmt.Println(rp_a_registrar)
 			if rp_a_registrar.Rubros != nil {
-				err := utilidades.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
+				err := request.FillStruct(tool.Ejecutar_result("aprobacion_rp("+strconv.Itoa(rp_a_registrar.Rubros[0].Disponibilidad.Id)+",Y).", "Y"), &res)
 				if err == nil { //
 					if int(rp_a_registrar.Rp.Vigencia) == VigActual {
 						if res == "1" { // si se aprueba la solicitud
@@ -615,8 +617,8 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 			if solicitudNecesidad != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(solicitudNecesidad...)
-				chsolicitud := utilidades.Digest(done, ListaNecesidadesByRp, resch, nil)
+				resch := formatdata.GenChanInterface(solicitudNecesidad...)
+				chsolicitud := optimize.Digest(done, ListaNecesidadesByRp, resch, nil)
 				for solicitud := range chsolicitud {
 					if solicitud != nil {
 						respuesta = append(respuesta, solicitud.(map[string]interface{}))
@@ -753,8 +755,8 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 						if err = getJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=-1&query=Masivo:true,Expedida:false,JustificacionRechazo:,Cdp__in:"+inQuery+queryF+",Vigencia:"+vigenciaStr, &solicitudRp); err == nil && solicitudRp != nil {
 							done := make(chan interface{})
 							defer close(done)
-							resch := utilidades.GenChanInterface(solicitudRp...)
-							chsolicitud := utilidades.Digest(done, formatoSolicitudRP, resch, nil)
+							resch := formatdata.GenChanInterface(solicitudRp...)
+							chsolicitud := optimize.Digest(done, formatoSolicitudRP, resch, nil)
 							var rubrosAfectados []map[string]interface{}
 							for solicitud := range chsolicitud {
 								if solicitudmap, e := solicitud.(models.SolicitudRp); e {

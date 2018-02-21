@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/tools"
-	"github.com/udistrital/api_mid_financiera/utilidades"
-
-	"github.com/astaxie/beego"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
 type AprobacionController struct {
@@ -182,12 +181,12 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 		if err == nil {
 			fmt.Println(vigencia)
 			fmt.Println(unidadejecutora)
-			tool := new(tools.EntornoReglas)
+			tool := new(ruler.EntornoReglas)
 			tool.Agregar_dominio("Presupuesto")
 			var res []string
 			var infoSaldoInicial []map[string]interface{}
 			saldo := make(map[string]interface{})
-			utilidades.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
+			formatdata.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
 			for _, rpadre := range res {
 				var rubro []models.Rubro
 				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro?query=Rubro.Codigo:" + rpadre)
@@ -216,7 +215,7 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 			if infoSaldoInicial != nil {
 				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["SaldoInicial"])+",Y).", "Y")
 				var comp string
-				err = utilidades.FillStruct(res, &comp)
+				err = formatdata.FillStruct(res, &comp)
 				if err == nil {
 					c.Data["json"] = map[string]interface{}{"Aprobado": res, "Data": infoSaldoInicial}
 				} else {
@@ -254,7 +253,7 @@ func (c *AprobacionController) AprobacionAsignacionInicial() {
 		unidadejecutora, err := c.GetInt("UnidadEjecutora")
 		if err == nil {
 			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-				tool := new(tools.EntornoReglas)
+				tool := new(ruler.EntornoReglas)
 				tool.Agregar_dominio("Presupuesto")
 				for _, apr := range v {
 					tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
@@ -262,7 +261,7 @@ func (c *AprobacionController) AprobacionAsignacionInicial() {
 				if v != nil {
 					res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", v[0]["SaldoInicial"])+",Y).", "Y")
 					var aprobado string
-					err = utilidades.FillStruct(res, &aprobado)
+					err = formatdata.FillStruct(res, &aprobado)
 					if err == nil {
 						if aprobado == "1" {
 							var res interface{}

@@ -11,8 +11,8 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/mitchellh/mapstructure"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/tools"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
 type RubroController struct {
@@ -62,9 +62,9 @@ func (c *RubroController) GenerarPac() {
 	var ffin time.Time
 	var periodos int
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &pacData); err == nil {
-		err := utilidades.FillStruct(pacData["inicio"], &finicio)
-		err = utilidades.FillStruct(pacData["fin"], &ffin)
-		err = utilidades.FillStruct(pacData["periodosproy"], &periodos)
+		err := formatdata.FillStruct(pacData["inicio"], &finicio)
+		err = formatdata.FillStruct(pacData["fin"], &ffin)
+		err = formatdata.FillStruct(pacData["periodosproy"], &periodos)
 		if err == nil {
 			if reporteData, err := cuerpoReporte(finicio, ffin); err == nil {
 				var alert models.Alert
@@ -103,8 +103,8 @@ func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, fini
 		for _, reporteRow := range ingresosRow.Reporte {
 			var valor string
 			var mes int
-			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
 			if err == nil {
 				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
 				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
@@ -114,9 +114,9 @@ func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, fini
 				}
 				var rubro string
 				var idFuente string
-				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
 
-				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
 
 				if err == nil {
 
@@ -131,13 +131,13 @@ func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, fini
 					var valorIngresos interface{}
 					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorIngresos); err == nil {
 						var dataIngresos []map[string]interface{}
-						err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+						err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 						if err != nil {
 
 						} else {
 							for _, valorData := range dataIngresos {
 								//fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-								utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+								formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
 							}
 
 						}
@@ -169,8 +169,8 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 		for _, reporteRow := range ingresosRow.Reporte {
 			var valor string
 			var mes int
-			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
 			if err == nil {
 				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
 				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
@@ -180,9 +180,9 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 				}
 				var rubro string
 				var idFuente string
-				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
 
-				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
 
 				if err == nil {
 
@@ -197,13 +197,13 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 					var valorEngresos interface{}
 					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
 						var dataEngresos []map[string]interface{}
-						err := utilidades.FillStruct(valorEngresos, &dataEngresos)
+						err := formatdata.FillStruct(valorEngresos, &dataEngresos)
 						if err != nil {
 
 						} else {
 							for _, valorData := range dataEngresos {
 								//fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-								utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+								formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
 							}
 
 						}
@@ -229,15 +229,15 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 }
 
 func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, nperiodos int, alert *models.Alert) {
-	tool := new(tools.EntornoReglas)
+	tool := new(ruler.EntornoReglas)
 	tool.Agregar_dominio("Presupuesto")
 	for _, ingresosRow := range reporteData.Ingresos { //recorrer los datos del reporte de ingresos para el rango actual
 
 		for _, reporteRow := range ingresosRow.Reporte {
 			var valor string
 			var mes int
-			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
 			if err == nil {
 				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
 				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
@@ -247,9 +247,9 @@ func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, fin
 				}
 				var rubro string
 				var idFuente string
-				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
 
-				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
 
 				if err == nil {
 
@@ -268,14 +268,14 @@ func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, fin
 						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
 						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
 							var dataIngresos []map[string]interface{}
-							err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 							if err != nil {
 
 							} else {
 								for _, valorData := range dataIngresos {
 									fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", i) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
 									tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									//utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+									//formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
 								}
 
 							}
@@ -293,8 +293,8 @@ func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, fin
 					var ej float64
 					var proystr string
 
-					err := utilidades.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
-					err1 := utilidades.FillStruct(reporteRow.Valores.Valor, &ej)
+					err := formatdata.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
+					err1 := formatdata.FillStruct(reporteRow.Valores.Valor, &ej)
 					if err == nil && err1 == nil {
 						var variacion float64
 						var pvar float64
@@ -334,15 +334,15 @@ func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, fin
 }
 
 func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, nperiodos int, alert *models.Alert) {
-	tool := new(tools.EntornoReglas)
+	tool := new(ruler.EntornoReglas)
 	tool.Agregar_dominio("Presupuesto")
 	for _, ingresosRow := range reporteData.Egresos { //recorrer los datos del reporte de ingresos para el rango actual
 
 		for _, reporteRow := range ingresosRow.Reporte {
 			var valor string
 			var mes int
-			err := utilidades.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = utilidades.FillStruct(reporteRow.N_mes, &mes)
+			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
+			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
 			if err == nil {
 				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
 				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
@@ -352,9 +352,9 @@ func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, fini
 				}
 				var rubro string
 				var idFuente string
-				err := utilidades.FillStruct(ingresosRow.Idrubro, &rubro)
+				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
 
-				err = utilidades.FillStruct(ingresosRow.Idfuente, &idFuente)
+				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
 
 				if err == nil {
 
@@ -373,14 +373,14 @@ func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, fini
 						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
 						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
 							var dataIngresos []map[string]interface{}
-							err := utilidades.FillStruct(valorIngresos, &dataIngresos)
+							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 							if err != nil {
 
 							} else {
 								for _, valorData := range dataIngresos {
 									fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", i) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
 									tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									//utilidades.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+									//formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
 								}
 
 							}
@@ -397,8 +397,8 @@ func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, fini
 					var ej float64
 					var proystr string
 
-					err := utilidades.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
-					err1 := utilidades.FillStruct(reporteRow.Valores.Valor, &ej)
+					err := formatdata.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
+					err1 := formatdata.FillStruct(reporteRow.Valores.Valor, &ej)
 					if err == nil && err1 == nil {
 						var variacion float64
 						var pvar float64
@@ -477,7 +477,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	}
 	var ingresos interface{}
-	err = utilidades.FillStruct(m, &ingresos)
+	err = formatdata.FillStruct(m, &ingresos)
 	if err != nil {
 		fmt.Println("err2 ", err)
 		return
@@ -518,7 +518,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	}
 
-	err = utilidades.FillStruct(m, &ingresos)
+	err = formatdata.FillStruct(m, &ingresos)
 	if err != nil {
 		fmt.Println("err2 ", err)
 		return

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/api_mid_financiera/tools"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
 // PartidadobleController operations for Partidadoble
@@ -39,7 +39,7 @@ func (c *PartidadobleController) URLMapping() {
 // @router / [post]
 func (c *PartidadobleController) Post() {
 	println("entro")
-	tool := tools.EntornoReglas{}
+	tool := ruler.EntornoReglas{}
 	//tool.Agregar_dominio("presupuesto")
 	var v []PDMovimientoContable
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
@@ -87,7 +87,7 @@ func (c *PartidadobleController) GetOne() {
 // @Failure 403
 // @router / [get]
 func (c *PartidadobleController) GetAll() {
-	tool := new(tools.EntornoReglas)
+	tool := new(ruler.EntornoReglas)
 	tool.Agregar_dominio("Presupuesto")
 
 	err := tool.Agregar_predicado_dinamico("ValorNecesidad:argoService.fuente_financiacion_rubro_necesidad|SolicitudNecesidad.Id|MontoParcial")

@@ -4,8 +4,9 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/api_financiera/utilidades"
 	"github.com/udistrital/ss_crud_api/models"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
 )
 
 // OrdenPagoController operations for Orden_pago
@@ -41,8 +42,8 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 			var outputOrdenPago []interface{}
 			done := make(chan interface{})
 			defer close(done)
-			resch := utilidades.GenChanInterface(registroPresupuestales...)
-			chlistaOrdenes := utilidades.Digest(done, searchOrdenPagoByRpId, resch, parametro)
+			resch := formatdata.GenChanInterface(registroPresupuestales...)
+			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpId, resch, parametro)
 			for arrayOrdenPago := range chlistaOrdenes {
 				if dataOrden, e := arrayOrdenPago.([]interface{}); e {
 					for _, ordenPago := range dataOrden {

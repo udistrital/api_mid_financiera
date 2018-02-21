@@ -5,7 +5,9 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
 )
 
 // Orden_pago_hcController operations for Orden_pago_hc
@@ -186,7 +188,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		idPreliquidacion = devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 		done := make(chan interface{})
 		defer close(done)
-		resch := utilidades.GenChanInterface(devengosNomina...)
+		resch := formatdata.GenChanInterface(devengosNomina...)
 		f := homologacionFunctionDispatcher(devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 		if f != nil {
 			infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
@@ -199,7 +201,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			}
 			params = append(params, nContrato)
 			params = append(params, vigenciaContrato)
-			chConcHomologados := utilidades.Digest(done, f, resch, params)
+			chConcHomologados := optimize.Digest(done, f, resch, params)
 			for conceptoHomologadoint := range chConcHomologados {
 				conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
 				if e {
@@ -237,8 +239,8 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			idPreliquidacion = descuentosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 			done = make(chan interface{})
 			defer close(done)
-			resch = utilidades.GenChanInterface(descuentosNomina...)
-			chDescHomologados := utilidades.Digest(done, homologacionDescuentosHC, resch, params)
+			resch = formatdata.GenChanInterface(descuentosNomina...)
+			chDescHomologados := optimize.Digest(done, homologacionDescuentosHC, resch, params)
 			for descuentoHomologado := range chDescHomologados {
 				//beego.Info(descuentoHomologado)
 				homologado, e := descuentoHomologado.(map[string]interface{})
@@ -336,14 +338,14 @@ func formatoPreViewCargueMasivoOpHc(liquidacion interface{}, params ...interface
 	if e {
 		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-			resch := utilidades.GenChanInterface(listaLiquidacion...)
+			resch := formatdata.GenChanInterface(listaLiquidacion...)
 			var params []interface{}
 			params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
 			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 			if f != nil {
 
-				chlistaLiquidacion := utilidades.Digest(done, f, resch, params)
+				chlistaLiquidacion := optimize.Digest(done, f, resch, params)
 				for dataLiquidacion := range chlistaLiquidacion {
 					if dataLiquidacion != nil {
 						respuesta = append(respuesta, dataLiquidacion)

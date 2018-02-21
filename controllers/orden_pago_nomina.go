@@ -7,7 +7,8 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
 )
 
 // OrdenPagoNominaController operations for Orden_pago_planta
@@ -68,8 +69,8 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 				defer close(done)
 				if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 					listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-					resch := utilidades.GenChanInterface(listaLiquidacion...)
-					chlistaLiquidacion := utilidades.Digest(done, formatoListaLiquidacion, resch, nil)
+					resch := formatdata.GenChanInterface(listaLiquidacion...)
+					chlistaLiquidacion := optimize.Digest(done, formatoListaLiquidacion, resch, nil)
 					for dataLiquidacion := range chlistaLiquidacion {
 						if dataLiquidacion != nil {
 							respuesta = append(respuesta, dataLiquidacion.(map[string]interface{}))
@@ -115,13 +116,13 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 			if listaDetalles != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := utilidades.GenChanInterface(listaDetalles...)
+				resch := formatdata.GenChanInterface(listaDetalles...)
 				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 				var params []interface{}
 				params = append(params, "persona")
 				params = append(params, nContrato)
 				params = append(params, vigenciaContrato)
-				chConcHomologados := utilidades.Digest(done, f, resch, params)
+				chConcHomologados := optimize.Digest(done, f, resch, params)
 				for conceptoHomologadoint := range chConcHomologados {
 					conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
 					if e {
