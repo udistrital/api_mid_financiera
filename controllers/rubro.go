@@ -741,14 +741,13 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 	return
 }
-func cierreIngresosEgresos(inicio time.Time, fin time.Time, alert *models.Alert) (res cuerpoCierre, err error) {
-	vigencia := inicio.Year()
+func cierreIngresosEgresos(vigencia int,mes int, alert *models.Alert) (res cuerpoCierre, err error) {
 	var cierreRow []map[string]interface{}
 	var cierreRowEg []map[string]interface{}
 	var ingresos interface{}
 	var egresos interface{}
 	mapCierre := make(map[string]interface{})
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=2&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRow)
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=2"+"&mes="+strconv.Itoa(mes), &cierreRow)
 	if err != nil {
 		fmt.Println("err ", err)
 		alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
@@ -761,7 +760,7 @@ func cierreIngresosEgresos(inicio time.Time, fin time.Time, alert *models.Alert)
 		return
 	}
 
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=3&finicio="+inicio.Format("2006-01-02")+"&ffin="+fin.Format("2006-01-02"), &cierreRowEg)
+	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetIngresoCierre?vigencia="+strconv.Itoa(vigencia)+"&codigo=3"+"&mes="+strconv.Itoa(mes), &cierreRowEg)
 
 	err = utilidades.FillStruct(cierreRowEg, &egresos)
 	if err != nil {
@@ -911,19 +910,21 @@ func ProyeccionEgresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nperi
 func (c *RubroController) GenerarCierre() {
 	defer c.ServeJSON()
 	//wg.Add(2)
+	fmt.Println("GenerarCierre")
 	var request map[string]interface{} //definicion de la interface que recibe los datos del reporte y proyecciones
-	var finicio time.Time
-	var ffin time.Time
-	var nperiodos int
+	var vigencia int
+	var mes string
+	var m int
 	var alert models.Alert
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &request); err == nil {
-		err = utilidades.FillStruct(request["inicio"], &finicio)
-		err = utilidades.FillStruct(request["fin"], &ffin)
-		err = utilidades.FillStruct(request["nperiodos"], &nperiodos)
+		err = utilidades.FillStruct(request["vigencia"], &vigencia)
+		err = utilidades.FillStruct(request["mes"], &mes)
+		//err = utilidades.FillStruct(request["nperiodos"], &nperiodos)
 		//mes:=  int(finicio.Month())
 		//vigencia:= finicio.Year()
 		if err == nil {
-			if cuerpoCierre, err := cierreIngresosEgresos(finicio, ffin, &alert); err == nil {
+			m,_ = strconv.Atoi(mes)
+			if cuerpoCierre, err := cierreIngresosEgresos(vigencia,m, &alert); err == nil {
 				if alert.Body == nil {
 					fmt.Println("no alert")
 				} else {
