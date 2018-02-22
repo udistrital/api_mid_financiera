@@ -8,6 +8,7 @@ import (
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // Orden_pago_plantaController operations for Orden_pago_planta
@@ -229,7 +230,7 @@ func homologacionConceptosDocentesPlanta(dataConcepto interface{}, params ...int
 			return nil
 		}
 		//fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
-		if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
 			//fmt.Println("Hom ", homologacion)
 			if homologacion != nil {
 				//cuando hay homologacion de un concepto para concepto kronos.
@@ -462,7 +463,7 @@ func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res
 					Opmap["ValorBase"] = valorBase
 					auxmap["OrdenPago"] = Opmap
 					beego.Info(Opmap)
-					if err := sendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &alert, &auxmap); err == nil {
+					if err := request.SendJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/RegistrarOpProveedor", "POST", &alert, &auxmap); err == nil {
 						alerts = append(alerts, alert)
 					} else {
 						alerts = append(alerts, models.Alert{Code: "E_0458", Body: data, Type: "error"})

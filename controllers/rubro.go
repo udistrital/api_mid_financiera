@@ -12,6 +12,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/ruler"
 )
 
@@ -129,7 +130,7 @@ func (c *RubroController) calcularEjecutadoIngresos(reporteData *cuerpoPac, fini
 
 					}*/
 					var valorIngresos interface{}
-					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorIngresos); err == nil {
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorIngresos); err == nil {
 						var dataIngresos []map[string]interface{}
 						err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 						if err != nil {
@@ -195,7 +196,7 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 
 					}*/
 					var valorEngresos interface{}
-					if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
 						var dataEngresos []map[string]interface{}
 						err := formatdata.FillStruct(valorEngresos, &dataEngresos)
 						if err != nil {
@@ -266,7 +267,7 @@ func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, fin
 						Inicio := time.Date(fechaInicio.Year()-i, fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, time.Local)
 						Fin := time.Date(fechaFin.Year()-i, fechaFin.Month(), fechaFin.Day(), 0, 0, 0, 0, time.Local)
 						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
-						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
 							var dataIngresos []map[string]interface{}
 							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 							if err != nil {
@@ -371,7 +372,7 @@ func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, fini
 						Inicio := time.Date(fechaInicio.Year()-i, fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, time.Local)
 						Fin := time.Date(fechaFin.Year()-i, fechaFin.Month(), fechaFin.Day(), 0, 0, 0, 0, time.Local)
 						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
-						if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
 							var dataIngresos []map[string]interface{}
 							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 							if err != nil {
@@ -443,7 +444,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	mesfin := int(fin.Month())
 	var m []map[string]interface{}
 	cuerpo := make(map[string]interface{})
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=2", &m)
+	err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=2", &m)
 	if err != nil {
 		return
 	}
@@ -484,7 +485,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	}
 	cuerpo["ingresos"] = ingresos
 
-	err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=3", &m)
+	err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/GetApropiacionesHijo/"+strconv.Itoa(inicio.Year())+"?tipo=3", &m)
 	if err != nil {
 		return
 	}
