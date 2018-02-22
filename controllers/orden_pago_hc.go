@@ -6,7 +6,6 @@ import (
 
 	"github.com/astaxie/beego"
 
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 )
 
@@ -188,7 +187,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		idPreliquidacion = devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 		done := make(chan interface{})
 		defer close(done)
-		resch := formatdata.GenChanInterface(devengosNomina...)
+		resch := optimize.GenChanInterface(devengosNomina...)
 		f := homologacionFunctionDispatcher(devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 		if f != nil {
 			infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
@@ -239,7 +238,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			idPreliquidacion = descuentosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 			done = make(chan interface{})
 			defer close(done)
-			resch = formatdata.GenChanInterface(descuentosNomina...)
+			resch = optimize.GenChanInterface(descuentosNomina...)
 			chDescHomologados := optimize.Digest(done, homologacionDescuentosHC, resch, params)
 			for descuentoHomologado := range chDescHomologados {
 				//beego.Info(descuentoHomologado)
@@ -338,7 +337,7 @@ func formatoPreViewCargueMasivoOpHc(liquidacion interface{}, params ...interface
 	if e {
 		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-			resch := formatdata.GenChanInterface(listaLiquidacion...)
+			resch := optimize.GenChanInterface(listaLiquidacion...)
 			var params []interface{}
 			params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
 			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))

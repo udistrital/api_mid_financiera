@@ -5,7 +5,6 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/ss_crud_api/models"
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 )
 
@@ -42,7 +41,7 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 			var outputOrdenPago []interface{}
 			done := make(chan interface{})
 			defer close(done)
-			resch := formatdata.GenChanInterface(registroPresupuestales...)
+			resch := optimize.GenChanInterface(registroPresupuestales...)
 			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpId, resch, parametro)
 			for arrayOrdenPago := range chlistaOrdenes {
 				if dataOrden, e := arrayOrdenPago.([]interface{}); e {

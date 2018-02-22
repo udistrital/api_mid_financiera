@@ -8,7 +8,6 @@ import (
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
-	"github.com/udistrital/utils_oas/request"
 )
 
 // Orden_pago_plantaController operations for Orden_pago_planta
@@ -62,7 +61,7 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 		if devengosNomina != nil {
 			done := make(chan interface{})
 			defer close(done)
-			resch := formatdata.GenChanInterface(devengosNomina...)
+			resch := optimize.GenChanInterface(devengosNomina...)
 			f := homologacionFunctionDispatcher(devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 			if f != nil {
 				infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
@@ -112,7 +111,7 @@ func formatoResumenOpPlanta(dataLiquidacion interface{}, params ...interface{}) 
 		//homlogacion de los descuentos de la nomina de planta a conceptos de kronos...
 		done := make(chan interface{})
 		defer close(done)
-		resch := formatdata.GenChanInterface(descuentosNomina...)
+		resch := optimize.GenChanInterface(descuentosNomina...)
 		chDescHomologados := optimize.Digest(done, homologacionDescuentosHC, resch, nil)
 		for descuentoHomologado := range chDescHomologados {
 			homologado, e := descuentoHomologado.(map[string]interface{})
@@ -271,7 +270,7 @@ func formatoPreViewCargueMasivoOpPlanta(liquidacion interface{}, params ...inter
 	if e {
 		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-			resch := formatdata.GenChanInterface(listaLiquidacion...)
+			resch := optimize.GenChanInterface(listaLiquidacion...)
 			var params2 []interface{}
 
 			params2 = append(params2, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
@@ -338,7 +337,7 @@ func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interf
 				beego.Info(auxMap["Liquidacion"]) //detalleMap = append(detalleMap, auxMap)
 				ConcsOpMap, e := auxMap["ConceptoOrdenPago"].([]map[string]interface{})
 				var MovsMap []map[string]interface{}
-				err := request.FillStruct(auxMap["MovimientoContable"], &MovsMap)
+				err := formatdata.FillStruct(auxMap["MovimientoContable"], &MovsMap)
 				if e && err == nil {
 					//if e {
 

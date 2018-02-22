@@ -7,7 +7,6 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 )
 
@@ -69,7 +68,7 @@ func (c *OrdenPagoNominaController) ListaLiquidacionNominaHomologada() {
 				defer close(done)
 				if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 					listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-					resch := formatdata.GenChanInterface(listaLiquidacion...)
+					resch := optimize.GenChanInterface(listaLiquidacion...)
 					chlistaLiquidacion := optimize.Digest(done, formatoListaLiquidacion, resch, nil)
 					for dataLiquidacion := range chlistaLiquidacion {
 						if dataLiquidacion != nil {
@@ -116,7 +115,7 @@ func (c *OrdenPagoNominaController) ListaConceptosNominaHomologados() {
 			if listaDetalles != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := formatdata.GenChanInterface(listaDetalles...)
+				resch := optimize.GenChanInterface(listaDetalles...)
 				f := homologacionFunctionDispatcher(listaDetalles[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 				var params []interface{}
 				params = append(params, "persona")

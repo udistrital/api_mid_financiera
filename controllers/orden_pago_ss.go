@@ -7,7 +7,6 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 )
 
@@ -44,7 +43,7 @@ func pagoSsPorPersona(idPeriodoPago float64) (dataOutp interface{}, outputError 
 		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/PagosPorPeriodoPago?idPeriodoPago="+strconv.FormatFloat(idPeriodoPago, 'f', -1, 64), &pagosPorDetalle); err == nil && pagosPorDetalle != nil {
 			done := make(chan interface{})
 			defer close(done)
-			resch := formatdata.GenChanInterface(pagosPorDetalle...)
+			resch := optimize.GenChanInterface(pagosPorDetalle...)
 			// add vigencia y contrato a la agrupacion de pagos
 			chlistaPagos := optimize.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
 			for datalistaPagos := range chlistaPagos {
@@ -108,7 +107,7 @@ func ListaDetalleDePagoSsPorPersona(idPeriodoPago, idDetalleLiquidacion int) (De
 		if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=DetalleLiquidacion:"+strconv.Itoa(idDetalleLiquidacion)+"&PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago), &listaPagos); err == nil && listaPagos != nil {
 			done := make(chan interface{})
 			defer close(done)
-			resch := formatdata.GenChanInterface(listaPagos...)
+			resch := optimize.GenChanInterface(listaPagos...)
 			chlistaPagos := optimize.Digest(done, getTipoPagoTitan, resch, nil)
 			for dataChlistaPagos := range chlistaPagos {
 				if dataChlistaPagos != nil {
@@ -166,7 +165,7 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 					if allPago != nil {
 						done := make(chan interface{})
 						defer close(done)
-						resch := formatdata.GenChanInterface(allPago...)
+						resch := optimize.GenChanInterface(allPago...)
 						chConcHomologados := optimize.Digest(done, homologacionConceptosSS, resch, nil)
 						for conceptoHomologadoint := range chConcHomologados {
 							conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
@@ -489,7 +488,7 @@ func getPagosConDetalleLiquidacion(idPeriodoPago int) (respuestaCV []interface{}
 	if err := getJson("http://"+beego.AppConfig.String("SsService")+"pago/?query=PeriodoPago.Id:"+strconv.Itoa(idPeriodoPago)+"&limit=-1", &dataPagos); err == nil && dataPagos != nil {
 		done := make(chan interface{})
 		defer close(done)
-		resch := formatdata.GenChanInterface(dataPagos...)
+		resch := optimize.GenChanInterface(dataPagos...)
 		chlistaPagos := optimize.Digest(done, getContratoVigenciaDetalleLiquidacion, resch, nil)
 		for datalistaPagos := range chlistaPagos {
 			if datalistaPagos != nil {
@@ -555,7 +554,7 @@ func getMovimientosDescuentoDeLiquidacion(idLiquidacion, idNomina int) (DataMovi
 			done := make(chan interface{})
 			defer close(done)
 			params = append(params, idNomina)
-			resch := formatdata.GenChanInterface(ordenespago...)
+			resch := optimize.GenChanInterface(ordenespago...)
 			chlistaMovimientos := optimize.Digest(done, getMovimeintosContables, resch, params)
 			for dataChListaMovimientos := range chlistaMovimientos {
 				if movimientosPorOrdenP, e := dataChListaMovimientos.([]interface{}); e {

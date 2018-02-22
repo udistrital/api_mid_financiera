@@ -234,7 +234,7 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 			if disponibilidades != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := formatdata.GenChanInterface(disponibilidades...)
+				resch := optimize.GenChanInterface(disponibilidades...)
 				chdisponibilidades := optimize.Digest(done, formatoListaCDP, resch, nil)
 				for disponibilidad := range chdisponibilidades {
 					respuesta = append(respuesta, disponibilidad.(map[string]interface{}))
@@ -437,7 +437,7 @@ func (this *DisponibilidadController) InfoSolicitudDisponibilidad() {
 			if solicitud != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := formatdata.GenChanInterface(solicitud...)
+				resch := optimize.GenChanInterface(solicitud...)
 				chsolicitud := optimize.Digest(done, formatoSolicitudCDP, resch, nil)
 				for solicitud := range chsolicitud {
 					aux, e := solicitud.(map[string]interface{})
