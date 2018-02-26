@@ -317,63 +317,27 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(int(solicitud["Necesidad"].(map[string]interface{})["Id"].(float64))), &necesidad); err == nil {
 			necesidadaux := necesidad[0]
 			solicitud["Necesidad"] = &necesidadaux
+			request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes)
+			request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol)
+			request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol)
+			request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia)
+			request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador)
+			request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaDestino), &jefe_dep_dest)
+			request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest)
+			request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia)
+			request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador)
 
-			if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
-				if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-					if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
-						if err := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err == nil {
-							if err := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); err == nil {
-								if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaDestino), &jefe_dep_dest); err == nil {
-									if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest); err == nil {
-										if err := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia); err == nil {
-											if err := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador); err == nil {
-
-											} else {
-
-											}
-										} else {
-
-										}
-									} else {
-
-									}
-								} else {
-
-								}
-							} else {
-								fmt.Println("error5: ", err)
-								//return nil
-							}
-						} else {
-							fmt.Println("error5: ", err)
-							//return nil
-						}
-					} else {
-						fmt.Println("error4: ", err)
-						//return nil
-
-					}
-
-				} else {
-					fmt.Println("error5: ", err)
-					//return nil
-				}
-
-				if depSol == nil {
-					depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
-				}
-				if depDest == nil {
-					depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
-				}
-				temp := map[string]interface{}{"SolicitudDisponibilidad": solicitud, "DependenciaSolicitante": depSol[0], "DependenciaDestino": depDest[0]}
-				res = temp
-				return
-			} else {
-				fmt.Println("error3: ", err)
-				//return nil
+			if depSol == nil {
+				depSol = append(depSol, models.Dependencia{Nombre: "Indefinida"})
 			}
+			if depDest == nil {
+				depDest = append(depDest, models.Dependencia{Nombre: "Indefinida"})
+			}
+			temp := map[string]interface{}{"SolicitudDisponibilidad": solicitud, "DependenciaSolicitante": depSol[0], "DependenciaDestino": depDest[0]}
+			res = temp
+			return
 		} else {
-			fmt.Println("error2: ", err)
+			fmt.Println("error3: ", err)
 			//return nil
 		}
 	}
