@@ -58,6 +58,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	} else {
 		//si sale mal la consulta de la afectacion de la solicitud.
 		fmt.Println(err.Error())
+		return
 	}
 
 	var cdp_objtvo []models.Disponibilidad
