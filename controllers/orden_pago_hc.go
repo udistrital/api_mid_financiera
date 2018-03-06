@@ -341,8 +341,9 @@ func formatoPreViewCargueMasivoOpHc(liquidacion interface{}, params ...interface
 			resch := optimize.GenChanInterface(listaLiquidacion...)
 			var params []interface{}
 			params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+			//dav01
 			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			beego.Info(f)
 			if f != nil {
 
 				chlistaLiquidacion := optimize.Digest(done, f, resch, params)
