@@ -12,6 +12,7 @@ import (
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/ruler"
+	"github.com/manucorporat/try"
 )
 
 // RegistroPresupuestalController operations for RegistroPresupuestal
@@ -149,13 +150,17 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 //funcion para recopilar datos externos de los rp a listar
 func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
-	idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
-	solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
+	try.This(func(){
+			idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
+			solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
-	if err == nil {
-		rp["InfoSolicitudDisponibilidad"] = solicituddisp
-		return rp
-	}
+			if err == nil {
+				rp["InfoSolicitudDisponibilidad"] = solicituddisp
+			}
+		}).Catch(func(e try.E) {
+			// Print crash
+			//fmt.Println("expc ",e)
+		})
 	return rp
 }
 
