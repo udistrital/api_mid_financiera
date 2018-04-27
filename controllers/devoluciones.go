@@ -1,13 +1,56 @@
 package controllers
 
 import (
+	"encoding/json"
 	"github.com/astaxie/beego"
+	"time"
+
+
+//	"github.com/udistrital/utils_oas/formatdata"
+
 )
 
 // DevolucionesController operations for Devoluciones
 type DevolucionesController struct {
 	beego.Controller
 }
+
+type PagosAcademica struct{
+	informacionEstudiante infoEstudiante
+	informacionCarrera    infoCarrera
+}
+
+type infoRecibo struct {
+	Id           int64
+	Total        int64
+	NumeroRecibo int64
+	fechaExtraordinario time.Time
+	fechaOrdinario time.Time
+	periodo			string
+	pago				string
+	desagregaRecibos []*infoPago
+}
+
+type infoEstudiante struct {
+	tipoDocu  	string
+	documento   string
+	tipo				string
+	nombre      string
+}
+
+type infoCarrera struct {
+	carrera			string
+	facultad		string
+	codCarrera 	string
+	codigoEst			int64
+	informacionRecibos  []*infoRecibo
+}
+
+type infoPago struct {
+	descripcion string
+	valor				float64
+}
+
 
 // URLMapping ...
 func (c *DevolucionesController) URLMapping() {
@@ -77,4 +120,23 @@ func (c *DevolucionesController) Put() {
 // @router /:id [delete]
 func (c *DevolucionesController) Delete() {
 
+}
+// GetTransformRequest...
+// @Title GetTransformRequest
+// @Description obtiene json de transformacion de respuesta de servicio de academica
+// @Param	query	query	string	false	"Objecto con valores de pagos en academica"
+// @Success 200 {object} interface{}
+// @Failure 403
+// @router /GetTransformRequest/ [post]
+func (c *DevolucionesController) GetTransformRequest() {
+	defer c.ServeJSON()
+
+	var ingresoData map[string]interface{}
+	//var estudiante infoEstudiante
+
+
+	if err:= json.Unmarshal(c.Ctx.Input.RequestBody,&ingresoData);err == nil {
+		beego.Error(ingresoData)
+
+	}
 }

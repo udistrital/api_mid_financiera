@@ -103,6 +103,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"],
+		beego.ControllerComments{
+			Method: "GetTransformRequest",
+			Router: `/GetTransformRequest/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"],
 		beego.ControllerComments{
 			Method: "Post",
