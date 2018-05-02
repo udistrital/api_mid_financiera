@@ -9,6 +9,7 @@ import (
 
 
 	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/api_mid_financiera/models"
 
 )
 
@@ -18,15 +19,15 @@ type DevolucionesController struct {
 }
 
 type PagosAcademica struct{
-	informacionEstudiante infoEstudiante
-	informacionCarrera    []*infoCarrera
+	InformacionEstudiante infoEstudiante
+	InformacionCarrera    []*infoCarrera
 }
 
 type infoRecibo struct {
-	Total        int64
-	Numero_Recibo int64
-	FechaExtraordinario time.Time
-	FechaOrdinario time.Time
+	Total        float64
+	Numero_Recibo string
+	Fecha_Extraordinario time.Time
+	Fecha_Ordinario time.Time
 	Periodo			string
 	Pago				string
 	DesagregaRecibos []*infoPago
@@ -44,12 +45,12 @@ type infoCarrera struct {
 	Facultad		string
 	Cod_Carrera string
 	Codigo			string
-	informacionRecibos  []*infoRecibo
+	InformacionRecibos  []*infoRecibo
 }
 
 type infoPago struct {
-	descripcion string
-	valor				float64
+	Descripcion string
+	Valor				float64
 }
 
 
@@ -130,79 +131,63 @@ func (c *DevolucionesController) Delete() {
 // @Failure 403
 // @router /GetTransformRequest/ [post]
 func (c *DevolucionesController) GetTransformRequest() {
-	defer c.ServeJSON()
 
+	var pagos PagosAcademica
 	var ingresoData map[string]interface{}
 	var ingresoData2 []interface{}
-	var estudiante infoEstudiante
-	var carrera infoCarrera
-	var carreras []*infoCarrera
-	var informacionPago infoPago
-	var totalRecibo float64
-	var informacionRecibo infoRecibo
-
+	//var estudiante infoEstudiante
+	//var carreras []*infoCarrera
 
 	var data map[string]interface{}
 
 
 	if err:= json.Unmarshal(c.Ctx.Input.RequestBody,&ingresoData);err == nil {
 
-
-		varIntrinsecas:= []string{"fecha_ordinario","pago","cod_facultad","periodo","facultad",
-															"tipo_docu","fecha_extraordinario","carrera","cod_carrera","numero_recibo","documento","tipo","nombre","codigo"}
-
-
 		ingresoData2 = ingresoData["pagos"].([]interface{})
 
-		_ = formatdata.FillStruct(ingresoData2[0], &carrera)
+		//_ = formatdata.FillStruct(ingresoData2[0], &carrera)
 
-		if err = formatdata.FillStruct(ingresoData2[0], &estudiante);err!=nil{
+		if err = formatdata.FillStruct(ingresoData2[0], &pagos.InformacionEstudiante);err!=nil{
 			beego.Error(err)
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+			c.ServeJSON()
 		}
 
-
 		for  _, value := range ingresoData2 {
+				carrera := new(infoCarrera)
 				err = formatdata.FillStruct(value, &carrera)
 				err = formatdata.FillStruct(value, &data)
-
-
-				if len(carreras) > 0{
-					for _,car:= range carreras {
-						if !reflect.DeepEqual(car, &carrera) {
-								carreras = append(carreras,&carrera)
-							 	beego.Info("agrega carrera ", carrera)
+				if len(pagos.InformacionCarrera) > 0{
+					for _,car:= range pagos.InformacionCarrera {
+						if !reflect.DeepEqual(car.Codigo,carrera.Codigo) {
+								pagos.InformacionCarrera = append(pagos.InformacionCarrera ,carrera)
+							 	beego.Info("agrega carrera 1 ", carrera)
+						}else{
+							informacionRecibo := new(infoRecibo)
+							informacionRecibo = GetPayInfo(data)
+							beego.Error("informacion Recibo", informacionRecibo)
+							car.InformacionRecibos = append(car.InformacionRecibos,informacionRecibo)
 						}
 					}
 				}else {
-					carreras = append(carreras,&carrera)
-					beego.Info("agrega carrera ",carrera)
-
-					for key , _ := range data {
-						if !contains(varIntrinsecas,key) && data[key] != nil {
-							informacionPago.descripcion = key
-							if informacionPago.valor,err = strconv.ParseFloat(data[key].(string),64);err != nil {
-								beego.Error(err)
-							}else{
-								totalRecibo = totalRecibo + informacionPago.valor
-							}
-							err = formatdata.FillStruct(value, &informacionRecibo)
-							beego.Info(informacionPago.valor)
-						}
-					}
-
-
-				}
-
-
-
+					informacionRecibo := new(infoRecibo)
+					informacionRecibo = GetPayInfo(data)
+					beego.Error("informacion Recibo", informacionRecibo)
+					carrera.InformacionRecibos = append(carrera.InformacionRecibos,informacionRecibo)
+					pagos.InformacionCarrera  = append(pagos.InformacionCarrera,carrera)
+					beego.Info("agrega carrera 2 ",carrera)
 		}
-
-
+	}
+	//pagos.informacionCarrera = carreras
+	beego.Info("Pagos",pagos)
+	c.Data["json"] = pagos
+	c.ServeJSON()
 	}else{
 		beego.Error(err)
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		c.ServeJSON()
 	}
-}
-
+	}
 
 func contains(array []string, varBusqueda string) bool {
     for _, a := range array {
@@ -211,4 +196,32 @@ func contains(array []string, varBusqueda string) bool {
         }
     }
     return false
+}
+
+
+func GetPayInfo(data map[string]interface{})(informacionRecibo *infoRecibo) {
+	var totalRecibo float64
+	var err error
+	err = formatdata.FillStruct(data, &informacionRecibo)
+
+	varIntrinsecas:= []string{"fecha_ordinario","pago","cod_facultad","periodo","facultad",
+														"tipo_docu","fecha_extraordinario","carrera","cod_carrera","numero_recibo","documento","tipo","nombre","codigo"}
+
+	for key , _ := range data {
+		if !contains(varIntrinsecas,key) && data[key] != nil {
+			informacionPago := new(infoPago)
+			informacionPago.Descripcion = key
+			if informacionPago.Valor,err = strconv.ParseFloat(data[key].(string),64);err != nil {
+				beego.Error(err)
+			}else{
+				totalRecibo = totalRecibo + informacionPago.Valor
+			}
+			informacionRecibo.DesagregaRecibos = append(informacionRecibo.DesagregaRecibos,informacionPago)
+		}
+	}
+	informacionRecibo.Total = totalRecibo
+	for _,valor := range informacionRecibo.DesagregaRecibos{
+		beego.Error(valor)
+	}
+	return
 }
