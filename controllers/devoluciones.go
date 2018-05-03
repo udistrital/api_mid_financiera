@@ -131,7 +131,7 @@ func (c *DevolucionesController) Delete() {
 // @Failure 403
 // @router /GetTransformRequest/ [post]
 func (c *DevolucionesController) GetTransformRequest() {
-
+	defer c.ServeJSON()
 	var pagos PagosAcademica
 	var ingresoData map[string]interface{}
 	var ingresoData2 []interface{}
@@ -150,7 +150,6 @@ func (c *DevolucionesController) GetTransformRequest() {
 		if err = formatdata.FillStruct(ingresoData2[0], &pagos.InformacionEstudiante);err!=nil{
 			beego.Error(err)
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-			c.ServeJSON()
 		}
 
 		for  _, value := range ingresoData2 {
@@ -181,11 +180,9 @@ func (c *DevolucionesController) GetTransformRequest() {
 	//pagos.informacionCarrera = carreras
 	beego.Info("Pagos",pagos)
 	c.Data["json"] = pagos
-	c.ServeJSON()
 	}else{
 		beego.Error(err)
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-		c.ServeJSON()
 	}
 	}
 
