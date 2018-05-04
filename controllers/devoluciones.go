@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
-	"time"
-	"strconv"
 	"reflect"
+	"strconv"
+	"time"
 
+	"github.com/astaxie/beego"
 
-	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/api_mid_financiera/models"
-
+	"github.com/udistrital/utils_oas/formatdata"
 )
 
 // DevolucionesController operations for Devoluciones
@@ -18,41 +17,47 @@ type DevolucionesController struct {
 	beego.Controller
 }
 
-type PagosAcademica struct{
+type PagosAcademica struct {
 	InformacionEstudiante infoEstudiante
 	InformacionCarrera    []*infoCarrera
 }
 
 type infoRecibo struct {
-	Total        float64
-	Numero_Recibo string
+	Total                float64
+	Numero_Recibo        string
 	Fecha_Extraordinario time.Time
-	Fecha_Ordinario time.Time
-	Periodo			string
-	Pago				string
-	DesagregaRecibos []*infoPago
+	Fecha_Ordinario      time.Time
+	Periodo              string
+	Pago                 string
+	DesagregaRecibos     []*infoPago
 }
 
 type infoEstudiante struct {
-	Tipo_Docu  	string
-	Documento   string
-	Tipo				string
-	Nombre      string
+	Tipo_Docu string
+	Documento string
+	Tipo      string
+	Nombre    string
 }
 
 type infoCarrera struct {
-	Carrera			string
-	Facultad		string
+	Carrera            string
+	Facultad           string
+	Cod_Carrera        string
+	Codigo             string
+	InformacionRecibos []*infoRecibo
+}
+
+type carreraIntrinc struct {
+	Carrera     string
+	Facultad    string
 	Cod_Carrera string
-	Codigo			string
-	InformacionRecibos  []*infoRecibo
+	Codigo      string
 }
 
 type infoPago struct {
 	Descripcion string
-	Valor				float64
+	Valor       float64
 }
-
 
 // URLMapping ...
 func (c *DevolucionesController) URLMapping() {
@@ -123,6 +128,7 @@ func (c *DevolucionesController) Put() {
 func (c *DevolucionesController) Delete() {
 
 }
+
 // GetTransformRequest...
 // @Title GetTransformRequest
 // @Description obtiene json de transformacion de respuesta de servicio de academica
@@ -140,84 +146,95 @@ func (c *DevolucionesController) GetTransformRequest() {
 
 	var data map[string]interface{}
 
-
-	if err:= json.Unmarshal(c.Ctx.Input.RequestBody,&ingresoData);err == nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &ingresoData); err == nil {
 
 		ingresoData2 = ingresoData["pagos"].([]interface{})
 
 		//_ = formatdata.FillStruct(ingresoData2[0], &carrera)
 
-		if err = formatdata.FillStruct(ingresoData2[0], &pagos.InformacionEstudiante);err!=nil{
+		if err = formatdata.FillStruct(ingresoData2[0], &pagos.InformacionEstudiante); err != nil {
 			beego.Error(err)
 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 		}
 
-		for  _, value := range ingresoData2 {
-				carrera := new(infoCarrera)
-				err = formatdata.FillStruct(value, &carrera)
-				err = formatdata.FillStruct(value, &data)
-				if len(pagos.InformacionCarrera) > 0{
-					for _,car:= range pagos.InformacionCarrera {
-						if !reflect.DeepEqual(car.Codigo,carrera.Codigo) {
-								pagos.InformacionCarrera = append(pagos.InformacionCarrera ,carrera)
-							 	beego.Info("agrega carrera 1 ", carrera)
-						}else{
-							informacionRecibo := new(infoRecibo)
-							informacionRecibo = GetPayInfo(data)
-							beego.Error("informacion Recibo", informacionRecibo)
-							car.InformacionRecibos = append(car.InformacionRecibos,informacionRecibo)
-						}
-					}
-				}else {
+		for _, value := range ingresoData2 {
+			carrera := new(infoCarrera)
+			err = formatdata.FillStruct(value, &carrera)
+			err = formatdata.FillStruct(value, &data)
+			if len(pagos.InformacionCarrera) > 0 {
+				agregar, carreraReturn := searchCarrera(pagos.InformacionCarrera, carrera)
+				if !agregar {
+					pagos.InformacionCarrera = append(pagos.InformacionCarrera, carrera)
+
+				} else {
 					informacionRecibo := new(infoRecibo)
 					informacionRecibo = GetPayInfo(data)
 					beego.Error("informacion Recibo", informacionRecibo)
-					carrera.InformacionRecibos = append(carrera.InformacionRecibos,informacionRecibo)
-					pagos.InformacionCarrera  = append(pagos.InformacionCarrera,carrera)
-					beego.Info("agrega carrera 2 ",carrera)
+					carreraReturn.InformacionRecibos = append(carreraReturn.InformacionRecibos, informacionRecibo)
+				}
+			} else {
+				informacionRecibo := new(infoRecibo)
+				informacionRecibo = GetPayInfo(data)
+				beego.Error("informacion Recibo", informacionRecibo)
+				carrera.InformacionRecibos = append(carrera.InformacionRecibos, informacionRecibo)
+				pagos.InformacionCarrera = append(pagos.InformacionCarrera, carrera)
+				beego.Info("agrega carrera 2 ", carrera)
+			}
 		}
-	}
-	//pagos.informacionCarrera = carreras
-	beego.Info("Pagos",pagos)
-	c.Data["json"] = pagos
-	}else{
+		//pagos.informacionCarrera = carreras
+		beego.Info("Pagos", pagos)
+		c.Data["json"] = pagos
+	} else {
 		beego.Error(err)
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 	}
-	}
-
-func contains(array []string, varBusqueda string) bool {
-    for _, a := range array {
-        if a == varBusqueda {
-            return true
-        }
-    }
-    return false
 }
 
+func contains(array []string, varBusqueda string) bool {
+	for _, a := range array {
+		if a == varBusqueda {
+			return true
+		}
+	}
+	return false
+}
 
-func GetPayInfo(data map[string]interface{})(informacionRecibo *infoRecibo) {
+func searchCarrera(array []*infoCarrera, varBusqueda *infoCarrera) (encontrado bool, carreraReturn *infoCarrera) {
+
+	for _, a := range array {
+
+		if reflect.DeepEqual(a.Codigo, varBusqueda.Codigo) {
+			carreraReturn = a
+			encontrado = true
+			return
+		}
+	}
+	encontrado = false
+	return
+}
+
+func GetPayInfo(data map[string]interface{}) (informacionRecibo *infoRecibo) {
 	var totalRecibo float64
 	var err error
 	err = formatdata.FillStruct(data, &informacionRecibo)
 
-	varIntrinsecas:= []string{"fecha_ordinario","pago","cod_facultad","periodo","facultad",
-														"tipo_docu","fecha_extraordinario","carrera","cod_carrera","numero_recibo","documento","tipo","nombre","codigo"}
+	varIntrinsecas := []string{"fecha_ordinario", "pago", "cod_facultad", "periodo", "facultad",
+		"tipo_docu", "fecha_extraordinario", "carrera", "cod_carrera", "numero_recibo", "documento", "tipo", "nombre", "codigo"}
 
-	for key , _ := range data {
-		if !contains(varIntrinsecas,key) && data[key] != nil {
+	for key, _ := range data {
+		if !contains(varIntrinsecas, key) && data[key] != nil {
 			informacionPago := new(infoPago)
 			informacionPago.Descripcion = key
-			if informacionPago.Valor,err = strconv.ParseFloat(data[key].(string),64);err != nil {
+			if informacionPago.Valor, err = strconv.ParseFloat(data[key].(string), 64); err != nil {
 				beego.Error(err)
-			}else{
+			} else {
 				totalRecibo = totalRecibo + informacionPago.Valor
 			}
-			informacionRecibo.DesagregaRecibos = append(informacionRecibo.DesagregaRecibos,informacionPago)
+			informacionRecibo.DesagregaRecibos = append(informacionRecibo.DesagregaRecibos, informacionPago)
 		}
 	}
 	informacionRecibo.Total = totalRecibo
-	for _,valor := range informacionRecibo.DesagregaRecibos{
+	for _, valor := range informacionRecibo.DesagregaRecibos {
 		beego.Error(valor)
 	}
 	return
