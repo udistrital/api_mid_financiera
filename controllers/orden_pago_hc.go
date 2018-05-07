@@ -53,8 +53,8 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 		var homologacion []interface{}
 		//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
 		var infoVinculacion []interface{}
-		//fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
-		if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
+		fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
+		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
 			if infoVinculacion != nil {
 				//fmt.Println("Facultad: ", infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"], "Proyecto: ", infoVinculacion[0].(map[string]interface{})["IdProyectoCurricular"])
 				idFacultad, e := infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"].(float64)
@@ -67,9 +67,9 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 					fmt.Println("err idPro")
 					return nil
 				}
-				//fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
+				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
 				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:"+strconv.Itoa(int(idProyecto))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
-					//fmt.Println("Hom ", homologacion)
+					fmt.Println("Hom ", homologacion)
 					if homologacion != nil {
 						//cuando hay homologacion de un concepto para concepto kronos.
 						for _, conceptoKronos := range homologacion {
@@ -189,6 +189,7 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		done := make(chan interface{})
 		defer close(done)
 		resch := optimize.GenChanInterface(devengosNomina...)
+		fmt.Println("DevengosNomina:", devengosNomina)
 		f := homologacionFunctionDispatcher(devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 		if f != nil {
 			infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
@@ -201,6 +202,8 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			}
 			params = append(params, nContrato)
 			params = append(params, vigenciaContrato)
+			fmt.Println("Parametros:", params)
+
 			chConcHomologados := optimize.Digest(done, f, resch, params)
 			for conceptoHomologadoint := range chConcHomologados {
 				conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
