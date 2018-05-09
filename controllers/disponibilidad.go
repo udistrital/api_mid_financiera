@@ -168,7 +168,8 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 			}
 
 		} else {
-			return map[string]interface{}{"Code": "E_0458", "Body": "argo Service", "Type": "error"}
+			beego.Info("Error argo: " , err)
+			return map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
 		}
 	} else {
 		return map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in Disponibilidad Procses", "Type": "error"}
