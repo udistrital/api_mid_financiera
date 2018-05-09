@@ -89,8 +89,9 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 	solicitudMap, ee := solicitudArr[0].(map[string]interface{})
 	solicitudNo, ee := solicitudMap["ProcesoExterno"].(float64)
 	if params != nil && ee {
+	beego.Info("Peticion: ", "http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64))
 		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64), &solicitud); err == nil {
-
+			beego.Info("Respuesta: ", solicitud)
 			for _, resultado := range solicitud {
 
 				var depNes []models.DependenciaNecesidad
