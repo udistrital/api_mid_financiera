@@ -65,6 +65,11 @@ func init() {
 				&controllers.AprobacionFuenteController{},
 			),
 		),
+		beego.NSNamespace("/devoluciones",
+			beego.NSInclude(
+				&controllers.DevolucionesController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
