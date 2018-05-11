@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/mitchellh/mapstructure"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
@@ -964,4 +965,54 @@ func (c *RubroController) GenerarCierre() {
 		fmt.Println("err 1")
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 	}
+}
+
+// RegistrarRubro ...
+// @Title RegistrarRubro
+// @Description Registra Rubro en postgres y mongo
+// @Param       body            body    models.Rubro    true            "body for Rubro content"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /RegistrarRubro/ [post]
+func (c *RubroController) RegistrarRubro() {
+	var v interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		try.This(func() {
+			res := make(map[string]interface{})
+			rubroData := v.(map[string]interface{})
+			if rubroData["RubroPadre"] != nil { //Si se registra Un rubro con padre
+				url := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro_rubro"
+				if err := request.SendJson(url, "POST", &res, &rubroData); err == nil {
+					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
+					//En este caso se genera un map con la estructura que recibe dicho api.
+
+					c.Data["json"] = res
+				} else {
+					panic("Service Error")
+				}
+			} else if rubroData["RubroHijo"] != nil { //Si se registra un rubro Padre
+				rubro := rubroData["RubroHijo"]
+				url := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro"
+				if err := request.SendJson(url, "POST", &res, &rubro); err == nil {
+					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
+					//En este caso se genera un map con la estructura que recibe dicho api.
+
+					res["Body"] = map[string]interface{}{"RubroHijo": rubro}
+					c.Data["json"] = res
+				} else {
+					panic("Service Error")
+				}
+			} else {
+				panic("Data Undefined")
+			}
+
+		}).Catch(func(e try.E) {
+			// Print crash
+			fmt.Println("expc ", e)
+			c.Data["json"] = e
+		})
+	} else {
+		c.Data["json"] = nil
+	}
+	c.ServeJSON()
 }
