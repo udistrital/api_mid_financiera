@@ -997,7 +997,7 @@ func (c *RubroController) RegistrarRubro() {
 					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
 					//En este caso se genera un map con la estructura que recibe dicho api.
 
-					res["Body"] = map[string]interface{}{"RubroHijo": rubro}
+					res["Body"] = map[string]interface{}{"RubroHijo": rubro, "RubroPadre": nil}
 					c.Data["json"] = res
 				} else {
 					panic("Service Error")
