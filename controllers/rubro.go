@@ -985,7 +985,10 @@ func (c *RubroController) RegistrarRubro() {
 				if err := request.SendJson(url, "POST", &res, &rubroData); err == nil {
 					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
 					//En este caso se genera un map con la estructura que recibe dicho api.
-
+					url = "http://" + beego.AppConfig.String("financieraMongoCurdApiService")+"/arbolrubros/registrarRubro"
+					var data interface{}
+					request.SendJson(url,"POST",&data,&rubroData)
+					beego.Info("data: ",data)
 					c.Data["json"] = res
 				} else {
 					panic("Service Error")
