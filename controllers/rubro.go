@@ -995,11 +995,32 @@ func (c *RubroController) RegistrarRubro() {
 				}
 			} else if rubroData["RubroHijo"] != nil { //Si se registra un rubro Padre
 				rubro := rubroData["RubroHijo"]
-				url := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro"
-				if err := request.SendJson(url, "POST", &res, &rubro); err == nil {
+				urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro"
+				if err := request.SendJson(urlcrud, "POST", &res, &rubro); err == nil {
 					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
 					//En este caso se genera un map con la estructura que recibe dicho api.
-
+					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService")+"/arbolrubros/registrarRubro"
+					var data map[string]interface{}
+					request.SendJson(urlmongo,"POST",&data,&rubroData)
+					beego.Info("data: ",data)
+					if data["Type"] != nil{
+						if  data["Type"].(string) == "error"{
+							beego.Info("Error en mongo")
+							resul := res["Body"].(map[string]interface{})
+							urlcrud = urlcrud + "/" +  strconv.Itoa(int(resul["Id"].(float64)))
+							request.SendJson(urlcrud,"DELETE",&data,nil)
+							beego.Info("Data ",data)
+							panic("Mongo API Error")							
+						}else if  data["Type"].(string) == "success"{
+							beego.Info("Registrado en Mongo")
+						}
+					}else{
+						resul := res["Body"].(map[string]interface{})
+						urlcrud = urlcrud + "/" +  strconv.Itoa(int(resul["Id"].(float64)))
+						request.SendJson(urlcrud,"DELETE",&data,nil)
+						beego.Info("Data ",data)
+						panic("Mongo API not Found")
+					}
 					res["Body"] = map[string]interface{}{"RubroHijo": rubro, "RubroPadre": nil}
 					c.Data["json"] = res
 				} else {
@@ -1012,7 +1033,7 @@ func (c *RubroController) RegistrarRubro() {
 		}).Catch(func(e try.E) {
 			// Print crash
 			fmt.Println("expc ", e)
-			c.Data["json"] = e
+			c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
 		})
 	} else {
 		c.Data["json"] = nil
