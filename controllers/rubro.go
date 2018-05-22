@@ -981,17 +981,42 @@ func (c *RubroController) RegistrarRubro() {
 			res := make(map[string]interface{})
 			rubroData := v.(map[string]interface{})
 			if rubroData["RubroPadre"] != nil { //Si se registra Un rubro con padre
-				url := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro_rubro"
-				if err := request.SendJson(url, "POST", &res, &rubroData); err == nil {
+				urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro_rubro"
+				if err := request.SendJson(urlcrud, "POST", &res, &rubroData); err == nil {
 					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
 					//En este caso se genera un map con la estructura que recibe dicho api.
-					url = "http://" + beego.AppConfig.String("financieraMongoCurdApiService")+"/arbolrubros/registrarRubro"
-					var data interface{}
-					request.SendJson(url,"POST",&data,&rubroData)
-					beego.Info("data: ",data)
+					//Se debe comprobar si se pudo registrar el rubro y la relacion rubro_rubro en postgres.
+					if res["Type"] != nil && res["Type"].(string) == "success" {
+						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbolrubros/registrarRubro"
+						var data map[string]interface{}
+						request.SendJson(urlmongo, "POST", &data, &rubroData)
+						beego.Info("data: ", res)
+						if data["Type"] != nil {
+							if data["Type"].(string) == "error" {
+								resul := res["Body"].(map[string]interface{})
+								ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
+								urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
+								request.SendJson(urlcrud, "DELETE", &data, nil)
+								beego.Info("Data ", data)
+								panic("Mongo API Error")
+							} else if data["Type"].(string) == "success" {
+								beego.Info("Registrado en Mongo")
+							}
+						} else {
+							resul := res["Body"].(map[string]interface{})
+							ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
+							urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
+							request.SendJson(urlcrud, "DELETE", &data, nil)
+							beego.Info("Data ", data)
+							panic("Mongo API not Found")
+						}
+					} else if res["Type"] == nil {
+						panic("Financiera Crud Service Error")
+					}
+
 					c.Data["json"] = res
 				} else {
-					panic("Service Error")
+					panic("Financiera Crud Service Error")
 				}
 			} else if rubroData["RubroHijo"] != nil { //Si se registra un rubro Padre
 				rubro := rubroData["RubroHijo"]
@@ -999,29 +1024,38 @@ func (c *RubroController) RegistrarRubro() {
 				if err := request.SendJson(urlcrud, "POST", &res, &rubro); err == nil {
 					//Cuando se registra el rubro, se debe mandar una petición a MongoApi para registrar el nuevo rubro.
 					//En este caso se genera un map con la estructura que recibe dicho api.
-					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService")+"/arbolrubros/registrarRubro"
-					var data map[string]interface{}
-					request.SendJson(urlmongo,"POST",&data,&rubroData)
-					beego.Info("data: ",data)
-					if data["Type"] != nil{
-						if  data["Type"].(string) == "error"{
-							beego.Info("Error en mongo")
-							resul := res["Body"].(map[string]interface{})
-							urlcrud = urlcrud + "/" +  strconv.Itoa(int(resul["Id"].(float64)))
-							request.SendJson(urlcrud,"DELETE",&data,nil)
-							beego.Info("Data ",data)
-							panic("Mongo API Error")							
-						}else if  data["Type"].(string) == "success"{
-							beego.Info("Registrado en Mongo")
+					//Se debe comprobar si se pudo registrar el rubro en postgres.
+					if res["Type"] != nil && res["Type"].(string) == "success" {
+						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbolrubros/registrarRubro"
+						var data map[string]interface{}
+						res["Body"] = map[string]interface{}{"RubroHijo": res["Body"].(map[string]interface{}), "RubroPadre": map[string]interface{}{}}
+						rubroRow := res["Body"].(map[string]interface{})
+						request.SendJson(urlmongo, "POST", &data, &rubroRow)
+						beego.Info("data: ", data)
+						if data["Type"] != nil {
+							if data["Type"].(string) == "error" {
+								beego.Info("Error en mongo")
+								resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
+								beego.Info("Send Data: ", resul)
+								urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
+								request.SendJson(urlcrud, "DELETE", &data, nil)
+								beego.Info("Data ", data)
+								panic("Mongo API Error")
+							} else if data["Type"].(string) == "success" {
+								beego.Info("Registrado en Mongo")
+							}
+						} else {
+							resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
+							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
+							request.SendJson(urlcrud, "DELETE", &data, nil)
+							beego.Info("Data ", data)
+							panic("Mongo API not Found")
 						}
-					}else{
-						resul := res["Body"].(map[string]interface{})
-						urlcrud = urlcrud + "/" +  strconv.Itoa(int(resul["Id"].(float64)))
-						request.SendJson(urlcrud,"DELETE",&data,nil)
-						beego.Info("Data ",data)
-						panic("Mongo API not Found")
+
+					} else if res["Type"] == nil {
+						panic("Financiera Crud Service Error")
 					}
-					res["Body"] = map[string]interface{}{"RubroHijo": rubro, "RubroPadre": nil}
+
 					c.Data["json"] = res
 				} else {
 					panic("Service Error")
