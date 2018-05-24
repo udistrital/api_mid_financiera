@@ -1074,3 +1074,24 @@ func (c *RubroController) RegistrarRubro() {
 	}
 	c.ServeJSON()
 }
+
+// EliminarRubro ...
+// @Title EliminarRubro
+// @Description delete the Rubro
+// @Param	id		path 	string	true		"The id you want to delete"
+// @Success 200 {string} delete success!
+// @Failure 403 id is empty
+// @router /EliminarRubro/:id [delete]
+func (c *RubroController) EliminarRubro() {
+	try.This(func() {
+		idStr := c.Ctx.Input.Param(":id")
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro/" + idStr
+		var res map[string]interface{}
+		request.SendJson(urlcrud, "DELETE", &res, nil)
+		c.Data["json"] = res
+	}).Catch(func(e try.E) {
+		fmt.Println("expc ", e)
+		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
+	})
+	c.ServeJSON()
+}
