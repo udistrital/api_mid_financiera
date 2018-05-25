@@ -987,7 +987,7 @@ func (c *RubroController) RegistrarRubro() {
 					//En este caso se genera un map con la estructura que recibe dicho api.
 					//Se debe comprobar si se pudo registrar el rubro y la relacion rubro_rubro en postgres.
 					if res["Type"] != nil && res["Type"].(string) == "success" {
-						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbolrubros/registrarRubro"
+						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro/registrarRubro"
 						var data map[string]interface{}
 						request.SendJson(urlmongo, "POST", &data, &rubroData)
 						beego.Info("data: ", res)
@@ -1026,12 +1026,12 @@ func (c *RubroController) RegistrarRubro() {
 					//En este caso se genera un map con la estructura que recibe dicho api.
 					//Se debe comprobar si se pudo registrar el rubro en postgres.
 					if res["Type"] != nil && res["Type"].(string) == "success" {
-						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbolrubros/registrarRubro"
+						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/registrarRubro"
 						var data map[string]interface{}
 						res["Body"] = map[string]interface{}{"RubroHijo": res["Body"].(map[string]interface{}), "RubroPadre": map[string]interface{}{}}
 						rubroRow := res["Body"].(map[string]interface{})
 						request.SendJson(urlmongo, "POST", &data, &rubroRow)
-						beego.Info("data: ", data)
+						beego.Info("data: ", urlmongo)
 						if data["Type"] != nil {
 							if data["Type"].(string) == "error" {
 								beego.Info("Error en mongo")
