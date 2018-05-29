@@ -1102,14 +1102,21 @@ func (c *RubroController) EliminarRubro() {
 // @Title ArbolRubros
 // @Description Get Arbol Rubros By UE
 // @Param	unidadEjecutora		path 	int64	true		"unidad ejecutora a consultar"
+// @Param	rama		path 	string	false		"rama a consultar"
 // @Success 200 {object} models.Rubro
 // @Failure 403
-// @router /ArbolRubros/:unidadEjecutora [get]
+// @router /ArbolRubros/:unidadEjecutora/:rama [get]
 func (c *RubroController) ArbolRubros(){
 	try.This(func() {
 		//ueStr := c.Ctx.Input.Param(":unidadEjecutora")
+		rama := c.Ctx.Input.Param(":rama")
+		urlmongo := ""
 		var res []map[string]interface{}
-		urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/RaicesArbol"
+		if rama == ""{
+			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/RaicesArbol"
+		}else{
+			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/ArbolRubro/" + rama			
+		}
 		if err := request.GetJson(urlmongo, &res) ; err != nil{
 			beego.Info(err.Error())
 			panic("Mongo API Service Error")
