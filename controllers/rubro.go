@@ -1087,7 +1087,33 @@ func (c *RubroController) EliminarRubro() {
 		idStr := c.Ctx.Input.Param(":id")
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro/" + idStr
 		var res map[string]interface{}
-		request.SendJson(urlcrud, "DELETE", &res, nil)
+		if err := request.SendJson(urlcrud, "DELETE", &res, nil); err != nil{
+			panic("Financiera CRUD Service Error")
+		}
+		c.Data["json"] = res
+	}).Catch(func(e try.E) {
+		fmt.Println("expc ", e)
+		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
+	})
+	c.ServeJSON()
+}
+
+// ArbolRubros ...
+// @Title ArbolRubros
+// @Description Get Arbol Rubros By UE
+// @Param	unidadEjecutora		path 	int64	true		"unidad ejecutora a consultar"
+// @Success 200 {object} models.Rubro
+// @Failure 403
+// @router /ArbolRubros/:unidadEjecutora [get]
+func (c *RubroController) ArbolRubros(){
+	try.This(func() {
+		//ueStr := c.Ctx.Input.Param(":unidadEjecutora")
+		var res []map[string]interface{}
+		urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/RaicesArbol"
+		if err := request.GetJson(urlmongo, &res) ; err != nil{
+			beego.Info(err.Error())
+			panic("Mongo API Service Error")
+		}
 		c.Data["json"] = res
 	}).Catch(func(e try.E) {
 		fmt.Println("expc ", e)
