@@ -1102,14 +1102,14 @@ func (c *RubroController) EliminarRubro() {
 // @Title ArbolRubros
 // @Description Get Arbol Rubros By UE
 // @Param	unidadEjecutora		path 	int64	true		"unidad ejecutora a consultar"
-// @Param	rama		path 	string	false		"rama a consultar"
+// @Param	rama		query 	string	false		"rama a consultar"
 // @Success 200 {object} models.Rubro
 // @Failure 403
-// @router /ArbolRubros/:unidadEjecutora/:rama [get]
+// @router /ArbolRubros/:unidadEjecutora [get]
 func (c *RubroController) ArbolRubros(){
 	try.This(func() {
 		//ueStr := c.Ctx.Input.Param(":unidadEjecutora")
-		rama := c.Ctx.Input.Param(":rama")
+		rama := c.GetString("rama")
 		urlmongo := ""
 		var res []map[string]interface{}
 		if rama == ""{
