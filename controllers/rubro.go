@@ -989,8 +989,9 @@ func (c *RubroController) RegistrarRubro() {
 					if res["Type"] != nil && res["Type"].(string) == "success" {
 						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro/registrarRubro"
 						var data map[string]interface{}
-						request.SendJson(urlmongo, "POST", &data, &rubroData)
-						beego.Info("data: ", res)
+						sendData := res["Body"].(map[string]interface{}) 
+						request.SendJson(urlmongo, "POST", &data, &sendData)
+						beego.Info("data: ", sendData)
 						if data["Type"] != nil {
 							if data["Type"].(string) == "error" {
 								resul := res["Body"].(map[string]interface{})
@@ -1087,8 +1088,19 @@ func (c *RubroController) EliminarRubro() {
 		idStr := c.Ctx.Input.Param(":id")
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro/" + idStr
 		var res map[string]interface{}
-		if err := request.SendJson(urlcrud, "DELETE", &res, nil); err != nil{
-			panic("Financiera CRUD Service Error")
+		if err := request.SendJson(urlcrud, "DELETE", &res, nil); err == nil{
+			if res["Type"].(string) == "success"{
+				var resMg map[string]interface{}
+				urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/eliminarRubro/" + idStr
+				if err = request.SendJson(urlmongo, "DELETE", &resMg, nil); err != nil {
+					fmt.Println("err ", err)
+					panic("Mongo Not Found")					
+				}else if resMg["Type"].(string) == "error"{
+					panic("Mongo CRUD Service Error")										
+				}
+			}else{
+				panic("Financiera CRUD Service Error")
+			}
 		}
 		c.Data["json"] = res
 	}).Catch(func(e try.E) {
