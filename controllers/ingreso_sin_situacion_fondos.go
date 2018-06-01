@@ -4,6 +4,7 @@ import (
 	"strings"
 	"encoding/json"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/api_financiera/models"
 	"github.com/astaxie/beego"
 )
 
@@ -38,32 +39,36 @@ func (c *IngresoSinSituacionFondosController) Post() {
 	var v map[string]interface{}
 	var respuesta map[string]interface{}
 	var estadoResp []interface{}
+	var respuestaCreaEst map[string]interface{}
 
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		ingresoSinSItuacionFondos:=v["IngresoSinSituacionFondos"]
-		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos", "POST", &respuesta, ingresoSinSItuacionFondos); err == nil {
+		ingresoSinSituacionFondos:=v["IngresoSinSituacionFondos"]
+		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos", "POST", &respuesta, ingresoSinSituacionFondos); err == nil {
 			if (strings.Compare(respuesta["Type"].(string),"success")==0){
 				 if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/estado_ingreso_sin_situacion_fondos?query=numeroOrden:1", &estadoResp); err == nil {
-					 estadoIng := &estadoIngreso {IngresoSinSituacionFondos:respuesta["Body"],EstadoIngresoSinSituacionFondos:estadoResp[0]}
-					 beego.Info(estadoIng.EstadoIngresoSinSituacionFondos)
-					 if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos_estado", "POST", &respuesta, estadoIng); err == nil {
-						 beego.Error("respuesta",respuesta)
+					 estadoIng := &estadoIngreso {IngresoSinSituacionFondos:respuesta["Body"],EstadoIngresoSinSituacionFondos:estadoResp[0],Activo:true}
+					 if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos_estado", "POST", &respuestaCreaEst, estadoIng); err == nil {
+						if (strings.Compare(respuestaCreaEst["Type"].(string),"success")==0){
+							alert:=models.Alert{Type:"success",Code:"S_543",Body:respuesta["Body"]}
+							c.Data["json"] = alert
+							beego.Error(c.Data["json"])
+							c.Ctx.Output.SetStatus(201)
+						}
 					 }else{
-						 beego.Error(err.Error());
-						 c.Data["json"] = err.Error()
+						 alert:=models.Alert{Type:"error",Code:"E_0458",Body:err}
+						 c.Data["json"] = alert
 					 }
-
 				 }else{
-					 beego.Error(err.Error());
-					 c.Data["json"] = err.Error()
+					 alert:=models.Alert{Type:"error",Code:"E_0458",Body:err}
+					 c.Data["json"] = alert
 				 }
 			}
-			c.Ctx.Output.SetStatus(201)
-			c.Data["json"] = v
 		} else {
+			alert:=models.Alert{Type:"error",Code:"E_0458",Body:err}
 			beego.Error(err.Error());
-			c.Data["json"] = err.Error()
+			c.Data["json"] = alert
+
 		}
 	} else {
 		beego.Error(err.Error());
