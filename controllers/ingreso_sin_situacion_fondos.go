@@ -77,6 +77,33 @@ func (c *IngresoSinSituacionFondosController) Post() {
 	c.ServeJSON()
 }
 
+
+// changeState ...
+// @Title Change State
+// @Description Change State from a income without finance situation
+// @Param	body	body 	interface{}	"body for Ingreso_sin_situacion_fondos content"
+// @Success 201 {object}
+// @Failure 403 body is empty
+// @router ChangeState/ [post]
+func (c *IngresoSinSituacionFondosController) ChangeState() {
+	defer c.ServeJSON()
+	var v interface{}
+	var respuesta map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos_estado/ChangeExistingStates", "POST", &respuesta, v); err == nil {
+			if (strings.Compare(respuesta["Type"].(string),"success")==0){
+				alert:=models.Alert{Type:"success",Code:"S_543",Body:respuesta["Body"]}
+				c.Data["json"] = alert
+				beego.Error(c.Data["json"])
+				c.Ctx.Output.SetStatus(201)
+			}else{
+				alert:=models.Alert{Type:"error",Code:"E_0458",Body:err}
+				c.Data["json"] = alert
+			}
+		}
+	}
+}
+
 // GetOne ...
 // @Title GetOne
 // @Description get Ingreso_sin_situacion_fondos by id
