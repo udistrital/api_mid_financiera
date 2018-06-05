@@ -989,7 +989,7 @@ func (c *RubroController) RegistrarRubro() {
 					if res["Type"] != nil && res["Type"].(string) == "success" {
 						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro/registrarRubro"
 						var data map[string]interface{}
-						sendData := res["Body"].(map[string]interface{}) 
+						sendData := res["Body"].(map[string]interface{})
 						request.SendJson(urlmongo, "POST", &data, &sendData)
 						beego.Info("data: ", sendData)
 						if data["Type"] != nil {
@@ -1088,17 +1088,17 @@ func (c *RubroController) EliminarRubro() {
 		idStr := c.Ctx.Input.Param(":id")
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro/" + idStr
 		var res map[string]interface{}
-		if err := request.SendJson(urlcrud, "DELETE", &res, nil); err == nil{
-			if res["Type"].(string) == "success"{
+		if err := request.SendJson(urlcrud, "DELETE", &res, nil); err == nil {
+			if res["Type"].(string) == "success" {
 				var resMg map[string]interface{}
 				urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/eliminarRubro/" + idStr
 				if err = request.SendJson(urlmongo, "DELETE", &resMg, nil); err != nil {
 					fmt.Println("err ", err)
-					panic("Mongo Not Found")					
-				}else if resMg["Type"].(string) == "error"{
-					panic("Mongo CRUD Service Error")										
+					panic("Mongo Not Found")
+				} else if resMg["Type"].(string) == "error" {
+					panic("Mongo CRUD Service Error")
 				}
-			}else{
+			} else {
 				panic("Financiera CRUD Service Error")
 			}
 		}
@@ -1118,18 +1118,19 @@ func (c *RubroController) EliminarRubro() {
 // @Success 200 {object} models.Rubro
 // @Failure 403
 // @router /ArbolRubros/:unidadEjecutora [get]
-func (c *RubroController) ArbolRubros(){
+func (c *RubroController) ArbolRubros() {
+
 	try.This(func() {
-		//ueStr := c.Ctx.Input.Param(":unidadEjecutora")
+		ueStr := c.Ctx.Input.Param(":unidadEjecutora")
 		rama := c.GetString("rama")
 		urlmongo := ""
 		var res []map[string]interface{}
-		if rama == ""{
-			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/RaicesArbol"
-		}else{
-			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/ArbolRubro/" + rama			
+		if rama == "" {
+			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/RaicesArbol/" + ueStr
+		} else {
+			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/ArbolRubro/" + rama + "/" + ueStr
 		}
-		if err := request.GetJson(urlmongo, &res) ; err != nil{
+		if err := request.GetJson(urlmongo, &res); err != nil {
 			beego.Info(err.Error())
 			panic("Mongo API Service Error")
 		}
