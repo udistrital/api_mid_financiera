@@ -17,6 +17,7 @@ type GestionSucursalesController struct {
 
 func (c *GestionSucursalesController) URLMapping() {
 	c.Mapping("InsertarSucursales", c.InsertarSucursales)
+	c.Mapping("ListarSucursales", c.ListarSucursales)
 }
 
 // InsertarSucursales ...
@@ -28,7 +29,6 @@ func (c *GestionSucursalesController) URLMapping() {
 // @router insertar_sucursal/ [post]
 func (c *GestionSucursalesController) InsertarSucursales() {
 
-	fmt.Println("estoy en sucursaleeeeees")
 	var info_sucursal models.InformacionSucursal
 	var tipo_ente []models.TipoEnte
   var respuesta interface{}
@@ -76,11 +76,37 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 	c.ServeJSON()
 }
 
+// ListarSucursales ...
+// @Title ListarSucursales
+// @Description ListarSucursales
+// @Success 201 {object} []models.InformacionSucursal
+// @Failure 403 body is empty
+// @router listar_sucursales/ [get]
+func (c *GestionSucursalesController) ListarSucursales() {
+
+	var sucursales []models.Organizacion
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+
+		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
+		for i, suc := range sucursales{
+			informacion_sucursal[i].Nombre = suc.Nombre
+			informacion_sucursal[i].Direccion = BuscarDireccion(suc.Ente)
+			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
+    }
+
+		c.Data["json"] = informacion_sucursal
+	}else{
+		c.Data["json"] = err
+	}
+
+		c.ServeJSON()
+}
+
 func InsertarSucursal(nombre string, id_ente int)(res interface{}, err error){
 
 	var tipo_organizacion []models.TipoOrganizacion
 	var respuesta interface{}
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/tipo_organizacion?query=CodigoAbreviacion:TO_2", &tipo_organizacion); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/tipo_organizacion?query=CodigoAbreviacion:SU", &tipo_organizacion); err == nil {
 
 			objeto_organizacion := &models.Organizacion {Nombre: nombre, Ente: id_ente, TipoOrganizacion : &models.TipoOrganizacion{Id: tipo_organizacion[0].Id}}
 			if err := request.SendJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion/", "POST", &respuesta, &objeto_organizacion); err == nil {
@@ -162,6 +188,51 @@ func InsertarUbicacion(direccion string, pais, departamento, ciudad int,id_ente 
 		fmt.Println("error al consultar tipo_ubicacion")
 	}
 
+	//FALTA DIRECCION
+	/*
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/tipo_relacion_ubicacion_ente?query=CodigoAbreviacion:LR", &tipo_relacion_ubicacion_ente); err == nil {
+
+			objeto_ubicacion_ente := &models.UbicacionEnte {Lugar: ciudad, Ente: &models.Ente {Id: id_ente}, TipoRelacionUbicacionEnte : &models.TipoRelacionUbicacionEnte{Id: tipo_relacion_ubicacion_ente[0].Id}, Activo: true}
+			if err := request.SendJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/ubicacion_ente/", "POST", &respuesta, &objeto_ubicacion_ente); err == nil {
+
+			}else{
+				fmt.Println("error al insertar ciudad")
+			}
+
+	}else{
+		fmt.Println("error al consultar tipo_ubicacion")
+	}
+	*/
 	return respuesta, err
 
+}
+
+func BuscarDireccion(id_ente int)(direccion string){
+
+	return "N/A"
+}
+
+
+func BuscarTelefono(id_ente int)(telefono string){
+
+	var tel string;
+	var contacto_ente []models.ContactoEnte
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/contacto_ente?query=Ente:"+strconv.Itoa(id_ente), &contacto_ente); err == nil {
+		if(contacto_ente != nil){
+			tel = contacto_ente[0].Valor
+		}else{
+			tel = "No registrado"
+		}
+
+	}else{
+		tel = "No registrado"
+	}
+
+ return tel
+}
+
+
+func BuscarLugar(id_ente int)(lugar string){
+
+ return "N/A"
 }
