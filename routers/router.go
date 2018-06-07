@@ -75,6 +75,12 @@ func init() {
 				&controllers.IngresoSinSituacionFondosController{},
 			),
 		),
+
+		beego.NSNamespace("/gestion_sucursales",
+			beego.NSInclude(
+				&controllers.GestionSucursalesController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
