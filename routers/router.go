@@ -65,6 +65,11 @@ func init() {
 				&controllers.AprobacionFuenteController{},
 			),
 		),
+		beego.NSNamespace("/apropiacion",
+			beego.NSInclude(
+				&controllers.ApropiacionController{},
+			),
+		),
 		beego.NSNamespace("/devoluciones",
 			beego.NSInclude(
 				&controllers.DevolucionesController{},
