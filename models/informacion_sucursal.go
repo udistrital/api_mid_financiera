@@ -4,7 +4,7 @@ type InformacionSucursal struct {
 	Nombre        string
 	Direccion     string
 	Telefono      string
-	País          string
+	Pais          string
 	Departamento  string
 	Ciudad        string
 }
