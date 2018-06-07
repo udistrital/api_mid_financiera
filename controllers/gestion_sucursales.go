@@ -56,20 +56,20 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 
 				}else{
 					fmt.Println("error al insertar ente: ", err)
-					c.Data["json"] = err
+					c.Data["json"] = "Error al insertar ente"
 				}
 
 				c.Data["json"] = respuesta
 		}else{
 
 			fmt.Println("error al consultar tipo ente: ", err)
-			c.Data["json"] = err
+			c.Data["json"] = "Error al insertar ente"
 		}
 
 		c.Data["json"] = respuesta
 	} else {
 		fmt.Println("err: ", err)
-		c.Data["json"] = err
+		c.Data["json"] = "Error al insertar ente"
 	}
 
 
@@ -84,6 +84,7 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 // @router listar_sucursales/ [get]
 func (c *GestionSucursalesController) ListarSucursales() {
 
+
 	var sucursales []models.Organizacion
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
@@ -92,6 +93,9 @@ func (c *GestionSucursalesController) ListarSucursales() {
 			informacion_sucursal[i].Nombre = suc.Nombre
 			informacion_sucursal[i].Direccion = BuscarDireccion(suc.Ente)
 			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
+			ubicaciones := BuscarUbicaciones(suc.Ente)
+			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad = BuscarLugar(ubicaciones,suc.Ente)
+
     }
 
 		c.Data["json"] = informacion_sucursal
@@ -231,8 +235,62 @@ func BuscarTelefono(id_ente int)(telefono string){
  return tel
 }
 
+func BuscarUbicaciones(id_ente int)(ub []models.UbicacionEnte){
 
-func BuscarLugar(id_ente int)(lugar string){
+	var ubicaciones []models.UbicacionEnte
 
- return "N/A"
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/ubicacion_ente?query=Ente:"+strconv.Itoa(id_ente), &ubicaciones); err == nil {
+		if(ubicaciones != nil){
+
+		}else{
+			ubicaciones = nil;
+		}
+
+	}else{
+		ubicaciones = nil;
+	}
+
+	return ubicaciones
+}
+
+func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int)(p, c,d string){
+
+	var pais = "No registrado"
+	var departamento = "No registrado"
+	var ciudad = "No registrado"
+
+  var objeto_lugar []models.Lugar
+
+
+  if(ubicaciones != nil){
+				for _, ubi := range ubicaciones{
+
+				  if err := request.GetJson("http://"+beego.AppConfig.String("Urlubicacion")+":"+beego.AppConfig.String("Portubicacion")+"/"+beego.AppConfig.String("Nsubicacion")+"/lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
+
+						if(objeto_lugar != nil && objeto_lugar[0].Id != 0){
+
+
+							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "CIUDAD"){
+								ciudad = objeto_lugar[0].Nombre
+							}
+
+							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "DEPARTAMENTO"){
+								departamento = objeto_lugar[0].Nombre
+							}
+
+							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "PAIS"){
+								pais = objeto_lugar[0].Nombre
+							}
+						}
+
+
+				  }
+
+			}
+
+
+
+	}
+
+	return pais, departamento, ciudad
 }
