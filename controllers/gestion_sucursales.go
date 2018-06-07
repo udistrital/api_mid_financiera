@@ -56,20 +56,20 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 
 				}else{
 					fmt.Println("error al insertar ente: ", err)
-					c.Data["json"] = err
+					c.Data["json"] = "Error al insertar ente"
 				}
 
 				c.Data["json"] = respuesta
 		}else{
 
 			fmt.Println("error al consultar tipo ente: ", err)
-			c.Data["json"] = err
+			c.Data["json"] = "Error al insertar ente"
 		}
 
 		c.Data["json"] = respuesta
 	} else {
 		fmt.Println("err: ", err)
-		c.Data["json"] = err
+		c.Data["json"] = "Error al insertar ente"
 	}
 
 
@@ -260,7 +260,7 @@ func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int)(p, c,d string)
 	var ciudad = "No registrado"
 
   var objeto_lugar []models.Lugar
-	
+
 
   if(ubicaciones != nil){
 				for _, ubi := range ubicaciones{
