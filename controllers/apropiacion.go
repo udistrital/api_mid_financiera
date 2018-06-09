@@ -3,9 +3,10 @@ package controllers
 import (
 	"encoding/json"
 	"strconv"
-	"github.com/udistrital/utils_oas/request"
-	"github.com/manucorporat/try"
+
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
+	"github.com/udistrital/utils_oas/request"
 )
 
 //  ApropiacionController operations for Apropiacion
@@ -34,32 +35,41 @@ func (c *ApropiacionController) Post() {
 			beego.Info("Data Send By Client: ", v)
 			urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/apropiacion/"
 			if err = request.SendJson(urlcrud, "POST", &res, &v); err == nil {
-				if res["Type"] != nil && res["Type"].(string) == "success"{
-					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/apropiacion/registrarApropiacion"
+				if res["Type"] != nil && res["Type"].(string) == "success" {
 					mongoData := v["Rubro"].(map[string]interface{})
 					mongoData["Id"] = res["Body"].(map[string]interface{})["Id"]
 					mongoData["ApropiacionInicial"] = v["Valor"]
-					beego.Info("Post data: ",mongoData)
+					beego.Info("Post data: ", mongoData)
+					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarApropiacionInicial/" + strconv.Itoa(int(res["Body"].(map[string]interface{})["Vigencia"].(float64)))
 					if err = request.SendJson(urlmongo, "POST", &resM, &mongoData); err == nil {
-						c.Data["json"] = res
-					}else{
+						if resM["Type"].(string) == "success" {
+							c.Data["json"] = res
+						} else {
+							resul := res["Body"].(map[string]interface{})
+							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
+							request.SendJson(urlcrud, "DELETE", &resM, nil)
+							beego.Info("Data ", resM)
+							panic("Mongo API error")
+						}
+					} else {
 						resul := res["Body"].(map[string]interface{})
 						urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
 						request.SendJson(urlcrud, "DELETE", &resM, nil)
 						beego.Info("Data ", resM)
 						panic("Mongo API not Found")
 					}
-				}else{
+				} else {
+					beego.Error(res)
 					panic("Financiera CRUD not Found")
 				}
-			}else{
+			} else {
 				panic("Financiera CRUD Service Error")
 			}
 		}).Catch(func(e try.E) {
 			beego.Error("expc ", e)
 			c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
 		})
-	}else{
+	} else {
 		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
 	}
 	c.ServeJSON()
