@@ -1130,6 +1130,7 @@ func (c *RubroController) ArbolRubros() {
 		} else {
 			urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro/ArbolRubro/" + rama + "/" + ueStr
 		}
+		beego.Info("Url ", urlmongo)
 		if err := request.GetJson(urlmongo, &res); err != nil {
 			beego.Info(err.Error())
 			panic("Mongo API Service Error")

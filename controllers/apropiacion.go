@@ -32,14 +32,16 @@ func (c *ApropiacionController) Post() {
 	var resM map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		try.This(func() {
+			mongoData := v["Rubro"].(map[string]interface{})
+			v["Rubro"] = map[string]interface{}{"Id": v["Rubro"].(map[string]interface{})["Id"]}
 			beego.Info("Data Send By Client: ", v)
 			urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/apropiacion/"
 			if err = request.SendJson(urlcrud, "POST", &res, &v); err == nil {
 				if res["Type"] != nil && res["Type"].(string) == "success" {
-					mongoData := v["Rubro"].(map[string]interface{})
 					mongoData["Id"] = res["Body"].(map[string]interface{})["Id"]
 					mongoData["ApropiacionInicial"] = v["Valor"]
 					beego.Info("Post data: ", mongoData)
+					beego.Info("Crud Recibed data: ", res["Body"])
 					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarApropiacionInicial/" + strconv.Itoa(int(res["Body"].(map[string]interface{})["Vigencia"].(float64)))
 					if err = request.SendJson(urlmongo, "POST", &resM, &mongoData); err == nil {
 						if resM["Type"].(string) == "success" {
