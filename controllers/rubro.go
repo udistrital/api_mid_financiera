@@ -1098,6 +1098,8 @@ func (c *RubroController) EliminarRubro() {
 				} else if resMg["Type"].(string) == "error" {
 					panic("Mongo CRUD Service Error")
 				}
+			} else if res["Type"].(string) == "error" {
+				c.Data["json"] = res
 			} else {
 				panic("Financiera CRUD Service Error")
 			}

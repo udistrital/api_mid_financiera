@@ -45,6 +45,9 @@ func (c *ApropiacionController) Post() {
 					urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarApropiacionInicial/" + strconv.Itoa(int(res["Body"].(map[string]interface{})["Vigencia"].(float64)))
 					if err = request.SendJson(urlmongo, "POST", &resM, &mongoData); err == nil {
 						if resM["Type"].(string) == "success" {
+							body := res["Body"].(map[string]interface{})
+							body["Rubro"] = mongoData
+							res["Body"] = body
 							c.Data["json"] = res
 						} else {
 							resul := res["Body"].(map[string]interface{})
