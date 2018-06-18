@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
@@ -89,7 +90,7 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 	solicitudMap, ee := solicitudArr[0].(map[string]interface{})
 	solicitudNo, ee := solicitudMap["ProcesoExterno"].(float64)
 	if params != nil && ee {
-	beego.Info("Peticion: ", "http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64))
+		beego.Info("Peticion: ", "http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64))
 		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64), &solicitud); err == nil {
 			beego.Info("Respuesta: ", solicitud)
 			for _, resultado := range solicitud {
@@ -168,7 +169,7 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 			}
 
 		} else {
-			beego.Info("Error argo: " , err)
+			beego.Info("Error argo: ", err)
 			return map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
 		}
 	} else {
@@ -1081,4 +1082,23 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 	}
 
 	c.ServeJSON()
+}
+
+func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoDisp := parameter[0].(map[string]interface{})
+		var afectacion []map[string]interface{}
+		idDisp := int(infoDisp["Id"].(float64))
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/GetPrincDisponibilidadInfo/" + strconv.Itoa(idDisp)
+		if err1 := request.GetJson(Urlcrud, &afectacion); err1 == nil {
+			infoDisp["Afectacion"] = afectacion
+			beego.Info("infoDisp ", infoDisp)
+		} else {
+			panic(err1.Error())
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		err = e
+	})
+	return
 }
