@@ -1092,12 +1092,35 @@ func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/GetPrincDisponibilidadInfo/" + strconv.Itoa(idDisp)
 		if err1 := request.GetJson(Urlcrud, &afectacion); err1 == nil {
 			infoDisp["Afectacion"] = afectacion
-			beego.Info("infoDisp ", infoDisp)
+			dateStr := infoDisp["FechaRegistro"].(string)
+			t, err1 := time.Parse(time.RFC3339, dateStr)
+			if err1 != nil {
+				panic(err1.Error())
+			}
+			var resM map[string]interface{}
+			infoDisp["MesRegistro"] = int(t.Month())
+			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarCdp/"
+			if err1 = request.SendJson(Urlmongo, "POST", &resM, &infoDisp); err == nil {
+				if resM["Type"].(string) == "success" {
+					err = err1
+				}else{
+					panic("Mongo api error")
+				}
+			}else{
+				panic("Mongo Not Found")
+			}
+			//beego.Info("infoDisp ", infoDisp)
 		} else {
 			panic(err1.Error())
 		}
 	}).Catch(func(e try.E) {
+		infoDisp := parameter[0].(map[string]interface{})
+		idDisp := int(infoDisp["Id"].(float64))
 		beego.Info("Exepc ", e)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadData/" + strconv.Itoa(idDisp)
+		request.SendJson(Urlcrud, "DELETE", &resC, nil)
+		beego.Info("Data ", resC)
 		err = e
 	})
 	return
