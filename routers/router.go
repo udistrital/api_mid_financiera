@@ -80,6 +80,11 @@ func init() {
 				&controllers.OrganizacionesCoreNewController{},
 			),
 		),
+		beego.NSNamespace("/rubro_homologado",
+			beego.NSInclude(
+				&controllers.HomologacionRubroController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

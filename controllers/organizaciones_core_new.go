@@ -4,8 +4,10 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
+	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/formatdata"
 )
 
 // OrganizacionesCoreNewController operations for OrganizacionesCoreNew
@@ -59,7 +61,21 @@ func (c *OrganizacionesCoreNewController) GetOne() {
 func (c *OrganizacionesCoreNewController) GetAll() {
 
 }
-
+//append diferent elements into array from https://blog.golang.org/slices  Append: An example
+func Append(slice []interface{}, elements ...interface{}) ([]interface{}) {
+		n := len(slice)
+		total := len(slice) + len(elements)
+		if total > cap(slice) {
+				// Reallocate. Grow to 1.5 times the new size, so we can still grow.
+				newSize := total*3/2 + 1
+				newSlice := make([]interface{}, total, newSize)
+				copy(newSlice, slice)
+				slice = newSlice
+		}
+		slice = slice[:total]
+		copy(slice[n:], elements)
+		return slice
+}
 
 // GetOrganizacion ...
 // @Title GetOrganizacion
@@ -78,7 +94,8 @@ func (c *OrganizacionesCoreNewController) GetOrganizacion()() {
 	var limit int64 = 10
 	var offset int64
 	var query string
-	var respuesta []map[string]interface{}
+	var respuesta []interface{}
+	var organizacionArr  []interface{}
 	// limit: 10 (default is 10)
 	if v, err := c.GetInt64("limit"); err == nil {
 		limit = v
@@ -91,13 +108,9 @@ func (c *OrganizacionesCoreNewController) GetOrganizacion()() {
 		query = r
 	}
 
-
 	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_ente?limit="+strconv.FormatInt(limit,10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &tipoEnte); err == nil {
-				beego.Info(tipoEnte);
 				idEnte:=int(tipoEnte[0]["Id"].(float64));
-				beego.Error(beego.AppConfig.String("coreEnteService")+"ente?limit=-1&query=TipoEnte.Id:"+strconv.Itoa(idEnte))
 				if request.GetJson(beego.AppConfig.String("coreEnteService")+"ente?limit=-1&query=TipoEnte.Id:"+strconv.Itoa(idEnte), &ente);err==nil{
-					beego.Info(ente)
 				if ente!=nil {
 					done := make(chan interface{})
 					defer close(done)
@@ -105,18 +118,23 @@ func (c *OrganizacionesCoreNewController) GetOrganizacion()() {
 					chentes := optimize.Digest(done, getOrganizacion, resch, nil)
 
 					for organizacion := range chentes {
-						beego.Info(organizacion)
-						//respuesta = append(respuesta, organizacion.(map[string]interface{}))
+						err := formatdata.FillStruct(organizacion,&organizacionArr)
+			 			if err == nil {
+							respuesta = Append(respuesta,organizacionArr...)
+						}else{
+							respuesta = append(respuesta, organizacion.(interface{}))
+						}
 					}
 					c.Data["json"] = respuesta
 				}
 
 			}else{
-  			beego.Error(err);
+  			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+
 			}
 
 }else{
-	beego.Error(err);
+	c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 }
 c.ServeJSON()
 }
