@@ -27,5 +27,6 @@ func main() {
 		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
 	mongoProcess.DisponibilidaMongoJobInit()
+	mongoProcess.RpMongoJobInit()
 	beego.Run()
 }

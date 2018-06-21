@@ -817,3 +817,32 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 
 	c.ServeJSON()
 }
+
+func AddRpMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoDisp := parameter[0].(models.DatosRegistroPresupuestal)
+		dataSend := make(map[string]interface{})
+		dataSend["Vigencia"] = infoDisp.Rp.Vigencia
+		dataSend["Id"] = infoDisp.Rp.Id
+		var afectacion []interface{}
+		aux := make(map[string]interface{})
+
+		for _, data := range infoDisp.Rubros{
+			aux["Rubro"] = data.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = data.Apropiacion.Rubro.UnidadEjecutora
+			aux["Valor"] = data.Valor
+			dataSend["Disponibilidad"] = data.Disponibilidad.Id
+			afectacion = append(afectacion,aux)
+		}
+
+		dataSend["Afectacion"] = afectacion
+
+		beego.Info("Data to send ", dataSend)
+
+
+
+	}).Catch(func(e try.E){
+		beego.Info("Exepc ", e)
+	})
+	return
+}
