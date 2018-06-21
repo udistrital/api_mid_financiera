@@ -820,14 +820,15 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 
 func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
-		infoDisp := parameter[0].(models.DatosRegistroPresupuestal)
+		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		dataSend := make(map[string]interface{})
-		dataSend["Vigencia"] = infoDisp.Rp.Vigencia
-		dataSend["Id"] = infoDisp.Rp.Id
+		dataSend["Vigencia"] = infoRp.Rp.Vigencia
+		dataSend["Id"] = infoRp.Rp.Id
 		var afectacion []interface{}
+		var resM map[string]interface{} 
 		aux := make(map[string]interface{})
 
-		for _, data := range infoDisp.Rubros{
+		for _, data := range infoRp.Rubros{
 			aux["Rubro"] = data.Apropiacion.Rubro.Codigo
 			aux["UnidadEjecutora"] = data.Apropiacion.Rubro.UnidadEjecutora
 			aux["Valor"] = data.Valor
@@ -836,13 +837,24 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		}
 
 		dataSend["Afectacion"] = afectacion
-
-		beego.Info("Data to send ", dataSend)
-
-
-
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarRp/"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+				if resM["Type"].(string) == "success" {
+					err = err1
+				}else{
+					panic("Mongo api error")
+				}
+			}else{
+				panic("Mongo Not Found")
+			}
 	}).Catch(func(e try.E){
 		beego.Info("Exepc ", e)
+		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
+		request.SendJson(Urlcrud, "DELETE", &resC, nil)
+		beego.Info("Data ", resC)
+		err = e
 	})
 	return
 }
