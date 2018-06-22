@@ -53,7 +53,6 @@ func (c *HomologacionRubroController) CreateRubroHomologado() {
 
  if err := json.Unmarshal(c.Ctx.Input.RequestBody, &rubro); err == nil {
 	 if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado", "POST", &rubroHomologado, rubro);err == nil{
-		 beego.Error("rubro homologado",rubroHomologado);
 		 if (strings.Compare(rubroHomologado["Type"].(string),"success")==0){
 			 c.Data["json"]= models.Alert{Type:"success",Code:"S_543",Body:rubroHomologado["Body"]}
 			 c.Ctx.Output.SetStatus(201)
@@ -68,6 +67,38 @@ func (c *HomologacionRubroController) CreateRubroHomologado() {
 	 beego.Error("Error",err)
 	 c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
  }
+
+}
+
+// Post ...
+// @Title CreateHomologacion
+// @Description create homologate category for an organization
+// @Param	body		body 	interface	true		"body for Homologacion_rubro content"
+// @Success 201 {object} interface{}
+// @Failure 403 body is empty
+// @router /CreateHomologacion [post]
+func (c *HomologacionRubroController) CreateHomologacion() {
+	defer c.ServeJSON()
+	var rubroHomologadorubro interface{}
+	var response map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &rubroHomologadorubro); err == nil {
+		beego.Info(rubroHomologadorubro)
+			if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado_rubro", "POST", &response, rubroHomologadorubro);err == nil{
+				beego.Error("rubro homologado rubro",response);
+	 		 if (strings.Compare(response["Type"].(string),"success")==0){
+	 			 c.Data["json"]= models.Alert{Type:"success",Code:"S_543",Body:response["Body"]}
+	 			 c.Ctx.Output.SetStatus(201)
+	 		 }else{
+	 			 c.Data["json"]= models.Alert{Type:response["Type"].(string),Code:response["Code"].(string),Body:response["Body"]}
+	 		 }
+			}else{
+				beego.Error("Error",err)
+			 	c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+			}
+	}else{
+		beego.Error("Error",err)
+		c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+	}
 
 }
 
