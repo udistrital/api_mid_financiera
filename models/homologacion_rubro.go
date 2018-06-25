@@ -148,7 +148,13 @@ func DeleteHomologacion_rubro(id int64) (err error) {
 //getValue from organizacion for all rows
 func GetOrganizacionRubroHomologado(rubroHomol interface{},params ...interface{})(res interface{}){
 	var organizacion interface{}
-	rubroHomolMap:= rubroHomol.(map[string]interface{})
+	var rubroHomolMap map[string]interface{}
+
+	if rubroHomol.(map[string]interface{})["RubroHomologado"]!= nil{
+		rubroHomolMap = rubroHomol.(map[string]interface{})["RubroHomologado"].(map[string]interface{})
+	}else{
+		rubroHomolMap = rubroHomol.(map[string]interface{})
+	}
 	idOrganizacion := strconv.FormatFloat(rubroHomolMap["Organizacion"].(float64),'f',-1,64)
 		if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?limit=-1&query=Id:"+idOrganizacion, &organizacion); err == nil {
 			rubroHomolMap["Organizacion"]= organizacion

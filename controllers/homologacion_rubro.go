@@ -183,3 +183,40 @@ func (c *HomologacionRubroController) Put() {
 func (c *HomologacionRubroController) Delete() {
 
 }
+
+
+// GetOne ...
+// @Title GetOne
+// @Description get rubro_Homologacion_rubro by id
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} interface{}
+// @Failure 403 :id is empty
+// @router /GetAllRubrosHomologado/:id [get]
+func (c *HomologacionRubroController)  GetAllRubrosHomologado(){
+	defer c.ServeJSON()
+	var respuesta []map[string]interface{}
+
+	idStr := c.Ctx.Input.Param(":id")
+	beego.Error("parametro id",idStr)
+	var rubrosHomolRubro []interface{}
+
+	beego.Error("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado_rubro/?query=Rubro.Id:"+idStr)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado_rubro/?query=Rubro.Id:"+idStr, &rubrosHomolRubro); err == nil {
+		beego.Error(rubrosHomolRubro);
+
+		if rubrosHomolRubro!= nil{
+			done:= make(chan interface{})
+			defer close(done)
+			resch:=optimize.GenChanInterface(rubrosHomolRubro...)
+			chRubros:=optimize.Digest(done,models.GetOrganizacionRubroHomologado,resch,nil)
+			for rubroHomologado := range chRubros {
+				beego.Error("rubro homologado",rubroHomologado)
+				respuesta = append(respuesta,rubroHomologado.(map[string]interface{}))
+			}
+			c.Data["json"]=respuesta
+		}
+	}else{
+		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	}
+
+}
