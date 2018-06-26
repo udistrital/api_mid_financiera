@@ -197,7 +197,6 @@ func (c *HomologacionRubroController)  GetAllRubrosHomologado(){
 	var respuesta []map[string]interface{}
 
 	idStr := c.Ctx.Input.Param(":id")
-	beego.Error("parametro id",idStr)
 	var rubrosHomolRubro []interface{}
 
 	beego.Error("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado_rubro/?query=Rubro.Id:"+idStr)
@@ -218,5 +217,51 @@ func (c *HomologacionRubroController)  GetAllRubrosHomologado(){
 	}else{
 		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
 	}
+}
 
+// GetHomologationNumberRubro ...
+// @Title Get Homologation Number Rubro
+// @Description get the number of record in crud from RubroHOmologacionRubro for a rubro
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} interface{}
+// @Failure 403 :id is empty
+// @router /GetHomologationNumberRubro/:id [get]
+func (c *HomologacionRubroController)  GetHomologationNumberRubro(){
+	defer c.ServeJSON()
+	var respuesta map[string]interface{}
+	idStr := c.Ctx.Input.Param(":id")
+
+	beego.Error("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado/"+idStr)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado/GetRecordsNumberRubroHomologadoRubroById/"+idStr, &respuesta); err == nil {
+			c.Data["json"]=respuesta
+	}else{
+		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	}
+}
+
+// GetArbolRubrosHomologado...
+// @Title Get Arbol Rubros Homologado
+// @Description get tree from homologated items
+// @Param	idEntidad	path 	string	true		"Id entidad para la cual se quieren consultar rubros"
+// @Param	idPadre		path 	string	true		"Id del padre para armar la rama default todos"
+// @Success 200 {object} interface{}
+// @Failure 403 :id is empty
+// @router /GetArbolRubrosHomologado [get]
+func (c *HomologacionRubroController)  GetArbolRubrosHomologado(){
+	defer c.ServeJSON()
+	var respuesta map[string]interface{}
+
+	idEntidad, err := c.GetInt("idEntidad")
+	//idPadre, _ := c.GetInt("idPadre")
+
+	if err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_homologado/ArbolRubros/"+strconv.Itoa(idEntidad), &respuesta); err == nil {
+				c.Data["json"]=respuesta
+		}else{
+			c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+		}
+	} else {
+		e := models.Alert{Type: "error", Code: "E_0458", Body: err.Error()}
+		c.Data["json"] = e
+	}
 }
