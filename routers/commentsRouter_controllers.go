@@ -249,16 +249,16 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:HomologacionRubroController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:HomologacionRubroController"],
 		beego.ControllerComments{
-			Method: "GetArbolRubrosHomologado",
-			Router: `/GetArbolRubrosHomologado`,
+			Method: "GetHomologationNumberRubro",
+			Router: `/GetHomologationNumberRubro/:id`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:HomologacionRubroController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:HomologacionRubroController"],
 		beego.ControllerComments{
-			Method: "GetHomologationNumberRubro",
-			Router: `/GetHomologationNumberRubro/:id`,
+			Method: "GetArbolRubrosHomologado",
+			Router: `GetArbolRubrosHomologado/`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
