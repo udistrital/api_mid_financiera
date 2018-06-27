@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/ruler"
-	"github.com/manucorporat/try"
 )
 
 // RegistroPresupuestalController operations for RegistroPresupuestal
@@ -150,17 +150,17 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 //funcion para recopilar datos externos de los rp a listar
 func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
-	try.This(func(){
-			idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
-			solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
+	try.This(func() {
+		idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
+		solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
-			if err == nil {
-				rp["InfoSolicitudDisponibilidad"] = solicituddisp
-			}
-		}).Catch(func(e try.E) {
-			// Print crash
-			//fmt.Println("expc ",e)
-		})
+		if err == nil {
+			rp["InfoSolicitudDisponibilidad"] = solicituddisp
+		}
+	}).Catch(func(e try.E) {
+		// Print crash
+		//fmt.Println("expc ",e)
+	})
 	return rp
 }
 
@@ -822,32 +822,33 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		dataSend := make(map[string]interface{})
-		dataSend["Vigencia"] = infoRp.Rp.Vigencia
+		dataSend["Vigencia"] = strconv.FormatFloat(infoRp.Rp.Vigencia, 'f', 0, 64)
 		dataSend["Id"] = infoRp.Rp.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(infoRp.Rp.FechaRegistro.Month()))
 		var afectacion []interface{}
-		var resM map[string]interface{} 
+		var resM map[string]interface{}
 		aux := make(map[string]interface{})
 
-		for _, data := range infoRp.Rubros{
+		for _, data := range infoRp.Rubros {
 			aux["Rubro"] = data.Apropiacion.Rubro.Codigo
-			aux["UnidadEjecutora"] = data.Apropiacion.Rubro.UnidadEjecutora
+			aux["UnidadEjecutora"] = strconv.Itoa(int(data.Apropiacion.Rubro.UnidadEjecutora))
 			aux["Valor"] = data.Valor
 			dataSend["Disponibilidad"] = data.Disponibilidad.Id
-			afectacion = append(afectacion,aux)
+			afectacion = append(afectacion, aux)
 		}
 
 		dataSend["Afectacion"] = afectacion
-		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarRp/"
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/rp"
 		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
-				if resM["Type"].(string) == "success" {
-					err = err1
-				}else{
-					panic("Mongo api error")
-				}
-			}else{
-				panic("Mongo Not Found")
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
 			}
-	}).Catch(func(e try.E){
+		} else {
+			panic("Mongo Not Found")
+		}
+	}).Catch(func(e try.E) {
 		beego.Info("Exepc ", e)
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
