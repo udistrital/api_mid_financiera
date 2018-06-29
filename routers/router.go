@@ -75,10 +75,21 @@ func init() {
 				&controllers.IngresoSinSituacionFondosController{},
 			),
 		),
+<<<<<<< HEAD
+		beego.NSNamespace("/organizaciones_core_new",
+			beego.NSInclude(
+				&controllers.OrganizacionesCoreNewController{},
+			),
+		),
+		beego.NSNamespace("/rubro_homologado",
+			beego.NSInclude(
+				&controllers.HomologacionRubroController{},
+=======
 
 		beego.NSNamespace("/gestion_sucursales",
 			beego.NSInclude(
 				&controllers.GestionSucursalesController{},
+>>>>>>> 5f5cb4796dceb12d29b6fe7ced46c8bc6535e799
 			),
 		),
 	)
