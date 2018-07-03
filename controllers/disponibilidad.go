@@ -1087,6 +1087,7 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoDisp := parameter[0].(map[string]interface{})
+		infoDisp["Vigencia"] = strconv.Itoa(int(infoDisp["Vigencia"].(float64)))
 		var afectacion []map[string]interface{}
 		idDisp := int(infoDisp["Id"].(float64))
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/GetPrincDisponibilidadInfo/" + strconv.Itoa(idDisp)
@@ -1098,16 +1099,16 @@ func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 				panic(err1.Error())
 			}
 			var resM map[string]interface{}
-			infoDisp["MesRegistro"] = strconv.Itoa(int(t.Month())) 
+			infoDisp["MesRegistro"] = strconv.Itoa(int(t.Month()))
 			beego.Info("Data send ", infoDisp)
-			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarCdp/"
+			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/cdp"
 			if err1 = request.SendJson(Urlmongo, "POST", &resM, &infoDisp); err1 == nil {
 				if resM["Type"].(string) == "success" {
 					err = err1
-				}else{
+				} else {
 					panic("Mongo api error")
 				}
-			}else{
+			} else {
 				panic("Mongo Not Found")
 			}
 			//beego.Info("infoDisp ", infoDisp)
