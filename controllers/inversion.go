@@ -3,10 +3,13 @@ package controllers
 import (
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_financiera/models"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/utils_oas/formatdata"
+
 )
 
 // InversionController operations for Inversion
@@ -43,10 +46,31 @@ func (c *InversionController) Post() {
 	var estadoResp []interface{}
 	var respuestaCreaEst map[string]interface{}
 	var inversionCanc map[string]interface{}
+	var tipoDocAfectante []interface{}
 	var usuario int
+	var movimientosContables []models.MovimientoContable
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		cancelacionInversion := v["cancelacionInversion"]
+		err = formatdata.FillStruct(v["Movimientos"],&movimientosContables)
+
+		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_documento_afectante?query=numeroOrden:7", &tipoDocAfectante); err == nil {
+			for _, element := range movimientosContables {
+				element.Fecha = time.Now()
+				element.CodigoDocumentoAfectante = int(respuesta["Body"].(map[string]interface{})["Id"].(float64))
+				element.TipoDocumentoAfectante = tipoDocAfectante[0]
+				element.EstadoMovimientoContable = &models.EstadoMovimientoContable{Id: 1}
+				//_, err = o.Insert(&element)
+
+				if err != nil {
+					beego.Info(err.Error())
+					//o.Rollback()
+					return
+				}
+			}
+
+		}
+
 		inversionCanc = cancelacionInversion.(map[string]interface{})
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos", "POST", &respuesta, cancelacionInversion); err == nil {
 			if strings.Compare(respuesta["Type"].(string), "success") == 0 {
