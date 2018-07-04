@@ -2,13 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"strings"
-	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_financiera/models"
 	"github.com/udistrital/utils_oas/request"
-	"github.com/udistrital/utils_oas/formatdata"
 
 )
 
@@ -17,12 +14,6 @@ type InversionController struct {
 	beego.Controller
 }
 
-type estadoCancelacion struct {
-	CancelacionInversion       interface{}
-	EstadoCancelacionInversion interface{}
-	Activo                     bool
-	Usuario                    int
-}
 
 // URLMapping ...
 func (c *InversionController) URLMapping() {
@@ -41,69 +32,34 @@ func (c *InversionController) URLMapping() {
 // @Failure 403 body is empty
 // @router / [post]
 func (c *InversionController) Post() {
-	var v map[string]interface{}
+
+}
+
+
+// CreacionInversion ...
+// @Title Creacion Inversion
+// @Description create Inversion
+// @Param	body		body 	interface{}	true		"body for Inversion content"
+// @Success 201 {object} interface{}
+// @Failure 403 body is empty
+// @router CreateInversion/ [post]
+func (c *InversionController) CreateInversion() {
+	defer c.ServeJSON()
+	var v interface{}
 	var respuesta map[string]interface{}
-	var estadoResp []interface{}
-	var respuestaCreaEst map[string]interface{}
-	var inversionCanc map[string]interface{}
-	var tipoDocAfectante []interface{}
-	var usuario int
-	var movimientosContables []models.MovimientoContable
-
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		cancelacionInversion := v["cancelacionInversion"]
-		err = formatdata.FillStruct(v["Movimientos"],&movimientosContables)
 
-		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_documento_afectante?query=numeroOrden:7", &tipoDocAfectante); err == nil {
-			for _, element := range movimientosContables {
-				element.Fecha = time.Now()
-				element.CodigoDocumentoAfectante = int(respuesta["Body"].(map[string]interface{})["Id"].(float64))
-				element.TipoDocumentoAfectante = tipoDocAfectante[0]
-				element.EstadoMovimientoContable = &models.EstadoMovimientoContable{Id: 1}
-				//_, err = o.Insert(&element)
-
-				if err != nil {
-					beego.Info(err.Error())
-					//o.Rollback()
-					return
-				}
+		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion", "POST", &respuesta, v); err == nil {
+			c.Data["json"] = respuesta
+			} else {
+					beego.Error(err.Error())
+					c.Data["json"] = models.Alert{Type:"error",Code:"E_0458",Body:err}
 			}
 
-		}
-
-		inversionCanc = cancelacionInversion.(map[string]interface{})
-		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso_sin_situacion_fondos", "POST", &respuesta, cancelacionInversion); err == nil {
-			if strings.Compare(respuesta["Type"].(string), "success") == 0 {
-				if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/estado_cancelacion_inversion?query=numeroOrden:1", &estadoResp); err == nil {
-					usuario = int(inversionCanc["UsuarioEjecucion"].(float64))
-					estadoCancInv := &estadoCancelacion{CancelacionInversion: respuesta["Body"], EstadoCancelacionInversion: estadoResp[0], Activo: true, Usuario: usuario}
-					if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion_estado_cancelacion", "POST", &respuestaCreaEst, estadoCancInv); err == nil {
-						if strings.Compare(respuestaCreaEst["Type"].(string), "success") == 0 {
-							alert := models.Alert{Type: "success", Code: "S_543", Body: respuesta["Body"]}
-							c.Data["json"] = alert
-							beego.Error(c.Data["json"])
-							c.Ctx.Output.SetStatus(201)
-						}
-					} else {
-						alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
-						c.Data["json"] = alert
-					}
-				} else {
-					alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
-					c.Data["json"] = alert
-				}
-			}
-		} else {
-			alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
+	}else{
 			beego.Error(err.Error())
-			c.Data["json"] = alert
-
-		}
-	} else {
-		beego.Error(err.Error())
-		c.Data["json"] = err.Error()
+			c.Data["json"] = models.Alert{Type:"error",Code:"E_0458",Body:err}
 	}
-	c.ServeJSON()
 }
 
 // GetOne ...
