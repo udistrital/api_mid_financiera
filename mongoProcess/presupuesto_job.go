@@ -32,19 +32,18 @@ func sendDisponibilidadInfoToMongo(ctx *context.Context) {
 
 func sendRpInfoToMongo(ctx *context.Context) {
 	try.This(func() {
-		serviceResponse := ctx.Input.Data()["json"].([]models.Alert)
+		data := ctx.Input.Data()["json"].(models.Alert)
 		var params []interface{}
-		for _, data := range serviceResponse {
 			if data.Type == "success" {
 				info := data.Body
 				params = append(params, info)
-				work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddRpMongo)}
+				work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddAnulacionRpMongo)}
 				// Push the work onto the queue.
 				optimize.WorkQueue <- work
 				beego.Info("Job Queued!")
 			}
 
-		}
+		
 	}).Catch(func(e try.E) {
 		beego.Info("Exepc ", e)
 	})
@@ -76,4 +75,5 @@ func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que d
 
 	beego.InsertFilter("/v1/disponibilidad/ExpedirDisponibilidad", beego.AfterExec, sendDisponibilidadInfoToMongo, false)
 	beego.InsertFilter("/v1/registro_presupuestal/CargueMasivoPr", beego.AfterExec, sendRpInfoToMongo, false)    
+	beego.InsertFilter("/v1/registro_presupuestal/AprobarAnulacion", beego.AfterExec, sendRpInfoToMongo, false)    
 }
