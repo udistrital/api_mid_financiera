@@ -90,6 +90,11 @@ func init() {
 				&controllers.GestionSucursalesController{},
 			),
 		),
+		beego.NSNamespace("/inversion",
+			beego.NSInclude(
+				&controllers.InversionController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
