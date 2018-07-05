@@ -26,7 +26,7 @@ func main() {
 		beego.BConfig.WebConfig.DirectoryIndex = true
 		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
-	mongoProcess.DisponibilidaMongoJobInit()
-	mongoProcess.RpMongoJobInit()
+	mongoProcess.PresupuestoMongoJobInit()
+	//mongoProcess.RpMongoJobInit()
 	beego.Run()
 }

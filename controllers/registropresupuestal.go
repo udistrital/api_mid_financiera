@@ -818,6 +818,38 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 	c.ServeJSON()
 }
 
+// AprobarAnulacion ...
+// @Title AprobarAnulacion
+// @Description create RegistroPresupuestal
+// @Param	body		body 	models.AnulacionRegistroPresupuestal	true		"body for AnulacionRegistroPresupuestal content"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /AprobarAnulacion [post]
+func (c *RegistroPresupuestalController) AprobarAnulacion() {
+	try.This(func() {
+		var v models.AnulacionRegistroPresupuestal
+		var res models.Alert
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/AprobarAnulacion/"
+			if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
+				if res.Type == "success" {
+					beego.Info("Mongo Call ...")
+				}
+				c.Data["json"] = res
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
+		} else {
+			c.Data["json"] = err.Error()
+		}
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}
+
+
 func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
@@ -857,5 +889,32 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		beego.Info("Data ", resC)
 		err = e
 	})
+	return
+}
+
+func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoAnulacion := parameter[0].(models.AnulacionRegistroPresupuestal)
+		dataSend := make(map[string]interface{})
+		dataSend["Id"] = infoAnulacion.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(infoAnulacion.FechaRegistro.Month()))
+		dataSend["Vigencia"] = strconv.FormatFloat(infoAnulacion.AnulacionRegistroPresupuestalDisponibilidadApropiacion[0].RegistroPresupuestalDisponibilidadApropiacion.RegistroPresupuestal.Vigencia, 'f', 0, 64)
+		var afectacion []interface{}
+		//var resM map[string]interface{}
+		aux := make(map[string]interface{})
+		for _, data := range infoAnulacion.AnulacionRegistroPresupuestalDisponibilidadApropiacion {
+			aux["Rubro"] = data.RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = strconv.Itoa(int(data.RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora))
+			aux["Valor"] = data.Valor
+			dataSend["Disponibilidad"] = data.RegistroPresupuestalDisponibilidadApropiacion.RegistroPresupuestal.Id
+			afectacion = append(afectacion, aux)
+		}
+		dataSend["Afectacion"] = afectacion
+		//Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/rp"
+		beego.Info("Data to send ", dataSend)
+		}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+
+	   })
 	return
 }
