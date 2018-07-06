@@ -846,7 +846,6 @@ func (c *RegistroPresupuestalController) AprobarAnulacion() {
 	c.ServeJSON()
 }
 
-
 func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
@@ -912,7 +911,7 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 			afectacion = append(afectacion, aux)
 		}
 		dataSend["Afectacion"] = afectacion
-		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/anulacion"
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/AnulacionRp"
 		beego.Info("Data to send ", dataSend)
 		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
 			if resM["Type"].(string) == "success" {
@@ -923,13 +922,13 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		} else {
 			panic("Mongo Not Found")
 		}
-		}).Catch(func(e try.E) {
-			beego.Info("Exepc ", e)
-			var resC interface{}
-			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
-			infoAnulacion.EstadoAnulacion["Id"] = 2
-			request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
-			beego.Info("Data ", resC)
-	   })
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
+		infoAnulacion.EstadoAnulacion["Id"] = 2
+		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
+		beego.Info("Data ", resC)
+	})
 	return
 }
