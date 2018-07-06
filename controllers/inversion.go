@@ -109,6 +109,22 @@ func (c *InversionController) GetOne() {
 
 }
 
+// GetCancelationQuantity ...
+// @Title Get Cancelation Quantity
+// @Description get the number of record given a id from cancelation
+// @Success 200 {object} interface{}
+// @Failure 403
+// @router GetCancelationQuantity/ [get]
+func (c *InversionController)  GetCancelationQuantity(){
+	defer c.ServeJSON()
+	var respuesta map[string]interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion_estado_cancelacion/GetCancelationQuantity", &respuesta); err == nil {
+			c.Data["json"]=respuesta
+	}else{
+		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	}
+}
+
 // GetAll ...
 // @Title GetAll
 // @Description get Inversion
