@@ -76,6 +76,37 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 	c.ServeJSON()
 }
 
+// ListarSucursal ...
+// @Title ListarSucursal
+// @Description ListarSucursal
+// @Param	id_sucursal	query	int	false	"id de la sucursal"
+// @Success 201 {object} []models.InformacionSucursal
+// @Failure 403 body is empty
+// @router listar_sucursal/ [get]
+func (c *GestionSucursalesController) ListarSucursal() {
+
+	id_sucursal := c.GetString("id_sucursal")
+	var sucursales []models.Organizacion
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+
+		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
+		for i, suc := range sucursales{
+			informacion_sucursal[i].Nombre = suc.Nombre
+			informacion_sucursal[i].Direccion = BuscarDireccion(suc.Ente)
+			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
+			ubicaciones := BuscarUbicaciones(suc.Ente)
+			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad = BuscarLugar(ubicaciones,suc.Ente)
+
+    }
+
+		c.Data["json"] = informacion_sucursal
+	}else{
+		c.Data["json"] = err
+	}
+
+		c.ServeJSON()
+}
+
 // ListarSucursales ...
 // @Title ListarSucursales
 // @Description ListarSucursales
@@ -213,7 +244,7 @@ func InsertarUbicacion(direccion string, pais, departamento, ciudad int,id_ente 
 
 func BuscarDireccion(id_ente int)(direccion string){
 
-	return "N/A"
+	return "No registrado"
 }
 
 
