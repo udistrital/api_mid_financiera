@@ -1101,7 +1101,7 @@ func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 			var resM map[string]interface{}
 			infoDisp["MesRegistro"] = strconv.Itoa(int(t.Month()))
 			beego.Info("Data send ", infoDisp)
-			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/cdp"
+			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Cdp"
 			if err1 = request.SendJson(Urlmongo, "POST", &resM, &infoDisp); err1 == nil {
 				if resM["Type"].(string) == "success" {
 					err = err1

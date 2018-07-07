@@ -866,7 +866,7 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		}
 
 		dataSend["Afectacion"] = afectacion
-		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/rp"
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Rp"
 		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
 			if resM["Type"].(string) == "success" {
 				err = err1
