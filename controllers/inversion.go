@@ -6,6 +6,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_financiera/models"
+	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 )
 
@@ -13,7 +14,6 @@ import (
 type InversionController struct {
 	beego.Controller
 }
-
 
 // URLMapping ...
 func (c *InversionController) URLMapping() {
@@ -35,7 +35,6 @@ func (c *InversionController) Post() {
 
 }
 
-
 // CreacionInversion ...
 // @Title Creacion Inversion
 // @Description create Inversion
@@ -51,16 +50,17 @@ func (c *InversionController) CreateInversion() {
 
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion/CreateCancelacion", "POST", &respuesta, v); err == nil {
 			c.Data["json"] = respuesta
-			} else {
-					beego.Error(err.Error())
-					c.Data["json"] = models.Alert{Type:"error",Code:"E_0458",Body:err}
-			}
-
-	}else{
+		} else {
 			beego.Error(err.Error())
-			c.Data["json"] = models.Alert{Type:"error",Code:"E_0458",Body:err}
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+		}
+
+	} else {
+		beego.Error(err.Error())
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
+
 // GetAllCancelaciones ...
 // @Title GetAllCancelaciones
 // @Description get cancelacion Inversion
@@ -92,10 +92,32 @@ func (c *InversionController) GetAllCancelaciones() {
 		query = r + "," + query
 	}
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion_estado_cancelacion?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cancelaciones); err == nil {
-		if cancelaciones != nil{
-			c.Data["json"]=cancelaciones
+		if cancelaciones != nil {
+			cancelacionesComp := optimize.ProccDigest(cancelaciones, getValueListCancelations, nil, 3)
+			beego.Error("cancelacionesComp ", cancelacionesComp)
+			c.Data["json"] = cancelacionesComp
 		}
 	}
+}
+
+func getValueListCancelations(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var cancelacionInversion map[string]interface{}
+	var unidadEjecutoraResp []interface{}
+	var cancelacionInversionInversion []interface{}
+	cancelacionInversion = rpintfc.(map[string]interface{})["CancelacionInversion"].(map[string]interface{})
+	UnidadEjecutora := strconv.FormatFloat(cancelacionInversion["UnidadEjecutora"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/unidad_ejecutora?limit=-1&query=Id:"+UnidadEjecutora, &unidadEjecutoraResp); err == nil {
+		if unidadEjecutoraResp != nil {
+			rpintfc.(map[string]interface{})["UnidadEjecutora"] = unidadEjecutoraResp[0]
+		}
+	}
+	idCancelacion := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion_inversion?limit=-1&query=Cancelacion.Id:"+idCancelacion, &cancelacionInversionInversion); err == nil {
+		if cancelacionInversionInversion != nil {
+			rpintfc.(map[string]interface{})["Inversion"] = cancelacionInversionInversion[0].(map[string]interface{})["Inversion"]
+		}
+	}
+	return rpintfc
 }
 
 // GetOne ...
@@ -107,6 +129,22 @@ func (c *InversionController) GetAllCancelaciones() {
 // @router /:id [get]
 func (c *InversionController) GetOne() {
 
+}
+
+// GetCancelationQuantity ...
+// @Title Get Cancelation Quantity
+// @Description get the number of record given a id from cancelation
+// @Success 200 {object} interface{}
+// @Failure 403
+// @router GetCancelationQuantity/ [get]
+func (c *InversionController) GetCancelationQuantity() {
+	defer c.ServeJSON()
+	var respuesta map[string]interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cancelacion_inversion_estado_cancelacion/GetCancelationQuantity", &respuesta); err == nil {
+		c.Data["json"] = respuesta
+	} else {
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+	}
 }
 
 // GetAll ...

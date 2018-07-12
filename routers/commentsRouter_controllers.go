@@ -361,6 +361,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
 		beego.ControllerComments{
+			Method: "Delete",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
+		beego.ControllerComments{
 			Method: "GetOne",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"get"},
@@ -377,14 +385,6 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
 		beego.ControllerComments{
-			Method: "Delete",
-			Router: `/:id`,
-			AllowHTTPMethods: []string{"delete"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
-		beego.ControllerComments{
 			Method: "CreateInversion",
 			Router: `CreateInversion/`,
 			AllowHTTPMethods: []string{"post"},
@@ -395,6 +395,14 @@ func init() {
 		beego.ControllerComments{
 			Method: "GetAllCancelaciones",
 			Router: `GetAllCancelaciones/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
+		beego.ControllerComments{
+			Method: "GetCancelationQuantity",
+			Router: `GetCancelationQuantity/`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
