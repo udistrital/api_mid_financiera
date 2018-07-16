@@ -75,6 +75,11 @@ func init() {
 				&controllers.DevolucionesController{},
 			),
 		),
+		beego.NSNamespace("/movimiento_apropiacion",
+			beego.NSInclude(
+				&controllers.MovimientoApropiacionController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
