@@ -57,6 +57,8 @@ func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
 
 func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 	idMov := 0.0
+	var movimientos []map[string]interface{}
+
 	try.This(func() {
 		dataMongo := make(map[string]interface{})
 		infoMovimiento := parameter[0].(map[string]interface{})["Movimiento"].(map[string]interface{})
@@ -67,7 +69,6 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		dataMongo["Vigencia"] = infoMovimiento["Vigencia"]
 		dataMongo["UnidadEjecutora"] = infoMovimiento["UnidadEjecutora"]
 		dataMongo["Id"] = infoMovimiento["Id"]
-		var movimientos []map[string]interface{}
 		err1 := formatdata.FillStruct(infoMovimiento["MovimientoApropiacionDisponibilidadApropiacion"], &movimientos)
 		if err1 != nil {
 			panic(err1.Error())
@@ -75,12 +76,17 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		for _, data := range movimientos {
 			var CuentaContraCredito string
 			var CuentaCredito string
+			var Disponibilidad float64
 			if CuentaContraCreditoInt, e := data["CuentaContraCredito"].(map[string]interface{}); e {
 				CuentaContraCredito = CuentaContraCreditoInt["Rubro"].(map[string]interface{})["Codigo"].(string)
 			}
 			if CuentaCreditoInt, e := data["CuentaCredito"].(map[string]interface{}); e {
 				CuentaCredito = CuentaCreditoInt["Rubro"].(map[string]interface{})["Codigo"].(string)
 			}
+			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
+				Disponibilidad = dispo["Id"].(float64)
+			}
+
 			Valor := data["Valor"]
 			TipoMovimiento := data["TipoMovimientoApropiacion"].(map[string]interface{})["Nombre"]
 			afectacion := map[string]interface{}{
@@ -88,11 +94,12 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 				"CuentaCredito":       CuentaCredito,
 				"Valor":               Valor,
 				"TipoMovimiento":      TipoMovimiento,
+				"Disponibilidad":      Disponibilidad,
 			}
 			afectacionArr = append(afectacionArr, afectacion)
 		}
 		dataMongo["Afectacion"] = afectacionArr
-		beego.Info("Data Send ", dataMongo)
+		panic("test error")
 	}).Catch(func(e try.E) {
 		var resC interface{}
 		infoMovimiento := parameter[0].(map[string]interface{})["Movimiento"].(map[string]interface{})
@@ -101,6 +108,15 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		estadoMov["Id"] = 1
 		infoMovimiento["EstadoMovimientoApropiacion"] = estadoMov
 		request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento)
+		for _, data := range movimientos {
+			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
+				idDisp := dispo["Id"].(float64)
+				Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadMovimiento/" + strconv.Itoa(int(idDisp))
+				request.SendJson(Urlcrud, "DELETE", &resC, nil)
+				beego.Info(resC)
+			}
+
+		}
 		beego.Error("error job ", e)
 	})
 	return
