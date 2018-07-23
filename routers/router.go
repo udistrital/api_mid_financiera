@@ -95,6 +95,11 @@ func init() {
 				&controllers.InversionController{},
 			),
 		),
+		beego.NSNamespace("/reintegro",
+			beego.NSInclude(
+				&controllers.ReintegroController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
