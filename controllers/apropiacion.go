@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/manucorporat/try"
@@ -172,4 +173,72 @@ func (c *ApropiacionController) ArbolApropiaciones() {
 		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
 	})
 	c.ServeJSON()
+}
+
+// SaldoApropiacion ...
+// @Title SaldoApropiacion
+// @Description Get Arbol Rubros By UE
+// @Param	unidadEjecutora		path 	int64	true		"unidad ejecutora a consultar"
+// @Param	rama		query 	string	false		"rama a consultar"
+// @Success 200 {object} models.Rubro
+// @Failure 403
+// @router /SaldoApropiacion/:rubro/:unidadEjecutora/:vigencia [get]
+func (c *ApropiacionController) SaldoApropiacion() {
+	var (
+		rubroParam    string
+		unidadEParam  int
+		vigenciaParam int
+		err           error
+	)
+	try.This(func() {
+		res := make(map[string]float64)
+		rubroParam = c.GetString(":rubro")
+		if unidadEParam, err = c.GetInt(":unidadEjecutora"); err != nil {
+			panic(err.Error())
+		}
+
+		if vigenciaParam, err = c.GetInt(":vigencia"); err != nil {
+			panic(err.Error())
+		}
+		res = CalcularSaldoApropiacion(rubroParam, unidadEParam, vigenciaParam)
+		c.Data["json"] = res
+	}).Catch(func(e try.E) {
+		fmt.Println("expc ", e)
+		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
+	})
+	c.ServeJSON()
+}
+
+func CalcularSaldoApropiacion(rubroParam string, unidadEParam, vigenciaParam int) (res map[string]float64) {
+	var saldo float64
+	urlmongo := ""
+	urlmongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/SaldoApropiacion/" + rubroParam + "/" + strconv.Itoa(unidadEParam) + "/" + strconv.Itoa(vigenciaParam)
+
+	beego.Info("Url ", urlmongo)
+	if err := request.GetJson(urlmongo, &res); err != nil {
+		beego.Info(err.Error())
+		panic("Mongo API Service Error")
+	} else {
+		for key, value := range res {
+
+			if !strings.Contains(key, "mes") && !strings.Contains(key, "rp") {
+				switch tipoMovimiento := key; tipoMovimiento {
+				//rp
+				case "Adicion":
+				case "Traslado_cuenta_contra_credito":
+				case "total_anulado_cdp":
+				case "valor_inicial":
+					beego.Info("suma ", tipoMovimiento)
+					saldo += value
+				default:
+					beego.Info("resta ", tipoMovimiento)
+					saldo -= value
+				}
+			}
+		}
+
+	}
+
+	res["saldo"] = saldo
+	return
 }
