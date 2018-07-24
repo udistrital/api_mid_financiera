@@ -918,6 +918,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 	var alertas []models.Alert
 	var rubrosSolicitud []map[string]interface{}
 	var mapSaldoApropiacion map[string]float64
+	var apropiacion []map[string]interface{}
 	VigActual := time.Now().Year()
 	disponibilidad := make(map[string]interface{})
 	infoDisponibilidad := make(map[string]interface{})
@@ -929,7 +930,9 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 			//recorrer los rubros y/o fuentes solicitados
 			for _, infoRubro := range rubrosSolicitud {
 				//Solicitar el saldo de la apropiacion objetivo.
-				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &mapSaldoApropiacion); err == nil {
+				//Se debe consultar la informacion del rubro para poder consumir saldo desde mongo
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Id:"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &apropiacion); err == nil {
+					mapSaldoApropiacion = CalcularSaldoApropiacion(apropiacion[0]["Rubro"].(map[string]interface{})["Codigo"].(string), int(apropiacion[0]["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)), int(apropiacion[0]["Vigencia"].(float64)))
 					tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
 					tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
 				} else {
@@ -1097,9 +1100,9 @@ func (c *DisponibilidadController) AprobarAnulacionDisponibilidad() {
 		var res models.Alert
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/AprobarAnulacion"
-			beego.Info("URL ", Urlcrud)			
+			beego.Info("URL ", Urlcrud)
 			if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
-				c.Data["json"] = res 
+				c.Data["json"] = res
 			} else {
 				panic(err.Error())
 			}
@@ -1113,8 +1116,6 @@ func (c *DisponibilidadController) AprobarAnulacionDisponibilidad() {
 
 	c.ServeJSON()
 }
-
-
 
 func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
