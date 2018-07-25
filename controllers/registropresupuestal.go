@@ -861,6 +861,8 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 			aux["Rubro"] = data.Apropiacion.Rubro.Codigo
 			aux["UnidadEjecutora"] = strconv.Itoa(int(data.Apropiacion.Rubro.UnidadEjecutora))
 			aux["Valor"] = data.Valor
+			aux["FuenteCodigo"] = data.FuenteFinanciacion.Codigo
+			aux["FuenteNombre"] = data.FuenteFinanciacion.Nombre
 			dataSend["Disponibilidad"] = data.Disponibilidad.Id
 			afectacion = append(afectacion, aux)
 		}
