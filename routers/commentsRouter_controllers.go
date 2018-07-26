@@ -377,6 +377,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"],
 		beego.ControllerComments{
+			Method: "SaldoRp",
+			Router: `/SaldoRp/:idPsql/:rubro`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"],
+		beego.ControllerComments{
 			Method: "SolicitudesRpByDependencia",
 			Router: `/SolicitudesRpByDependencia/:vigencia`,
 			AllowHTTPMethods: []string{"get"},

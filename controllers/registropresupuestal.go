@@ -934,3 +934,37 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 	})
 	return
 }
+
+// SaldoRp ...
+// @Title SaldoRp
+// @Description create RegistroPresupuestal
+// @Param	idPsql		path 	int	true		"idPsql del documento"
+// @Param	rubro		path 	string	true		"código del rubro"
+// @Param	fuente		query	string false		"fuente de financiamiento"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SaldoRp/:idPsql/:rubro [get]
+func (c *RegistroPresupuestalController) SaldoRp() {
+	try.This(func() {
+		var (
+			cdpId     int
+			err       error
+			infoSaldo map[string]float64
+		)
+
+		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		if err != nil {
+			panic(err.Error())
+		}
+		rubro := c.GetString(":rubro")
+		fuente := c.GetString("fuente")
+		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoOp": true}
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpId, valoresSuman)
+		c.Data["json"] = infoSaldo
+
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}

@@ -1140,7 +1140,8 @@ func (c *DisponibilidadController) SaldoCdp() {
 		}
 		rubro := c.GetString(":rubro")
 		fuente := c.GetString("fuente")
-		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Cdp", cdpId)
+		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoRp": true}
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Cdp", cdpId, valoresSuman)
 		c.Data["json"] = infoSaldo
 
 	}).Catch(func(e try.E) {
@@ -1239,7 +1240,7 @@ func AddAnulacionCdpMongo(parameter ...interface{}) (err interface{}) {
 	return
 }
 
-func CalcularSaldoMovimiento(rubro, fuente, tipo string, cdpId int) (res map[string]float64) {
+func CalcularSaldoMovimiento(rubro, fuente, tipo string, cdpId int, valoresSuman map[string]bool) (res map[string]float64) {
 	var saldo float64
 	urlMongo := ""
 	urlMongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/SaldoMovimiento/" + strconv.Itoa(cdpId) + "/" + rubro + "/" + tipo
@@ -1251,18 +1252,31 @@ func CalcularSaldoMovimiento(rubro, fuente, tipo string, cdpId int) (res map[str
 		panic("Mongo API Service Error")
 	} else {
 		for key, value := range res {
-
-			beego.Info("Saldo ", saldo)
-			switch tipoMovimiento := key; tipoMovimiento {
-			//rp
-			case "TotalAnuladoRp", "Valor":
-				beego.Info("suma ", tipoMovimiento)
+			if valoresSuman[key] {
+				beego.Info("suma ", key)
 				saldo += value
-			default:
-
-				beego.Info("resta ", tipoMovimiento)
+			} else {
+				beego.Info("resta ", key)
 				saldo -= value
 			}
+
+			// beego.Info("Saldo ", saldo)
+			// switch tipoMovimiento := key; tipoMovimiento {
+			//
+			// //rp
+			// case valoresSuman:
+			// 	if tipo == "Cdp" {
+			//
+			// 	} else {
+			//
+			// 	}
+			// 	beego.Info("suma ", tipoMovimiento)
+			// 	saldo += value
+			// default:
+			//
+			// 	beego.Info("resta ", tipoMovimiento)
+			// 	saldo -= value
+			// }
 
 		}
 
