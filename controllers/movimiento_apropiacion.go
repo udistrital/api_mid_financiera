@@ -58,7 +58,7 @@ func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
 func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 	idMov := 0.0
 	var movimientos []map[string]interface{}
-
+	var resM map[string]interface{}
 	try.This(func() {
 		dataMongo := make(map[string]interface{})
 		infoMovimiento := parameter[0].(map[string]interface{})["Movimiento"].(map[string]interface{})
@@ -77,17 +77,21 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 			var CuentaContraCredito string
 			var CuentaCredito string
 			var Disponibilidad float64
+			var Apropiacion float64
 			if CuentaContraCreditoInt, e := data["CuentaContraCredito"].(map[string]interface{}); e {
 				CuentaContraCredito = CuentaContraCreditoInt["Rubro"].(map[string]interface{})["Codigo"].(string)
 			}
 			if CuentaCreditoInt, e := data["CuentaCredito"].(map[string]interface{}); e {
 				CuentaCredito = CuentaCreditoInt["Rubro"].(map[string]interface{})["Codigo"].(string)
+				Apropiacion = CuentaCreditoInt["Id"].(float64)
 			}
 			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
 				Disponibilidad = dispo["Id"].(float64)
 			}
 
 			Valor := data["Valor"]
+			beego.Info("data send ", data)
+
 			TipoMovimiento := data["TipoMovimientoApropiacion"].(map[string]interface{})["Nombre"]
 			afectacion := map[string]interface{}{
 				"CuentaContraCredito": CuentaContraCredito,
@@ -95,11 +99,21 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 				"Valor":               Valor,
 				"TipoMovimiento":      TipoMovimiento,
 				"Disponibilidad":      Disponibilidad,
+				"Apropiacion":         Apropiacion,
 			}
 			afectacionArr = append(afectacionArr, afectacion)
 		}
 		dataMongo["Afectacion"] = afectacionArr
-		panic("test error")
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/ModificacionApr"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataMongo); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
 	}).Catch(func(e try.E) {
 		var resC interface{}
 		infoMovimiento := parameter[0].(map[string]interface{})["Movimiento"].(map[string]interface{})

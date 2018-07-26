@@ -1117,6 +1117,39 @@ func (c *DisponibilidadController) AprobarAnulacionDisponibilidad() {
 	c.ServeJSON()
 }
 
+// SaldoCdp ...
+// @Title SaldoCdp
+// @Description create RegistroPresupuestal
+// @Param	idPsql		path 	int	true		"idPsql del documento"
+// @Param	rubro		path 	string	true		"código del rubro"
+// @Param	fuente		query	string false		"fuente de financiamiento"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SaldoCdp/:idPsql/:rubro [get]
+func (c *DisponibilidadController) SaldoCdp() {
+	try.This(func() {
+		var (
+			cdpId     int
+			err       error
+			infoSaldo map[string]float64
+		)
+
+		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		if err != nil {
+			panic(err.Error())
+		}
+		rubro := c.GetString(":rubro")
+		fuente := c.GetString("fuente")
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Cdp", cdpId)
+		c.Data["json"] = infoSaldo
+
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}
+
 func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoDisp := parameter[0].(map[string]interface{})
@@ -1203,5 +1236,38 @@ func AddAnulacionCdpMongo(parameter ...interface{}) (err interface{}) {
 		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
 		beego.Info("Data ", resC)
 	})
+	return
+}
+
+func CalcularSaldoMovimiento(rubro, fuente, tipo string, cdpId int) (res map[string]float64) {
+	var saldo float64
+	urlMongo := ""
+	urlMongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/SaldoMovimiento/" + strconv.Itoa(cdpId) + "/" + rubro + "/" + tipo
+	if fuente != "" {
+		urlMongo += "?fuente=" + fuente
+	}
+	if err := request.GetJson(urlMongo, &res); err != nil {
+		beego.Info(err.Error())
+		panic("Mongo API Service Error")
+	} else {
+		for key, value := range res {
+
+			beego.Info("Saldo ", saldo)
+			switch tipoMovimiento := key; tipoMovimiento {
+			//rp
+			case "TotalAnuladoRp", "Valor":
+				beego.Info("suma ", tipoMovimiento)
+				saldo += value
+			default:
+
+				beego.Info("resta ", tipoMovimiento)
+				saldo -= value
+			}
+
+		}
+
+	}
+
+	res["saldo"] = saldo
 	return
 }

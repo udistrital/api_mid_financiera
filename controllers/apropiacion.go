@@ -224,10 +224,7 @@ func CalcularSaldoApropiacion(rubroParam string, unidadEParam, vigenciaParam int
 			if !strings.Contains(key, "mes") && !strings.Contains(key, "rp") {
 				switch tipoMovimiento := key; tipoMovimiento {
 				//rp
-				case "Adicion":
-				case "Traslado_cuenta_contra_credito":
-				case "total_anulado_cdp":
-				case "valor_inicial":
+				case "Adicion", "Traslado_cuenta_contra_credito", "total_anulado_cdp", "valor_inicial":
 					beego.Info("suma ", tipoMovimiento)
 					saldo += value
 				default:
