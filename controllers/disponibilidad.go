@@ -89,7 +89,7 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 	solicitudMap, ee := solicitudArr[0].(map[string]interface{})
 	solicitudNo, ee := solicitudMap["ProcesoExterno"].(float64)
 	if params != nil && ee {
-	beego.Info("Peticion: ", "http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64))
+		beego.Info("Peticion: ", "http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64))
 		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=0&query=Id:"+strconv.FormatFloat(solicitudNo, 'f', -1, 64), &solicitud); err == nil {
 			beego.Info("Respuesta: ", solicitud)
 			for _, resultado := range solicitud {
@@ -106,6 +106,8 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 						necesidadaux := necesidad[0]
 						resultado.Necesidad = &necesidadaux
 						fmt.Println(necesidadaux)
+
+						beego.Info("http://" + beego.AppConfig.String("argoService") + "dependencia_necesidad?limit=0&query=Necesidad.Id:" + strconv.Itoa(necesidad[0].Id))
 						if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes); err == nil {
 							//fmt.Println("http://" + beego.AppConfig.String("oikosService") + "dependencia?limit=0&query=Id:" + strconv.Itoa(depNes[0].JefeDependenciaSolicitante))
 							if depNes != nil {
@@ -143,8 +145,6 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 								} else {
 									fmt.Println(err)
 								}
-							} else {
-
 							}
 
 							if depSol == nil {
@@ -157,23 +157,25 @@ func formatoListaCDPConSolicitud(disponibilidad map[string]interface{}, params .
 							disponibilidad["Solicitud"] = temp
 
 						} else {
-							return map[string]interface{}{"Code": "E_0458", "Body": "argo Service", "Type": "error"}
+							// return map[string]interface{}{"Code": "E_0458", "Body": "argo Service1", "Type": "error"}
+							temp := models.InfoSolDisp{SolicitudDisponibilidad: resultado, DependenciaSolicitante: models.Dependencia{Nombre: "Indefinida"}, DependenciaDestino: models.Dependencia{Nombre: "Indefinida"}}
+							disponibilidad["Solicitud"] = temp
 						}
-					} else {
-						return map[string]interface{}{"Code": "E_0458", "Body": "argo Service", "Type": "error"}
-					}
-				} else {
-					return map[string]interface{}{"Code": "E_0458", "Body": "argo Service", "Type": "error"}
-				}
+					} //else {
+					// 	return map[string]interface{}{"Code": "E_0458", "Body": "argo Service2", "Type": "error"}
+					// }
+				} //else {
+				// 	return map[string]interface{}{"Code": "E_0458", "Body": "argo Service3", "Type": "error"}
+				// }
 			}
 
-		} else {
-			beego.Info("Error argo: " , err)
-			return map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
-		}
-	} else {
-		return map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in Disponibilidad Procses", "Type": "error"}
-	}
+		} // else {
+		// 	beego.Info("Error argo: ", err)
+		// 	return map[string]interface{}{"Code": "E_0458", "Body": err, "Type": "error"}
+		// }
+	} //else {
+	// 	return map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in Disponibilidad Procses", "Type": "error"}
+	// }
 
 	return disponibilidad
 }
