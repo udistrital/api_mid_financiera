@@ -43,6 +43,11 @@ type rowCierre struct {
 	Fdescrip   interface{}
 }
 
+type rowTotales struct {
+	Descripcion interface{}
+	Reporte     []*reportePacData
+}
+
 type reportePacData struct {
 	Mes     interface{}
 	N_mes   interface{}
@@ -57,6 +62,8 @@ type valoresPac struct {
 type cuerpoPac struct {
 	Ingresos []*rowPac
 	Egresos  []*rowPac
+	TotalesIngresos  []*rowTotales
+	TotalesEgresos   []*rowTotales
 }
 type cuerpoCierre struct {
 	Ingresos []*rowCierre
@@ -498,15 +505,20 @@ func (c *RubroController) agregarSumaFuenteEgresos(reporteData *cuerpoPac, finic
 	var i int
 
 	vigencia := finicio.Year()
-
+	if len(reporteData.Egresos) > 0 {
 	lastRow := reporteData.Egresos[len(reporteData.Egresos)-1]
 	for _, filaIngresos := range reporteData.Egresos {
 		err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
 		err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
 		if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
 			Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
-			nuevaFila := &rowPac{Fdescrip: "Total Rubro" + descripcionAnt,
+			nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
 				Reporte: Reporte}
+				nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
+											Reporte: Reporte}
+
+
+				reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
 
 			reporteData.Egresos = append(reporteData.Egresos, nil)
 			copy(reporteData.Egresos[i+1:], reporteData.Egresos[i:])
@@ -520,21 +532,33 @@ func (c *RubroController) agregarSumaFuenteEgresos(reporteData *cuerpoPac, finic
 		i++
 	}
 	Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
-	nuevaFila := &rowPac{Fdescrip: "Total Rubro" + descripcionAnt,
+	nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
 		Reporte: Reporte}
+
+	nuevoTotal := &rowTotales{Descripcion: "Total Rubro" + descripcionAnt,
+				Reporte: Reporte}
+
+
+	reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
+
 	reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
 
-	Reporte = getSumTotal(lastRow.Reporte, "2", vigencia)
+	Reporte = getSumTotal(lastRow.Reporte, "3", vigencia)
 	nuevaFila = &rowPac{Fdescrip: "Total Egresos ",
 		Reporte: Reporte}
-	reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
 
+	nuevoTotal = &rowTotales{Descripcion: "Total Egresos ",
+									Reporte: Reporte}
+
+
+	reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
+
+	reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
+}
 	wg.Done()
 	return
 }
 func (c *RubroController) agregarSumaFuenteIngresos(reporteData *cuerpoPac, finicio time.Time, alert *models.Alert) (err error) {
-	//var valores valoresPac
-	//var valorSuma int64
 	var idFuente string
 	var idFuenteAnt string
 	var descripcionF string
@@ -543,16 +567,19 @@ func (c *RubroController) agregarSumaFuenteIngresos(reporteData *cuerpoPac, fini
 	var i int
 
 	vigencia := finicio.Year()
-
+	if len(reporteData.Ingresos) > 0 {
 	lastRow := reporteData.Ingresos[len(reporteData.Ingresos)-1]
 	for _, filaIngresos := range reporteData.Ingresos {
 		err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
 		err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
 		if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
-			fmt.Println("valores  cambian de ", "fuenteAnt = "+idFuenteAnt, "fuente "+idFuente+" valor i "+strconv.Itoa(i))
 			Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
-			nuevaFila := &rowPac{Fdescrip: "Total Rubro" + descripcionAnt,
+			nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
 				Reporte: Reporte}
+			nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
+					Reporte: Reporte}
+
+			reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
 
 			reporteData.Ingresos = append(reporteData.Ingresos, nil)
 			copy(reporteData.Ingresos[i+1:], reporteData.Ingresos[i:])
@@ -568,12 +595,24 @@ func (c *RubroController) agregarSumaFuenteIngresos(reporteData *cuerpoPac, fini
 	Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
 	nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
 		Reporte: Reporte}
-	reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
+
+ nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
+				Reporte: Reporte}
+
+ reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
+
+ reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
 
 	Reporte = getSumTotal(lastRow.Reporte, "2", vigencia)
 	nuevaFila = &rowPac{Fdescrip: "Total Ingresos ",
 		Reporte: Reporte}
+	nuevoTotal = &rowTotales{Descripcion: "Total Ingresos ",
+														Reporte: Reporte}
+
+	reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
+
 	reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
+}
 	wg.Done()
 	return
 }
