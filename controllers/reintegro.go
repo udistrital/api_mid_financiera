@@ -3,9 +3,12 @@ package controllers
 import (
 	"github.com/astaxie/beego"
 	"strings"
+	"strconv"
 	"encoding/json"
 	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/api_mid_financiera/models"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/optimize"
 )
 
 // ReintegroController operations for Reintegro
@@ -110,3 +113,71 @@ func (c *ReintegroController) Create() {
 				c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
 			}
 		}
+
+		// GetReintegroDisponible...
+		// @Title GetReintegroDisponible
+		// @Description get reintegro which his income has been aproved
+		// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+		// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+		// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+		// @Success 201 {object} interface{}
+		// @Failure 403 body is empty
+		// @router /GetReintegroDisponible [get]
+		func (c *ReintegroController) GetReintegroDisponible() {
+		  defer c.ServeJSON()
+
+			var limit int = 10
+			var offset int
+			var query string
+
+
+			var reintegros []interface{}
+			var resReintegro map[string]interface{}
+
+
+			if v, err := c.GetInt("limit"); err == nil {
+				limit = v
+			}
+
+			if v, err := c.GetInt("offset"); err == nil {
+				offset = v
+			}
+
+			if v := c.GetString("query"); v != "" {
+				query = v
+			}
+
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/reintegro/GetAllReintegroDisponible/?query="+query+"&limit="+strconv.Itoa(limit) + "&offset="+strconv.Itoa(offset), &resReintegro);err == nil{
+					if err := formatdata.FillStruct(resReintegro["reintegros"],&reintegros);err==nil{
+						if (reintegros!=nil){
+							beego.Error("valor reintegros ",reintegros)
+							reintegros := optimize.ProccDigest(reintegros, getValueListReintegros, nil, 3)
+							resReintegro["reintegros"] = reintegros
+							c.Data["json"] = resReintegro
+						}
+						}else{
+							c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+						}
+				}else{
+					beego.Error(err.Error())
+				}
+			}
+
+				func getValueListReintegros(rpintfc interface{}, params ...interface{}) (res interface{}) {
+
+
+					var resIngreso []map[string]interface{}
+					ingreso := rpintfc.(map[string]interface{})["Ingreso"].(map[string]interface{})
+					beego.Error("ingreso ",ingreso)
+					idIngreso := strconv.FormatFloat(ingreso["Id"].(float64), 'f', -1, 64)
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso?limit=1&query=Id:"+idIngreso, &resIngreso); err == nil {
+						if resIngreso[0] != nil {
+							resIngreso[0]["IngresoEstadoIngreso"]= nil
+							ingresoConcepto := resIngreso[0]["IngresoConcepto"].([]interface{})[0].(map[string]interface{})
+							ingresoConcepto["Ingreso"] = nil
+							resIngreso[0]["IngresoConcepto"] = ingresoConcepto
+							rpintfc.(map[string]interface{})["Ingreso"] = resIngreso[0]
+						}
+					}
+					return rpintfc
+				}
