@@ -110,6 +110,11 @@ func init() {
 				&controllers.MovimientoApropiacionController{},
 			),
 		),
+		beego.NSNamespace("/migracion_mongo",
+			beego.NSInclude(
+				&controllers.MigracionMongoController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

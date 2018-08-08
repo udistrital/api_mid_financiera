@@ -455,6 +455,22 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MigracionMongoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MigracionMongoController"],
+		beego.ControllerComments{
+			Method: "MigrarApropiacion",
+			Router: `/MigrarApropiacion/:vigencia`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MigracionMongoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MigracionMongoController"],
+		beego.ControllerComments{
+			Method: "MigrarMovimiento",
+			Router: `/MigrarMovimiento/:tipo/:vigencia`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"],
 		beego.ControllerComments{
 			Method: "AprobarMovimietnoApropiacion",
