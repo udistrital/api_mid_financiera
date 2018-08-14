@@ -177,6 +177,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionSucursalesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionSucursalesController"],
 		beego.ControllerComments{
+			Method: "ListarSucursalesBanco",
+			Router: `/ListarSucursalesBanco/:idBanco`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionSucursalesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionSucursalesController"],
+		beego.ControllerComments{
 			Method: "InsertarSucursales",
 			Router: `insertar_sucursal/`,
 			AllowHTTPMethods: []string{"post"},

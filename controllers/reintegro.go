@@ -150,7 +150,6 @@ func (c *ReintegroController) Create() {
 			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/reintegro/GetAllReintegroDisponible/?query="+query+"&limit="+strconv.Itoa(limit) + "&offset="+strconv.Itoa(offset), &resReintegro);err == nil{
 					if err := formatdata.FillStruct(resReintegro["reintegros"],&reintegros);err==nil{
 						if (reintegros!=nil){
-							beego.Error("valor reintegros ",reintegros)
 							reintegros := optimize.ProccDigest(reintegros, getValueListReintegros, nil, 3)
 							resReintegro["reintegros"] = reintegros
 							c.Data["json"] = resReintegro
@@ -168,7 +167,6 @@ func (c *ReintegroController) Create() {
 
 					var resIngreso []map[string]interface{}
 					ingreso := rpintfc.(map[string]interface{})["Ingreso"].(map[string]interface{})
-					beego.Error("ingreso ",ingreso)
 					idIngreso := strconv.FormatFloat(ingreso["Id"].(float64), 'f', -1, 64)
 					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/ingreso?limit=1&query=Id:"+idIngreso, &resIngreso); err == nil {
 						if resIngreso[0] != nil {
