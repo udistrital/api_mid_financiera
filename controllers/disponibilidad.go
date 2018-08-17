@@ -671,10 +671,18 @@ func (this *DisponibilidadController) Post() {
 				reglasBase := ruler.CargarReglasBase("Presupuesto")
 				for j := 0; j < len(rubros_solicitud); j++ {
 
-					var map_saldo_aprop map[string]float64
+					var apropiacion []models.Apropiacion
 					fmt.Println("aprop: ", rubros_solicitud[j].Apropiacion)
-					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &map_saldo_aprop); err == nil {
-						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
+					//get Apropiacion Info
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Id:"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &apropiacion); err == nil {
+						if apropiacion[0].Id != 0 {
+							map_saldo_aprop := CalcularSaldoApropiacion(apropiacion[0].Rubro.Codigo, int(apropiacion[0].Rubro.UnidadEjecutora), int(apropiacion[0].Vigencia))
+							beego.Info("Saldo Mongo: ", map_saldo_aprop)
+							predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
+
+						} else {
+
+						}
 					} else {
 						alertas = append(alertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 						aprobada = false
@@ -935,8 +943,15 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 				//Se debe consultar la informacion del rubro para poder consumir saldo desde mongo
 				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Id:"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &apropiacion); err == nil {
 					mapSaldoApropiacion = CalcularSaldoApropiacion(apropiacion[0]["Rubro"].(map[string]interface{})["Codigo"].(string), int(apropiacion[0]["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)), int(apropiacion[0]["Vigencia"].(float64)))
-					tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
-					tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					beego.Info("Saldo Apr: ", mapSaldoApropiacion)
+					if mapSaldoApropiacion["saldo"] >= 0 {
+						tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
+						tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					} else {
+						tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + ",0).")
+						tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					}
+
 				} else {
 					alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 				}
