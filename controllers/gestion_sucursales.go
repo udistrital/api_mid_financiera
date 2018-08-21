@@ -153,7 +153,6 @@ func (c *GestionSucursalesController) ListarSucursalesBanco() {
 		beego.Error("organizacion hija ",orgHijas)
 		if (orgHijas!=nil){
 			sucursales := optimize.ProccDigest(orgHijas, getValuesSucursales, nil, 3)
-			beego.Error("Sucursale procesadas",sucursales);
 			c.Data["json"] = sucursales
 		}
 	}else{
