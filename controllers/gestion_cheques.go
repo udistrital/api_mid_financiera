@@ -200,8 +200,9 @@ func chequeraInfoDistpacher (rpintfc interface{}, params ...interface{}) (res in
 func getValuesChequera(rpintfc interface{}) (res interface{}) {
 	var resEstado []map[string]interface{}
 	var unidadEjecutoraResp []map[string]interface{}
+	var responsableResp []map[string]interface{}
 	var resSucursal []map[string]interface{}
-	var resBanco interface{}
+
 	chequeraId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera_estado_chequera/?query=Activo:true"+",chequera.Id:"+chequeraId, &resEstado); err == nil {
 		if resEstado[0] != nil {
@@ -227,8 +228,16 @@ func getValuesChequera(rpintfc interface{}) (res interface{}) {
 		beego.Error("Error",err.Error());
 	}
 	resBanco,err := GetBancoSucursal(sucursalId)
-	if err != nil{
-		rpintfc.(map[string]interface{})["Banco"] = resBanco.([]map[string]interface{})[0]["OrganizacionPadre"]
+	if err == nil{
+		rpintfc.(map[string]interface{})["Banco"] = resBanco.([]interface{})[0].(map[string]interface{})
+	}else{
+		beego.Error("Error",err.Error());
+	}
+	Responsable := strconv.FormatFloat(rpintfc.(map[string]interface{})["Responsable"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/supervisor_contrato?limit=-1&query=Documento:"+Responsable, &responsableResp); err == nil {
+		if responsableResp != nil {
+			rpintfc.(map[string]interface{})["Responsable"] = responsableResp[0]
+		}
 	}else{
 		beego.Error("Error",err.Error());
 	}

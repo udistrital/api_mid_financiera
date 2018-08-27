@@ -164,7 +164,7 @@ func GetBancoSucursal(idSucursalStr string)(res interface{},err error) {
 	var orgPadre []interface{}
 	if err = request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"relacion_organizaciones/?query=OrganizacionHija:" + idSucursalStr, &orgPadre); err == nil {
 		if (orgPadre!=nil){
-			res = optimize.ProccDigest(orgPadre, getValuesSucursales, nil, 3)
+			res = optimize.ProccDigest(orgPadre, getValuesBancos, nil, 3)
 		}
 	}
 	return
@@ -173,7 +173,6 @@ func GetBancoSucursal(idSucursalStr string)(res interface{},err error) {
 func getValuesSucursales(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resSucursal []map[string]interface{}
 	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionHija"].(float64), 'f', -1, 64)
-	beego.Error("id sucursal consultar",sucursalId)
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
 		if resSucursal[0] != nil {
 			rpintfc.(map[string]interface{})["OrganizacionHija"] = resSucursal[0]
@@ -189,7 +188,7 @@ func getValuesBancos(rpintfc interface{}, params ...interface{}) (res interface{
 	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionPadre"].(float64), 'f', -1, 64)
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resBanco); err == nil {
 		if resBanco[0] != nil {
-			rpintfc.(map[string]interface{})["OrganizacionPadre"] = resBanco[0]
+			rpintfc = resBanco[0]
 		}
 	}else{
 		beego.Error("Error",err.Error());
