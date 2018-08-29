@@ -100,6 +100,11 @@ func init() {
 				&controllers.ReintegroController{},
 			),
 		),
+		beego.NSNamespace("/gestion_cheques",
+			beego.NSInclude(
+				&controllers.GestionChequesController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
