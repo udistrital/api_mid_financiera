@@ -116,6 +116,37 @@ func (c *GestionChequesController) CreateChequera() {
 	}
 }
 
+// Post ...
+// @Title CreateCheque
+// @Description create cheque asociated to first state
+// @Param	body		body 	interface	true		"body for Homologacion_rubro content"
+// @Success 201 {object} interface{}
+// @Failure 403 body is empty
+// @router /CreateCheque [post]
+func (c *GestionChequesController) CreateCheque() {
+	defer c.ServeJSON()
+	var cheque interface{}
+	var response map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &cheque); err == nil {
+		beego.Error("valor cheque ",cheque)
+			if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque/CreateChequeEstado", "POST", &response, cheque);err == nil{
+	 		 if (strings.Compare(response["Type"].(string),"success")==0){
+	 			 c.Data["json"]= models.Alert{Type:"success",Code:"S_543",Body:response["Body"]}
+	 			 c.Ctx.Output.SetStatus(201)
+	 		 }else{
+				 beego.Error("Error",response)
+	 			 c.Data["json"]= models.Alert{Type:response["Type"].(string),Code:response["Code"].(string),Body:response["Body"]}
+	 		 }
+			}else{
+				beego.Error("Error",err)
+			 	c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+			}
+	}else{
+		beego.Error("Error",err)
+		c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+	}
+}
+
 // GetAllChequera ...
 // @Title GetAllChequera
 // @Description get all chequeras
