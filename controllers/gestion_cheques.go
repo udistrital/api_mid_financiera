@@ -85,7 +85,6 @@ func (c *GestionChequesController) Delete() {
 
 }
 
-
 // Post ...
 // @Title CreateChequera
 // @Description create homologate category for an organization
@@ -145,6 +144,60 @@ func (c *GestionChequesController) CreateCheque() {
 		beego.Error("Error",err)
 		c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
 	}
+}
+
+// GetAllCheque ...
+// @Title GetAllCheque
+// @Description get all cheque and its information
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} models.Gestion_cheques
+// @Failure 403
+// @router /GetAllCheque/ [get]
+func (c *GestionChequesController) GetAllCheque() {
+	defer c.ServeJSON()
+	var cheques []interface{}
+	var limit int64 = 10
+	var offset int64
+	var query string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("query"); r != "" {
+		query = r
+	}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cheques); err == nil {
+		if cheques != nil{
+			respuesta := optimize.ProccDigest(cheques, getValuesCheques , nil, 3)
+			c.Data["json"] = respuesta
+		}
+	}else{
+		beego.Error("Error ",err)
+		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	}
+}
+
+
+func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface{}){
+	var resEstado []map[string]interface{}
+	chequeId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque_estado_cheque/?query=Activo:true"+",cheque.Id:"+chequeId, &resEstado); err == nil {
+		if resEstado[0] != nil {
+			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
+		}
+	}else{
+		beego.Error("Error",err.Error());
+	}
+	return rpintfc
 }
 
 // GetAllChequera ...
