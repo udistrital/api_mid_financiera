@@ -1,13 +1,14 @@
 package controllers
 
 import (
-	"github.com/astaxie/beego"
-	"github.com/udistrital/utils_oas/request"
 	"encoding/json"
-	"strings"
 	"strconv"
+	"strings"
+
+	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // GestionChequesController operations for Gestion_cheques
@@ -97,21 +98,21 @@ func (c *GestionChequesController) CreateChequera() {
 	var chequera interface{}
 	var response map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &chequera); err == nil {
-			if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/CreateChequeraEstado", "POST", &response, chequera);err == nil{
-	 		 if (strings.Compare(response["Type"].(string),"success")==0){
-	 			 c.Data["json"]= models.Alert{Type:"success",Code:"S_543",Body:response["Body"]}
-	 			 c.Ctx.Output.SetStatus(201)
-	 		 }else{
-				 beego.Error("Error",response)
-	 			 c.Data["json"]= models.Alert{Type:response["Type"].(string),Code:response["Code"].(string),Body:response["Body"]}
-	 		 }
-			}else{
-				beego.Error("Error",err)
-			 	c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+		if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/CreateChequeraEstado", "POST", &response, chequera); err == nil {
+			if strings.Compare(response["Type"].(string), "success") == 0 {
+				c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: response["Body"]}
+				c.Ctx.Output.SetStatus(201)
+			} else {
+				beego.Error("Error", response)
+				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"]}
 			}
-	}else{
-		beego.Error("Error",err)
-		c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+		} else {
+			beego.Error("Error", err)
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+		}
+	} else {
+		beego.Error("Error", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
 
@@ -127,22 +128,22 @@ func (c *GestionChequesController) CreateCheque() {
 	var cheque interface{}
 	var response map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &cheque); err == nil {
-		beego.Error("valor cheque ",cheque)
-			if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque/CreateChequeEstado", "POST", &response, cheque);err == nil{
-	 		 if (strings.Compare(response["Type"].(string),"success")==0){
-	 			 c.Data["json"]= models.Alert{Type:"success",Code:"S_543",Body:response["Body"]}
-	 			 c.Ctx.Output.SetStatus(201)
-	 		 }else{
-				 beego.Error("Error",response)
-	 			 c.Data["json"]= models.Alert{Type:response["Type"].(string),Code:response["Code"].(string),Body:response["Body"]}
-	 		 }
-			}else{
-				beego.Error("Error",err)
-			 	c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+		beego.Error("valor cheque ", cheque)
+		if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque/CreateChequeEstado", "POST", &response, cheque); err == nil {
+			if strings.Compare(response["Type"].(string), "success") == 0 {
+				c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: response["Body"]}
+				c.Ctx.Output.SetStatus(201)
+			} else {
+				beego.Error("Error", response)
+				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"]}
 			}
-	}else{
-		beego.Error("Error",err)
-		c.Data["json"]= models.Alert{Type:"error",Code:"E_0458",Body:err}
+		} else {
+			beego.Error("Error", err)
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+		}
+	} else {
+		beego.Error("Error", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
 
@@ -176,26 +177,35 @@ func (c *GestionChequesController) GetAllCheque() {
 		query = r
 	}
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cheques); err == nil {
-		if cheques != nil{
-			respuesta := optimize.ProccDigest(cheques, getValuesCheques , nil, 3)
+		if cheques != nil {
+			respuesta := optimize.ProccDigest(cheques, getValuesCheques, nil, 3)
 			c.Data["json"] = respuesta
 		}
-	}else{
-		beego.Error("Error ",err)
-		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	} else {
+		beego.Error("Error ", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
 
-
-func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface{}){
+func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resEstado []map[string]interface{}
+	var resBeneficiario map[string]interface{}
 	chequeId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque_estado_cheque/?query=Activo:true"+",cheque.Id:"+chequeId, &resEstado); err == nil {
 		if resEstado[0] != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	beneficiario := strconv.FormatFloat(rpintfc.(map[string]interface{})["Beneficiario"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+beneficiario, &resBeneficiario); err == nil {
+		if resBeneficiario != nil {
+			beego.Error("NOmbre", resBeneficiario["PrimerNombre"])
+			rpintfc.(map[string]interface{})["Beneficiario"] = resBeneficiario["PrimerNombre"].(string) + " " + resBeneficiario["SegundoNombre"].(string) + " " + resBeneficiario["PrimerApellido"].(string) + " " + resBeneficiario["SegundoApellido"].(string)
+		}
+	} else {
+		beego.Error("Error", err.Error())
 	}
 	return rpintfc
 }
@@ -233,48 +243,48 @@ func (c *GestionChequesController) GetAllChequera() {
 		query = r
 	}
 	// buscarDisponibles:false (default is false)
-	if v, err := c.GetBool("bDisponibles");err == nil {
+	if v, err := c.GetBool("bDisponibles"); err == nil {
 		buscarDisponibles = v
 	}
 
 	if buscarDisponibles {
-		querybase:="Activo:true"
-		if query != ""{
-			query = query+","+querybase
-		}else {
+		querybase := "Activo:true"
+		if query != "" {
+			query = query + "," + querybase
+		} else {
 			query = querybase
 		}
-		complementation = "/chequera_estado_chequera/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query
-	}else {
-		complementation = "/chequera/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query
+		complementation = "/chequera_estado_chequera/?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=" + query
+	} else {
+		complementation = "/chequera/?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=" + query
 	}
-	params = append(params,buscarDisponibles)
+	params = append(params, buscarDisponibles)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+complementation, &chequeras); err == nil {
-		if chequeras != nil{
+		if chequeras != nil {
 			respuesta := optimize.ProccDigest(chequeras, chequeraInfoDistpacher, params, 3)
 			c.Data["json"] = respuesta
 		}
-	}else{
-		beego.Error("Error ",err)
-		c.Data["json"]=models.Alert{Type:"error",Code:"E_0458",Body:err};
+	} else {
+		beego.Error("Error ", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
 
-func chequeraInfoDistpacher (rpintfc interface{}, params ...interface{}) (res interface{}) {
+func chequeraInfoDistpacher(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	if len(params) > 0 {
 		buscarDisponibles := params[0].(bool)
 		if buscarDisponibles {
 			chequera := rpintfc.(map[string]interface{})["Chequera"]
 			chequeraId := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraId, &chequera); err == nil {
-				if chequera != nil{
+				if chequera != nil {
 					rpintfc.(map[string]interface{})["Chequera"] = getValuesChequera(chequera)
 					res = rpintfc
 				}
-			}else{
-				beego.Error("Error ",err)
+			} else {
+				beego.Error("Error ", err)
 			}
-		}else{
+		} else {
 			res = getValuesChequera(rpintfc)
 		}
 	}
@@ -292,38 +302,38 @@ func getValuesChequera(rpintfc interface{}) (res interface{}) {
 		if resEstado[0] != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
 	}
 	UnidadEjecutora := strconv.FormatFloat(rpintfc.(map[string]interface{})["UnidadEjecutora"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/unidad_ejecutora?limit=-1&query=Id:"+UnidadEjecutora, &unidadEjecutoraResp); err == nil {
 		if unidadEjecutoraResp != nil {
 			rpintfc.(map[string]interface{})["UnidadEjecutora"] = unidadEjecutoraResp[0]
 		}
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
 	}
 	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["CuentaBancaria"].(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
 		if resSucursal[0] != nil {
 			rpintfc.(map[string]interface{})["Sucursal"] = resSucursal[0]
 		}
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
 	}
-	resBanco,err := GetBancoSucursal(sucursalId)
-	if err == nil{
+	resBanco, err := GetBancoSucursal(sucursalId)
+	if err == nil {
 		rpintfc.(map[string]interface{})["Banco"] = resBanco.([]interface{})[0].(map[string]interface{})
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
 	}
 	Responsable := strconv.FormatFloat(rpintfc.(map[string]interface{})["Responsable"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/supervisor_contrato?limit=-1&query=Documento:"+Responsable, &responsableResp); err == nil {
 		if responsableResp != nil {
 			rpintfc.(map[string]interface{})["Responsable"] = responsableResp[0]
 		}
-	}else{
-		beego.Error("Error",err.Error());
+	} else {
+		beego.Error("Error", err.Error())
 	}
 	return rpintfc
 }
