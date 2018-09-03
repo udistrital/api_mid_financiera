@@ -189,8 +189,27 @@ func (c *GestionChequesController) GetAllCheque() {
 
 func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resEstado []map[string]interface{}
-	var resBeneficiario map[string]interface{}
+	var resBeneficiario []map[string]interface{}
 	chequeId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	chequera := rpintfc.(map[string]interface{})["Chequera"]
+	chequeraId := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraId, &chequera); err == nil {
+		if chequera != nil {
+			rpintfc.(map[string]interface{})["Chequera"] = getValuesChequera(chequera)
+		}
+	} else {
+		beego.Error("Error ", err)
+	}
+	ordenPago := rpintfc.(map[string]interface{})["OrdenPago"]
+	ordenPagoId := strconv.FormatFloat(ordenPago.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/"+ordenPagoId, &ordenPago); err == nil {
+		if ordenPago != nil {
+			rpintfc.(map[string]interface{})["OrdenPago"] = ordenPago
+		}
+	} else {
+		beego.Error("Error ", err)
+	}
+
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque_estado_cheque/?query=Activo:true"+",cheque.Id:"+chequeId, &resEstado); err == nil {
 		if resEstado[0] != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
@@ -199,10 +218,13 @@ func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface
 		beego.Error("Error", err.Error())
 	}
 	beneficiario := strconv.FormatFloat(rpintfc.(map[string]interface{})["Beneficiario"].(float64), 'f', -1, 64)
-	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+beneficiario, &resBeneficiario); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_proveedor/?query=NumDocumento:"+beneficiario+"&limit=1", &resBeneficiario); err == nil {
 		if resBeneficiario != nil {
-			beego.Error("NOmbre", resBeneficiario["PrimerNombre"])
-			rpintfc.(map[string]interface{})["Beneficiario"] = resBeneficiario["PrimerNombre"].(string) + " " + resBeneficiario["SegundoNombre"].(string) + " " + resBeneficiario["PrimerApellido"].(string) + " " + resBeneficiario["SegundoApellido"].(string)
+			idBen,err := strconv.Atoi(beneficiario)
+			if (err!=nil){
+				beego.Error("Error", err.Error())
+			}
+			rpintfc.(map[string]interface{})["Beneficiario"] = models.BeneficiarioCheque{Id:idBen,Nombre:resBeneficiario[0]["NomProveedor"].(string)}
 		}
 	} else {
 		beego.Error("Error", err.Error())
