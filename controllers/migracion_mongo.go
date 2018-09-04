@@ -114,7 +114,7 @@ func (c *MigracionMongoController) MigrarMovimiento() {
 		case "Cdp":
 			f = migrarCdp
 		case "Rp":
-			//f = migrarRp
+			f = migrarRp
 		default:
 			panic("Migration Error")
 		}
@@ -182,6 +182,74 @@ func migrarCdp(vigencia int) (res interface{}, err error) {
 			if err = request.SendJson(uri, "POST", &externalResponse, &mongoData); err == nil {
 				if externalResponse["Type"].(string) == "success" {
 					//serviceResponse = append(serviceResponse, "Success Migrate "+strconv.Itoa(int(data["Id"].(float64))))
+				} else {
+					serviceResponse = append(serviceResponse, "Error Migrate "+strconv.Itoa(int(data["Id"].(float64))))
+				}
+			} else {
+				serviceResponse = append(serviceResponse, "Error Migrate "+strconv.Itoa(int(data["Id"].(float64))))
+			}
+			afectacionArray = nil
+		}
+		res = serviceResponse
+	}).Catch(func(e try.E) {
+		beego.Error("error ", e)
+		err = errors.New(e.(string))
+	})
+
+	return
+}
+
+func migrarRp(vigencia int) (res interface{}, err error) {
+	try.This(func() {
+		var (
+			rpData           []map[string]interface{}
+			mongoData        map[string]interface{}
+			serviceResponse  []interface{}
+			externalResponse map[string]interface{}
+			afectacionArray  []interface{}
+			afetcacionData   map[string]interface{}
+		)
+
+		// uri := urlCrud + "/disponibilidad?limit=-1&query=Vigencia:" + strconv.Itoa(vigencia)
+		uri := urlCrud + "/registro_presupuestal?limit=-1&query=Vigencia:" + strconv.Itoa(vigencia)
+		if err := request.GetJson(uri, &rpData); err != nil {
+			beego.Info(err.Error())
+			panic("Crud Service Error")
+		}
+		uri = urlMongo + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Rp"
+		for _, data := range rpData {
+			mongoData = make(map[string]interface{})
+			mongoData = data
+			dateStr := mongoData["FechaRegistro"].(string)
+			mongoData["Vigencia"] = strconv.Itoa(int(mongoData["Vigencia"].(float64)))
+			t, err := time.Parse(time.RFC3339, dateStr)
+			if err != nil {
+				panic(err.Error())
+			}
+			dataAfectacion := mongoData["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})
+			for _, data := range dataAfectacion {
+				afetcacionData = make(map[string]interface{})
+				// dispAfectInt := make(map[string]interface{})
+				rpAfect := models.RegistroPresupuestalDisponibilidadApropiacion{}
+				err = formatdata.FillStruct(data, &rpAfect)
+				if err != nil {
+					panic(err.Error())
+				}
+				afetcacionData["Apropiacion"] = rpAfect.DisponibilidadApropiacion.Apropiacion.Id
+				afetcacionData["FuenteCodigo"] = rpAfect.DisponibilidadApropiacion.FuenteFinanciamiento.Codigo
+				afetcacionData["FuenteNombre"] = rpAfect.DisponibilidadApropiacion.FuenteFinanciamiento.Nombre
+				afetcacionData["Rubro"] = rpAfect.DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+				afetcacionData["UnidadEjecutora"] = strconv.Itoa(int(rpAfect.DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora))
+				afetcacionData["Valor"] = rpAfect.Valor
+				mongoData["Disponibilidad"] = rpAfect.DisponibilidadApropiacion.Disponibilidad.Id
+
+				afectacionArray = append(afectacionArray, afetcacionData)
+			}
+			mongoData["Afectacion"] = afectacionArray
+			mongoData["MesRegistro"] = strconv.Itoa(int(t.Month()))
+			if err = request.SendJson(uri, "POST", &externalResponse, &mongoData); err == nil {
+				if externalResponse["Type"].(string) == "success" {
+					serviceResponse = append(serviceResponse, "Success Migrate "+strconv.Itoa(int(data["Id"].(float64))))
 				} else {
 					serviceResponse = append(serviceResponse, "Error Migrate "+strconv.Itoa(int(data["Id"].(float64))))
 				}
