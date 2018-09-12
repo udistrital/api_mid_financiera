@@ -105,9 +105,25 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"],
 		beego.ControllerComments{
+			Method: "GetAllDevolucionesTributarias",
+			Router: `/GetAllDevolucionesTributarias`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"],
+		beego.ControllerComments{
 			Method: "GetTransformRequest",
 			Router: `/GetTransformRequest/`,
 			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DevolucionesController"],
+		beego.ControllerComments{
+			Method: "GetTributaDevolutionAccountantInf",
+			Router: `/GetTributaDevolutionAccountantInf/:id`,
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
