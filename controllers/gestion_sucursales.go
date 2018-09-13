@@ -88,7 +88,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 	id_sucursal := c.GetString("id_sucursal")
 	var sucursales []models.Organizacion
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
@@ -118,7 +118,7 @@ func (c *GestionSucursalesController) ListarSucursales() {
 
 
 	var sucursales []models.Organizacion
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
