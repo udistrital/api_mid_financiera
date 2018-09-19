@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
@@ -670,10 +671,18 @@ func (this *DisponibilidadController) Post() {
 				reglasBase := ruler.CargarReglasBase("Presupuesto")
 				for j := 0; j < len(rubros_solicitud); j++ {
 
-					var map_saldo_aprop map[string]float64
+					var apropiacion []models.Apropiacion
 					fmt.Println("aprop: ", rubros_solicitud[j].Apropiacion)
-					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &map_saldo_aprop); err == nil {
-						predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
+					//get Apropiacion Info
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Id:"+strconv.Itoa(rubros_solicitud[j].Apropiacion), &apropiacion); err == nil {
+						if apropiacion[0].Id != 0 {
+							map_saldo_aprop := CalcularSaldoApropiacion(apropiacion[0].Rubro.Codigo, int(apropiacion[0].Rubro.UnidadEjecutora), int(apropiacion[0].Vigencia))
+							beego.Info("Saldo Mongo: ", map_saldo_aprop)
+							predicados = append(predicados, models.Predicado{Nombre: "rubro_apropiacion(" + strconv.Itoa(rubros_solicitud[j].Apropiacion) + "," + strconv.Itoa(rubros_solicitud[j].Id) + "," + strconv.FormatFloat(map_saldo_aprop["saldo"], 'f', -1, 64) + ")."})
+
+						} else {
+
+						}
 					} else {
 						alertas = append(alertas, models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"})
 						aprobada = false
@@ -919,6 +928,7 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 	var alertas []models.Alert
 	var rubrosSolicitud []map[string]interface{}
 	var mapSaldoApropiacion map[string]float64
+	var apropiacion []map[string]interface{}
 	VigActual := time.Now().Year()
 	disponibilidad := make(map[string]interface{})
 	infoDisponibilidad := make(map[string]interface{})
@@ -930,9 +940,18 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 			//recorrer los rubros y/o fuentes solicitados
 			for _, infoRubro := range rubrosSolicitud {
 				//Solicitar el saldo de la apropiacion objetivo.
-				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacion/"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &mapSaldoApropiacion); err == nil {
-					tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
-					tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+				//Se debe consultar la informacion del rubro para poder consumir saldo desde mongo
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?query=Id:"+strconv.Itoa(int(infoRubro["Apropiacion"].(float64))), &apropiacion); err == nil {
+					mapSaldoApropiacion = CalcularSaldoApropiacion(apropiacion[0]["Rubro"].(map[string]interface{})["Codigo"].(string), int(apropiacion[0]["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)), int(apropiacion[0]["Vigencia"].(float64)))
+					beego.Info("Saldo Apr: ", mapSaldoApropiacion)
+					if mapSaldoApropiacion["saldo"] >= 0 {
+						tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(mapSaldoApropiacion["saldo"], 'f', -1, 64) + ").")
+						tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					} else {
+						tool.Agregar_predicado("rubro_apropiacion(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + ",0).")
+						tool.Agregar_predicado("valor_rubro_cdp(" + strconv.Itoa(int(infoRubro["Apropiacion"].(float64))) + "," + strconv.Itoa(int(infoRubro["FuenteFinanciamiento"].(float64))) + "," + strconv.FormatFloat(infoRubro["MontoParcial"].(float64), 'f', -1, 64) + ").")
+					}
+
 				} else {
 					alertas = append(alertas, models.Alert{Code: "E_CDP002", Body: solicitud, Type: "error"})
 				}
@@ -1083,4 +1102,203 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 	}
 
 	c.ServeJSON()
+}
+
+// AprobarAnulacionDisponibilidad ...
+// @Title AprobarAnulacionDisponibilidad
+// @Description aprueba la anulacion de un cdp ya sea total o parcial
+// @Param	body		body 	models.AnulacionDisponibilidad	true		"body for AnulacionDisponibilidad content"
+// @Success 201 {int} models.AnulacionDisponibilidad
+// @Failure 403 body is empty
+// @router /AprobarAnulacion [post]
+func (c *DisponibilidadController) AprobarAnulacionDisponibilidad() {
+	try.This(func() {
+		var v models.AnulacionDisponibilidad
+		var res models.Alert
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/AprobarAnulacion"
+			beego.Info("URL ", Urlcrud)
+			if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
+				c.Data["json"] = res
+			} else {
+				panic(err.Error())
+			}
+		} else {
+			c.Data["json"] = err.Error()
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("excep: ", e)
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}
+
+// SaldoCdp ...
+// @Title SaldoCdp
+// @Description create RegistroPresupuestal
+// @Param	idPsql		path 	int	true		"idPsql del documento"
+// @Param	rubro		path 	string	true		"código del rubro"
+// @Param	fuente		query	string false		"fuente de financiamiento"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SaldoCdp/:idPsql/:rubro [get]
+func (c *DisponibilidadController) SaldoCdp() {
+	try.This(func() {
+		var (
+			cdpId     int
+			err       error
+			infoSaldo map[string]float64
+		)
+
+		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		if err != nil {
+			panic(err.Error())
+		}
+		rubro := c.GetString(":rubro")
+		fuente := c.GetString("fuente")
+		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoRp": true}
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Cdp", cdpId, valoresSuman)
+		c.Data["json"] = infoSaldo
+
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}
+
+func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoDisp := parameter[0].(map[string]interface{})
+		infoDisp["Vigencia"] = strconv.Itoa(int(infoDisp["Vigencia"].(float64)))
+		var afectacion []map[string]interface{}
+		idDisp := int(infoDisp["Id"].(float64))
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/GetPrincDisponibilidadInfo/" + strconv.Itoa(idDisp)
+		if err1 := request.GetJson(Urlcrud, &afectacion); err1 == nil {
+			infoDisp["Afectacion"] = afectacion
+			dateStr := infoDisp["FechaRegistro"].(string)
+			t, err1 := time.Parse(time.RFC3339, dateStr)
+			if err1 != nil {
+				panic(err1.Error())
+			}
+			var resM map[string]interface{}
+			infoDisp["MesRegistro"] = strconv.Itoa(int(t.Month()))
+			beego.Info("Data send ", infoDisp)
+			Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Cdp"
+			if err1 = request.SendJson(Urlmongo, "POST", &resM, &infoDisp); err1 == nil {
+				if resM["Type"].(string) == "success" {
+					err = err1
+				} else {
+					panic("Mongo api error")
+				}
+			} else {
+				panic("Mongo Not Found")
+			}
+			//beego.Info("infoDisp ", infoDisp)
+		} else {
+			panic(err1.Error())
+		}
+	}).Catch(func(e try.E) {
+		infoDisp := parameter[0].(map[string]interface{})
+		idDisp := int(infoDisp["Id"].(float64))
+		beego.Info("Exepc ", e)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadData/" + strconv.Itoa(idDisp)
+		request.SendJson(Urlcrud, "DELETE", &resC, nil)
+		beego.Info("Data ", resC)
+		err = e
+	})
+	return
+}
+
+func AddAnulacionCdpMongo(parameter ...interface{}) (err interface{}) {
+	infoAnulacion := models.AnulacionDisponibilidad{}
+	try.This(func() {
+		infoAnulacionint := parameter[0].(map[string]interface{})
+		error := formatdata.FillStruct(infoAnulacionint, &infoAnulacion)
+		if err != nil {
+			panic(error.Error())
+		}
+		dataSend := make(map[string]interface{})
+		dataSend["Id"] = infoAnulacion.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(infoAnulacion.FechaRegistro.Month()))
+		dataSend["Vigencia"] = strconv.FormatFloat(infoAnulacion.AnulacionDisponibilidadApropiacion[0].DisponibilidadApropiacion.Disponibilidad.Vigencia, 'f', 0, 64)
+		var afectacion []interface{}
+		var resM map[string]interface{}
+		aux := make(map[string]interface{})
+		for _, data := range infoAnulacion.AnulacionDisponibilidadApropiacion {
+			aux["Rubro"] = data.DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = strconv.Itoa(int(data.DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora))
+			aux["Valor"] = data.Valor
+			dataSend["Disponibilidad"] = data.DisponibilidadApropiacion.Disponibilidad.Id
+			afectacion = append(afectacion, aux)
+		}
+		dataSend["Afectacion"] = afectacion
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/AnulacionCdp"
+		beego.Info("Data to send ", dataSend)
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_disponibilidad/" + strconv.Itoa(infoAnulacion.Id)
+		infoAnulacion.EstadoAnulacion["Id"] = 2
+		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
+		beego.Info("Data ", resC)
+	})
+	return
+}
+
+func CalcularSaldoMovimiento(rubro, fuente, tipo string, cdpId int, valoresSuman map[string]bool) (res map[string]float64) {
+	var saldo float64
+	urlMongo := ""
+	urlMongo = "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/SaldoMovimiento/" + strconv.Itoa(cdpId) + "/" + rubro + "/" + tipo
+	if fuente != "" {
+		urlMongo += "?fuente=" + fuente
+	}
+	if err := request.GetJson(urlMongo, &res); err != nil {
+		beego.Info(err.Error())
+		panic("Mongo API Service Error")
+	} else {
+		for key, value := range res {
+			if valoresSuman[key] {
+				beego.Info("suma ", key)
+				saldo += value
+			} else {
+				beego.Info("resta ", key)
+				saldo -= value
+			}
+
+			// beego.Info("Saldo ", saldo)
+			// switch tipoMovimiento := key; tipoMovimiento {
+			//
+			// //rp
+			// case valoresSuman:
+			// 	if tipo == "Cdp" {
+			//
+			// 	} else {
+			//
+			// 	}
+			// 	beego.Info("suma ", tipoMovimiento)
+			// 	saldo += value
+			// default:
+			//
+			// 	beego.Info("resta ", tipoMovimiento)
+			// 	saldo -= value
+			// }
+
+		}
+
+	}
+
+	res["saldo"] = saldo
+	return
 }

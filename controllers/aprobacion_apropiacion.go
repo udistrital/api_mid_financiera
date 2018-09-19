@@ -186,23 +186,24 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 			tool.Agregar_dominio("Presupuesto")
 			var res []string
 			var infoSaldoInicial []map[string]interface{}
-			saldo := make(map[string]interface{})
+			//saldo := make(map[string]interface{})
 			formatdata.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
 			for _, rpadre := range res {
-				var rubro []models.Rubro
-				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro?query=Rubro.Codigo:" + rpadre)
-				if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro?query=Codigo:"+rpadre, &rubro); err == nil {
-					if rubro != nil {
+				var rubro []map[string]interface{}
+				urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/ArbolApropiacion/" + rpadre + "/" + strconv.Itoa(unidadejecutora) + "/" + strconv.Itoa(vigencia)
+				//if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro?query=Codigo:"+rpadre, &rubro); err == nil {
+				if err = request.GetJson(urlmongo, &rubro); err == nil {
+					beego.Info("Rubro ", rubro[0])
+					if rubro[0]["Id"] != nil {
+						infoSaldoInicial = append(infoSaldoInicial, rubro[0])
 
-						if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.Itoa(rubro[0].Id)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
+						/*if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.Itoa(rubro[0].Id)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
 							if saldo != nil {
-								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": rubro[0].Id, "Codigo": rpadre, "Nombre": rubro[0].Nombre, "SaldoInicial": saldo["original"]})
+								//infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": rubro[0].Id, "Codigo": rpadre, "Nombre": rubro[0].Nombre, "SaldoInicial": saldo["original"]})
 							}
 						} else {
 							fmt.Println(err)
-						}
-					} else {
-
+						}*/
 					}
 
 				} else {
@@ -210,11 +211,12 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 				}
 
 			}
+			//c.Data["json"] = map[string]interface{}{"Aprobado": "0", "Data": infoSaldoInicial}
 			for _, apr := range infoSaldoInicial {
-				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
+				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["ApropiacionInicial"]) + ").")
 			}
 			if infoSaldoInicial != nil {
-				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["SaldoInicial"])+",Y).", "Y")
+				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["ApropiacionInicial"])+",Y).", "Y")
 				var comp string
 				err = formatdata.FillStruct(res, &comp)
 				if err == nil {
@@ -224,8 +226,6 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
-			} else {
-
 			}
 
 		} else {
