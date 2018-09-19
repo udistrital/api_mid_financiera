@@ -47,9 +47,8 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 						for _, Movimientos := range Movimiento {
 							resfuente = append(resfuente, Movimientos)
 						}
-						var valorGastado map[string]interface{}
-						if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"&iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
-							fmt.Println(valorGastado)
+						if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
+							beego.Error(valorGastado)
 							if valorGastado != nil {
 								for _, valores := range valorGastado {
 									res = append(res, valores)
@@ -143,8 +142,9 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 								resfuente = append(resfuente, Movimientos)
 							}
 
-							var valorGastado map[string]interface{}
-							if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(idfuente)+"&idapropiacion="+strconv.Itoa(idapropiacion)+"&iddependencia="+strconv.Itoa(iddependencia), &valorGastado); err == nil {
+							//var valorGastado map[string]interface{}
+							if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
+								beego.Error("Valor Fuente CDP: ", valorGastado)
 								if valorGastado != nil {
 									for _, valores := range valorGastado {
 										res = append(res, valores)
