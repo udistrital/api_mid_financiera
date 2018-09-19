@@ -8,6 +8,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/utils_oas/optimize"
 
 )
 
@@ -87,7 +88,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 	id_sucursal := c.GetString("id_sucursal")
 	var sucursales []models.Organizacion
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
@@ -117,7 +118,7 @@ func (c *GestionSucursalesController) ListarSucursales() {
 
 
 	var sucursales []models.Organizacion
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlorganizacion")+":"+beego.AppConfig.String("Portorganizacion")+"/"+beego.AppConfig.String("Nsorganizacion")+"/organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
@@ -136,6 +137,66 @@ func (c *GestionSucursalesController) ListarSucursales() {
 
 		c.ServeJSON()
 }
+
+// GetOne ...
+// @Title ListarSucursalesBanco
+// @Description lista sucursales dado id banco
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} []models.InformacionSucursal
+// @Failure 403 :idBanco is empty
+// @router /ListarSucursalesBanco/:idBanco [get]
+func (c *GestionSucursalesController) ListarSucursalesBanco() {
+	defer c.ServeJSON()
+	idBancoStr := c.Ctx.Input.Param(":idBanco")
+	var orgHijas []interface{}
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"relacion_organizaciones/?query=OrganizacionPadre:" + idBancoStr, &orgHijas); err == nil {
+		if (orgHijas!=nil){
+			sucursales := optimize.ProccDigest(orgHijas, getValuesSucursales, nil, 3)
+			c.Data["json"] = sucursales
+		}
+	}else{
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+	}
+}
+
+
+func GetBancoSucursal(idSucursalStr string)(res interface{},err error) {
+	var orgPadre []interface{}
+	if err = request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"relacion_organizaciones/?query=OrganizacionHija:" + idSucursalStr, &orgPadre); err == nil {
+		if (orgPadre!=nil){
+			res = optimize.ProccDigest(orgPadre, getValuesBancos, nil, 3)
+		}
+	}
+	return
+}
+
+func getValuesSucursales(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var resSucursal []map[string]interface{}
+	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionHija"].(float64), 'f', -1, 64)
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
+		if resSucursal[0] != nil {
+			rpintfc.(map[string]interface{})["OrganizacionHija"] = resSucursal[0]
+		}
+	}else{
+		beego.Error("Error",err.Error());
+	}
+	return rpintfc
+}
+
+func getValuesBancos(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var resBanco []map[string]interface{}
+	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionPadre"].(float64), 'f', -1, 64)
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resBanco); err == nil {
+		if resBanco[0] != nil {
+			rpintfc = resBanco[0]
+		}
+	}else{
+		beego.Error("Error",err.Error());
+	}
+	return rpintfc
+}
+
+
 
 func InsertarSucursal(nombre string, id_ente int)(res interface{}, err error){
 
