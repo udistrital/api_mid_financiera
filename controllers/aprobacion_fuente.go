@@ -41,7 +41,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
 
 				var Movimiento []map[string]interface{}
-				if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
 					if Movimiento != nil {
 
 						for _, Movimientos := range Movimiento {
@@ -135,7 +135,7 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
 				if valortraslado, err := c.GetFloat("traslado"); err == nil {
 
 					var Movimiento []map[string]interface{}
-					if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
+					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
 						if Movimiento != nil {
 
 							for _, Movimientos := range Movimiento {
@@ -266,13 +266,14 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 	if idfuente, err := c.GetInt("idfuente"); err == nil {
 
-		if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
 			if Movimiento != nil {
 
 				for _, Movimientos := range Movimiento {
-
-					var valorGastado map[string]interface{}
-					if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+					var idfuente = Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id
+					var idapropiacion = Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id
+					var iddependencia = Movimientos.FuenteFinanciamientoApropiacion.Dependencia
+					if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
 						if valorGastado != nil {
 							for _, valores := range valorGastado {
 								res = append(res, valores)
@@ -316,13 +317,14 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteLista() {
 
 	} else {
 
-		if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-", &Movimiento); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-3-001-15-01-08-0119-", &Movimiento); err == nil {
 			if Movimiento != nil {
 
 				for _, Movimientos := range Movimiento {
-
-					var valorGastado map[string]interface{}
-					if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+					var idfuente = Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id
+					var idapropiacion = Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id
+					var iddependencia = Movimientos.FuenteFinanciamientoApropiacion.Dependencia
+					if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
 						if valorGastado != nil {
 							for _, valores := range valorGastado {
 								res = append(res, valores)
@@ -385,13 +387,14 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteListaFunc() {
 
 	if idfuente, err := c.GetInt("idfuente"); err == nil {
 
-		if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-,FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente), &Movimiento); err == nil {
 			if Movimiento != nil {
 
 				for _, Movimientos := range Movimiento {
-
-					var valorGastado map[string]interface{}
-					if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+					var idfuente = Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id
+					var idapropiacion = Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id
+					var iddependencia = Movimientos.FuenteFinanciamientoApropiacion.Dependencia
+					if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
 						if valorGastado != nil {
 							for _, valores := range valorGastado {
 								res = append(res, valores)
@@ -435,13 +438,15 @@ func (c *AprobacionFuenteController) ValorMovimientoFuenteListaFunc() {
 
 	} else {
 
-		if err := request.GetJson("http://10.20.0.254/financiera_api/v1/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-", &Movimiento); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?limit=-1&query=FuenteFinanciamientoApropiacion.Apropiacion.Rubro.Codigo__startswith:3-1-", &Movimiento); err == nil {
 			if Movimiento != nil {
 
 				for _, Movimientos := range Movimiento {
 
-					var valorGastado map[string]interface{}
-					if err := request.GetJson("http://10.20.0.254/financiera_mid_api/v1/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia?idfuente="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id)+"&idapropiacion="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id)+"&iddependencia="+strconv.Itoa(Movimientos.FuenteFinanciamientoApropiacion.Dependencia), &valorGastado); err == nil {
+					var idfuente = Movimientos.FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id
+					var idapropiacion = Movimientos.FuenteFinanciamientoApropiacion.Apropiacion.Id
+					var iddependencia = Movimientos.FuenteFinanciamientoApropiacion.Dependencia
+					if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
 						if valorGastado != nil {
 							for _, valores := range valorGastado {
 								res = append(res, valores)
