@@ -1104,6 +1104,62 @@ func (c *DisponibilidadController) ValorDisponibilidadesFuenteRubroDependencia()
 	c.ServeJSON()
 }
 
+func ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion int) (error, map[string]interface{}) {
+	var apropiacion map[string]interface{}
+	var res []interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/"+strconv.Itoa(idapropiacion), &apropiacion); err == nil {
+		if apropiacion != nil {
+			var dependencias []map[string]interface{}
+			fechaconsulta := time.Date(int(apropiacion["Vigencia"].(float64)), 1, 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
+
+			if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?query=DependenciaId:"+strconv.Itoa(iddependencia)+",FechaInicio__lte:"+fechaconsulta+",FechaFin__gt:"+fechaconsulta+"&sortby=Id&order=desc", &dependencias); err == nil {
+
+				for _, dependencia := range dependencias {
+					peticion := "solicitud_disponibilidad?"
+					peticion = peticion + "limit=-1&query=Necesidad.FuenteReversa.FuenteFinanciamiento:" + strconv.Itoa(idfuente) + ","
+					peticion = peticion + "Necesidad.FuenteReversa.Apropiacion:" + strconv.Itoa(idapropiacion) + ","
+					peticion = peticion + "Necesidad.DependenciaReversa.JefeDependenciaDestino:" + strconv.Itoa(int(dependencia["Id"].(float64))) + ","
+					peticion = peticion + "Expedida:true"
+					var solicitud_disponibilidades []map[string]interface{}
+					if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+peticion, &solicitud_disponibilidades); err == nil {
+						for _, solicitud_disponibilidad := range solicitud_disponibilidades {
+							var disponibilidades []map[string]interface{}
+							if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?query=Disponibilidad.Solicitud:"+strconv.Itoa(int(solicitud_disponibilidad["Id"].(float64)))+",Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamiento:"+strconv.Itoa(idfuente), &disponibilidades); err == nil {
+								if disponibilidades != nil {
+									for _, disponibilidad := range disponibilidades {
+										res = append(res, disponibilidad)
+									}
+								}
+							} else {
+								fmt.Println("err7  ", err.Error())
+								return err, nil
+							}
+						}
+					} else {
+						fmt.Println("err6 ", err.Error())
+						return err, nil
+					}
+				}
+				if res != nil {
+					var valorcdp float64
+					valorcdp = 0
+					for _, row := range res {
+						valorcdp = valorcdp + row.(map[string]interface{})["Valor"].(float64)
+					}
+					return nil, map[string]interface{}{"valor": valorcdp}
+				}
+			} else {
+				return err, nil
+			}
+		} else {
+			return nil, nil
+		}
+	} else {
+		return err, nil
+	}
+	return nil, nil
+}
+
 // AprobarAnulacionDisponibilidad ...
 // @Title AprobarAnulacionDisponibilidad
 // @Description aprueba la anulacion de un cdp ya sea total o parcial
