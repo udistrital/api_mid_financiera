@@ -105,6 +105,11 @@ func init() {
 				&controllers.GestionChequesController{},
 			),
 		),
+		beego.NSNamespace("/legalizacion_avance",
+			beego.NSInclude(
+				&controllers.LegalizacionAvanceController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
