@@ -4,6 +4,7 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/udistrital/utils_oas/request"
 	"strconv"
+	"strings"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/fatih/structs"
@@ -205,4 +206,73 @@ func (c *LegalizacionAvanceController) GetLegalizacionInformation() {
 		respuesta = structs.Map(res)
 	}
 	c.Data["json"]=respuesta
+}
+
+// GetAll ...
+// @Title GetAll
+// @Description get Legalizacion_avance
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} models.Legalizacion_avance
+// @Failure 403
+// @router /GetAllLegalizacionAvance [get]
+func (c *LegalizacionAvanceController) GetAllLegalizacionAvance() {
+	defer c.ServeJSON()
+	var legalizaciones []interface{}
+	var limit int64 = 10
+	var offset int64
+	var query string
+	var regCuantity map[string]interface{}
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("query"); r != "" {
+		query = r
+	}
+	respuesta:=make(map[string]interface{})
+	beego.Error("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &legalizaciones); err == nil {
+		beego.Error("LEGALIZACIONES ",legalizaciones)
+		if legalizaciones != nil {
+			respuesta["Legalizaciones"]= optimize.ProccDigest(legalizaciones, getValuesLegalizacion, nil, 3)
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/GetRecordsNumberAvanceLegalizacion/?query="+query, &regCuantity); err == nil {
+				if (strings.Compare(regCuantity["Type"].(string),"success")==0) {
+					respuesta["RegCuantity"]=regCuantity["Body"]
+					c.Ctx.Output.SetStatus(201)
+				}
+			}
+			c.Data["json"] = respuesta
+		}
+	} else {
+		beego.Error("Error ", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+	}
+}
+
+func getValuesLegalizacion (rpintfc interface{}, params ...interface{})(res interface{}){
+	var resEstado []map[string]interface{}
+	var resValLegalizacion float64
+	legalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/estado_legalizacion_avance_legalizacion/?query=Activo:true"+",AvanceLegalizacion.Id:"+legalId, &resEstado); err == nil {
+		if resEstado[0] != nil {
+			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
+		}
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion_tipo/GetLegalizationValue/"+legalId, &resValLegalizacion); err == nil {
+			rpintfc.(map[string]interface{})["Valor"] = resValLegalizacion
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	return rpintfc
 }
