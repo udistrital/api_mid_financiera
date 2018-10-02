@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/ruler"
-	"github.com/manucorporat/try"
 )
 
 // RegistroPresupuestalController operations for RegistroPresupuestal
@@ -150,17 +150,17 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 //funcion para recopilar datos externos de los rp a listar
 func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
-	try.This(func(){
-			idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
-			solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
+	try.This(func() {
+		idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
+		solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 
-			if err == nil {
-				rp["InfoSolicitudDisponibilidad"] = solicituddisp
-			}
-		}).Catch(func(e try.E) {
-			// Print crash
-			//fmt.Println("expc ",e)
-		})
+		if err == nil {
+			rp["InfoSolicitudDisponibilidad"] = solicituddisp
+		}
+	}).Catch(func(e try.E) {
+		// Print crash
+		//fmt.Println("expc ",e)
+	})
 	return rp
 }
 
@@ -814,6 +814,157 @@ func (c *RegistroPresupuestalController) SolicitudesRpByDependencia() {
 	} else {
 		c.Data["json"] = models.Alert{Code: "E_0458", Body: "tipoNecesidad lost", Type: "error"}
 	}
+
+	c.ServeJSON()
+}
+
+// AprobarAnulacion ...
+// @Title AprobarAnulacion
+// @Description create RegistroPresupuestal
+// @Param	body		body 	models.AnulacionRegistroPresupuestal	true		"body for AnulacionRegistroPresupuestal content"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /AprobarAnulacion [post]
+func (c *RegistroPresupuestalController) AprobarAnulacion() {
+	try.This(func() {
+		var v models.AnulacionRegistroPresupuestal
+		var res models.Alert
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/AprobarAnulacion/"
+			if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
+				c.Data["json"] = res
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
+		} else {
+			c.Data["json"] = err.Error()
+		}
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
+
+	c.ServeJSON()
+}
+
+func AddRpMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
+		dataSend := make(map[string]interface{})
+		dataSend["Vigencia"] = strconv.FormatFloat(infoRp.Rp.Vigencia, 'f', 0, 64)
+		dataSend["Id"] = infoRp.Rp.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(infoRp.Rp.FechaRegistro.Month()))
+		var afectacion []interface{}
+		var resM map[string]interface{}
+		aux := make(map[string]interface{})
+
+		for _, data := range infoRp.Rubros {
+			aux["Rubro"] = data.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = strconv.Itoa(int(data.Apropiacion.Rubro.UnidadEjecutora))
+			aux["Valor"] = data.Valor
+			aux["FuenteCodigo"] = data.FuenteFinanciacion.Codigo
+			aux["FuenteNombre"] = data.FuenteFinanciacion.Nombre
+			dataSend["Disponibilidad"] = data.Disponibilidad.Id
+			afectacion = append(afectacion, aux)
+		}
+
+		dataSend["Afectacion"] = afectacion
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Rp"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
+		request.SendJson(Urlcrud, "DELETE", &resC, nil)
+		beego.Info("Data ", resC)
+		err = e
+	})
+	return
+}
+
+func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
+	infoAnulacion := models.AnulacionRegistroPresupuestal{}
+	try.This(func() {
+		infoAnulacionint := parameter[0].(map[string]interface{})
+		error := formatdata.FillStruct(infoAnulacionint, &infoAnulacion)
+		if err != nil {
+			panic(error.Error())
+		}
+		dataSend := make(map[string]interface{})
+		dataSend["Id"] = infoAnulacion.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(infoAnulacion.FechaRegistro.Month()))
+		dataSend["Vigencia"] = strconv.FormatFloat(infoAnulacion.AnulacionRegistroPresupuestalDisponibilidadApropiacion[0].RegistroPresupuestalDisponibilidadApropiacion.RegistroPresupuestal.Vigencia, 'f', 0, 64)
+		var afectacion []interface{}
+		var resM map[string]interface{}
+		aux := make(map[string]interface{})
+		for _, data := range infoAnulacion.AnulacionRegistroPresupuestalDisponibilidadApropiacion {
+			aux["Rubro"] = data.RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = strconv.Itoa(int(data.RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Apropiacion.Rubro.UnidadEjecutora))
+			aux["Valor"] = data.Valor
+			dataSend["Disponibilidad"] = data.RegistroPresupuestalDisponibilidadApropiacion.RegistroPresupuestal.Id
+			afectacion = append(afectacion, aux)
+		}
+		dataSend["Afectacion"] = afectacion
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/AnulacionRp"
+		beego.Info("Data to send ", dataSend)
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
+		infoAnulacion.EstadoAnulacion["Id"] = 2
+		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
+		beego.Info("Data ", resC)
+	})
+	return
+}
+
+// SaldoRp ...
+// @Title SaldoRp
+// @Description create RegistroPresupuestal
+// @Param	idPsql		path 	int	true		"idPsql del documento"
+// @Param	rubro		path 	string	true		"código del rubro"
+// @Param	fuente		query	string false		"fuente de financiamiento"
+// @Success 200 {object} models.Alert
+// @Failure 403 body is empty
+// @router /SaldoRp/:idPsql/:rubro [get]
+func (c *RegistroPresupuestalController) SaldoRp() {
+	try.This(func() {
+		var (
+			cdpId     int
+			err       error
+			infoSaldo map[string]float64
+		)
+
+		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		if err != nil {
+			panic(err.Error())
+		}
+		rubro := c.GetString(":rubro")
+		fuente := c.GetString("fuente")
+		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoOp": true}
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpId, valoresSuman)
+		c.Data["json"] = infoSaldo
+
+	}).Catch(func(e try.E) {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: e, Type: "error"}
+	})
 
 	c.ServeJSON()
 }

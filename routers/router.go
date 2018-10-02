@@ -65,6 +65,11 @@ func init() {
 				&controllers.AprobacionFuenteController{},
 			),
 		),
+		beego.NSNamespace("/apropiacion",
+			beego.NSInclude(
+				&controllers.ApropiacionController{},
+			),
+		),
 		beego.NSNamespace("/devoluciones",
 			beego.NSInclude(
 				&controllers.DevolucionesController{},
@@ -84,7 +89,7 @@ func init() {
 			beego.NSInclude(
 				&controllers.HomologacionRubroController{},
 			),
-			),
+		),
 		beego.NSNamespace("/gestion_sucursales",
 			beego.NSInclude(
 				&controllers.GestionSucursalesController{},
@@ -98,6 +103,11 @@ func init() {
 		beego.NSNamespace("/reintegro",
 			beego.NSInclude(
 				&controllers.ReintegroController{},
+			),
+		),
+		beego.NSNamespace("/movimiento_apropiacion",
+			beego.NSInclude(
+				&controllers.MovimientoApropiacionController{},
 			),
 		),
 		beego.NSNamespace("/gestion_cheques",
