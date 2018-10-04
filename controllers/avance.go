@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // AvanceController operations for Avance
@@ -87,12 +88,14 @@ func (c *AvanceController) Delete() {
 // @Failure 403 :id is empty
 // @router /:id [get]
 func (c *AvanceController) GetAvanceById() {
-idStr := c.Ctx.Input.Param(":id")
-if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/solicitud_tipo_avance/?query=query=SolicitudAvance.Id:"+",AvanceLegalizacion.Id:"+idStr+"&sortby=Id&limit=-1&order=asc", &resEstado); err == nil {
-	if resEstado[0] != nil {
-		rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
+	idStr := c.Ctx.Input.Param(":id")
+	var resEstado []map[string]interface{}
+	var rpintfc interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/solicitud_tipo_avance/?query=query=SolicitudAvance.Id:"+",AvanceLegalizacion.Id:"+idStr+"&sortby=Id&limit=-1&order=asc", &resEstado); err == nil {
+		if resEstado[0] != nil {
+			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
+		}
+	} else {
+		beego.Error("Error", err.Error())
 	}
-} else {
-	beego.Error("Error", err.Error())
-}
 }

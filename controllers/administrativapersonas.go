@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"github.com/astaxie/beego"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // AdministrativaPersonasController operations for AdministrativaPersonas
@@ -80,43 +81,49 @@ func (c *AdministrativaPersonasController) Delete() {
 }
 
 // GetPersona ...
-// @Title GetAll
+// @Title GetPersona
 // @Description get search person by id type and number
 // @Param	numberId	query	string	false	"identification number"
 // @Param	typeId	query	string	false	"type id"
 // @Success 200 {object} models.AdministrativaPersonas
 // @Failure 403
-// @router / [get]
+// @router /GetPersona/ [get]
 func (c *AdministrativaPersonasController) GetPersona() {
- defer c.ServeJSON()
- var numberIdStr string
- var typeIdStr string
- var resProveedor []map[string]interface{}
- var resPersonaNat []map][string]interface{}
- var resPersonaJur map[string]interface{}
+	defer c.ServeJSON()
+	var numberIdStr string
+	var typeIdStr string
+	var resProveedor []map[string]interface{}
+	var resPersonaNat []map[string]interface{}
+	var resPersonaJur []map[string]interface{}
+	beego.Error("going on get persona")
 	if v := c.GetString("numberId"); v != "" {
 		numberIdStr = v
 	}
 
-	if v, err := c.GetString("typeId"); v != "" {
+	if v := c.GetString("typeId"); v != "" {
 		typeIdStr = v
 	}
-	
-	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_proveedor/?query=NumDocumento:"+numberIdStr+"&limit=1", &resProveedor); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=NumDocumento:"+numberIdStr+"&limit=1", &resProveedor); err == nil {
 		if resProveedor != nil {
-			for _,v:=range resProveedor {
-				if v["Tipopersona"].(string)=="NATURAL"{
-					err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_natural/?query=Id:"+numberIdStr+"TipoDocumento.Id:"+numberIdStr,"&limit=1", &resPersonaNat)
-					if resPersonaNat != nil{
-						c.Data["json"]=v
-						return
-					}
-				}else{
-					if v["Tipopersona"].(string)=="JURIDICA" {
-						err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIdStr, &resPersonaJur)
-						if resPersonaJurid != nil && typeIdStr == "	11"{
-							c.Data["json"]=v
+			for _, v := range resProveedor {
+				if v["Tipopersona"].(string) == "NATURAL" {
+					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/?query=Id:"+numberIdStr+",TipoDocumento.Id:"+typeIdStr+"&limit=1", &resPersonaNat); err == nil {
+						if resPersonaNat != nil {
+							c.Data["json"] = v
 							return
+						}
+					} else {
+						beego.Error("Error" + err.Error())
+					}
+				} else {
+					if v["Tipopersona"].(string) == "JURIDICA" {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIdStr, &resPersonaJur); err != nil {
+							if resPersonaJur != nil && typeIdStr == "11" {
+								c.Data["json"] = v
+								return
+							}
+						} else {
+							beego.Error("Error" + err.Error())
 						}
 					}
 				}
