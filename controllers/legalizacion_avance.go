@@ -240,7 +240,6 @@ func (c *LegalizacionAvanceController) GetAllLegalizacionAvance() {
 		query = r
 	}
 	respuesta := make(map[string]interface{})
-	beego.Error("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/avance_legalizacion/?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=" + query)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &legalizaciones); err == nil {
 		if legalizaciones != nil {
 			respuesta["Legalizaciones"] = optimize.ProccDigest(legalizaciones, getValuesLegalizacion, nil, 3)
@@ -275,4 +274,64 @@ func getValuesLegalizacion(rpintfc interface{}, params ...interface{}) (res inte
 		beego.Error("Error", err.Error())
 	}
 	return rpintfc
+}
+
+
+// GetLegalizacionAccountantInformation ...
+// @Title GetLegalizacionAccountantInformation
+// @Description get accountant information to a legalization
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.Legalizacion_avance
+// @Failure 403 :id is empty
+// @router /GetLegalizacionAccountantInformation/:idLegalizacion [get]
+func (c *LegalizacionAvanceController) GetLegalizacionAccountantInformation() {
+	idLegStr := c.Ctx.Input.Param(":idLegalizacion")
+	defer c.ServeJSON()
+	var avanceLegalizacion []map[string]interface{}
+	var avanceLegalizacionTipo []interface{}
+	var respuesta interface{}
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?query=Legalizacion:"+idLegStr, &avanceLegalizacion); err == nil {
+		if avanceLegalizacion != nil {
+			idAvceLeg := strconv.FormatFloat(avanceLegalizacion[0]["Id"].(float64), 'f', -1, 64)
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion_tipo/?query=AvanceLegalizacion.Id:"+idAvceLeg+"&limit=-1", &avanceLegalizacionTipo); err == nil {
+					respuesta =optimize.ProccDigest(avanceLegalizacionTipo, getAccountantInfoLeg, nil, 3)
+			}
+			c.Ctx.Output.SetStatus(201)
+		}
+	} else {
+		res := models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		respuesta = structs.Map(res)
+	}
+	c.Data["json"] = respuesta
+}
+
+
+func getAccountantInfoLeg(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var conceptoLegalizacionAvance []map[string]interface{}
+	var resMovimientoContable []map[string]interface{}
+	var rpintfcCp map[string]interface{}
+	var infoLegalizacion interface{}
+	idLegTipo := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	idTipoDocAfectante := strconv.FormatFloat(rpintfc.(map[string]interface{})["TipoDocumentoAfectante"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	infoLegalizacion = formatoLegalizacion(rpintfc,nil)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/concepto_avance_legalizacion_tipo/?query=AvanceLegalizacion.Id:"+idLegTipo, &conceptoLegalizacionAvance); err == nil {
+		conceptoId:=strconv.FormatFloat(conceptoLegalizacionAvance[0]["Concepto"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+		rpintfcCp = conceptoLegalizacionAvance[0]["Concepto"].(map[string]interface{})
+		if infoLegalizacion.(map[string]interface{})["Estudiante"]!=nil {
+			rpintfcCp["Tercero"] = infoLegalizacion.(map[string]interface{})["Estudiante"]
+		}else{
+			rpintfcCp["Tercero"] = infoLegalizacion.(map[string]interface{})["InformacionProveedor"]
+		}
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_contable/?query=Concepto.Id:"+conceptoId+",CodigoDocumentoAfectante:"+idLegTipo+",TipoDocumentoAfectante.Id:"+idTipoDocAfectante+"&fields=Id,Credito,Debito,CuentaContable", &resMovimientoContable); err == nil {
+			if resMovimientoContable != nil {
+				rpintfcCp["MovimientoContable"] = resMovimientoContable
+			}
+		} else {
+			beego.Error("Error", err.Error())
+		}
+	}else{
+		beego.Error("Error", err.Error())
+	}
+	return rpintfcCp
 }
