@@ -30,6 +30,11 @@ func init() {
 				&controllers.RegistroPresupuestalController{},
 			),
 		),
+		beego.NSNamespace("/giro",
+			beego.NSInclude(
+				&controllers.GiroController{},
+			),
+		),
 		beego.NSNamespace("/partida_doble",
 			beego.NSInclude(
 				&controllers.PartidadobleController{},
