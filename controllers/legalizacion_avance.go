@@ -158,10 +158,38 @@ func formatoLegalizacionDispatcher(tipo int) (f func(data map[string]interface{}
 
 }
 func getLegalizacionCompra(data map[string]interface{}, params ...interface{}) (res interface{}) {
-	var infoTercero []interface{}
+	var resProveedor []interface{}
+	var resPersonaNat interface{}
+	var tipoDocumento interface{}
+
 	tercero := data["Tercero"].(string)
-	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=-1&query=NumDocumento:"+tercero, &infoTercero); err == nil {
-		data["InformacionProveedor"] = infoTercero
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=-1&query=NumDocumento:"+tercero, &resProveedor); err == nil {
+			if resProveedor != nil {
+
+				numberIdStr := resProveedor[0].(map[string]interface{})["NumDocumento"].(string)
+				resProveedor[0].(map[string]interface{})["numero_documento"] = resProveedor[0].(map[string]interface{})["NumDocumento"].(string)
+				if resProveedor[0].(map[string]interface{})["Tipopersona"].(string) == "NATURAL" {
+					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+numberIdStr, &resPersonaNat); err == nil {
+						idTipoDoc := strconv.FormatFloat(resPersonaNat.(map[string]interface{})["TipoDocumento"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+						if resPersonaNat != nil {
+							if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/"+idTipoDoc, &tipoDocumento); err == nil {
+								resProveedor[0].(map[string]interface{})["tipo_documento"] = tipoDocumento.(map[string]interface{})["ValorParametro"];
+							}
+						}
+					} else {
+						beego.Error("Error" + err.Error())
+					}
+				} else {
+					if resProveedor[0].(map[string]interface{})["Tipopersona"].(string) == "JURIDICA" {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/11", &tipoDocumento); err == nil {
+							resProveedor[0].(map[string]interface{})["tipo_documento"] = tipoDocumento;
+						} else {
+							beego.Error("Error" + err.Error())
+						}
+					}
+				}
+		}
+		data["InformacionProveedor"] = resProveedor[0]
 	} else {
 		beego.Error("Error", err.Error())
 	}
@@ -240,7 +268,6 @@ func (c *LegalizacionAvanceController) GetAllLegalizacionAvance() {
 		query = r
 	}
 	respuesta := make(map[string]interface{})
-	beego.Error("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/avance_legalizacion/?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=" + query)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &legalizaciones); err == nil {
 		if legalizaciones != nil {
 			respuesta["Legalizaciones"] = optimize.ProccDigest(legalizaciones, getValuesLegalizacion, nil, 3)
@@ -275,4 +302,64 @@ func getValuesLegalizacion(rpintfc interface{}, params ...interface{}) (res inte
 		beego.Error("Error", err.Error())
 	}
 	return rpintfc
+}
+
+// GetLegalizacionAccountantInformation ...
+// @Title GetLegalizacionAccountantInformation
+// @Description get accountant information to a legalization
+// @Param	id		path 	string	true		"The key for staticblock"
+// @Success 200 {object} models.Legalizacion_avance
+// @Failure 403 :id is empty
+// @router /GetLegalizacionAccountantInformation/:idAvcLegalizacion [get]
+func (c *LegalizacionAvanceController) GetLegalizacionAccountantInformation() {
+	idAvceLeg := c.Ctx.Input.Param(":idAvcLegalizacion")
+	defer c.ServeJSON()
+	var avanceLegalizacionTipo []interface{}
+	var conceptos []interface{}
+
+	respuesta := make(map[string]interface{})
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion_tipo/?query=AvanceLegalizacion.Id:"+idAvceLeg+",EstadoAvanceLegalizacionTipo.Id:1"+"&limit=-1", &avanceLegalizacionTipo); err == nil {
+		respuesta["InformacionContable"] = optimize.ProccDigest(avanceLegalizacionTipo, getAccountantInfoLeg, nil, 3)
+	} else {
+		res := models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		respuesta = structs.Map(res)
+	}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/concepto_avance_legalizacion_tipo/GetConceptoAvanceLegalizacionId/"+idAvceLeg, &conceptos); err == nil {
+		respuesta["Conceptos"] = conceptos
+	} else {
+		res := models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		respuesta = structs.Map(res)
+	}
+
+	c.Data["json"] = respuesta
+}
+
+func getAccountantInfoLeg(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var conceptoLegalizacionAvance []map[string]interface{}
+	var resMovimientoContable []map[string]interface{}
+	var rpintfcCp map[string]interface{}
+	var infoLegalizacion interface{}
+	idLegTipo := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	idTipoDocAfectante := strconv.FormatFloat(rpintfc.(map[string]interface{})["TipoDocumentoAfectante"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	infoLegalizacion = formatoLegalizacion(rpintfc, nil)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/concepto_avance_legalizacion_tipo/?query=AvanceLegalizacion.Id:"+idLegTipo, &conceptoLegalizacionAvance); err == nil {
+		conceptoId := strconv.FormatFloat(conceptoLegalizacionAvance[0]["Concepto"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+		rpintfcCp = conceptoLegalizacionAvance[0]["Concepto"].(map[string]interface{})
+		if infoLegalizacion.(map[string]interface{})["Estudiante"] != nil {
+			rpintfcCp["Tercero"] = infoLegalizacion.(map[string]interface{})["Estudiante"]
+		} else {
+			rpintfcCp["Tercero"] = infoLegalizacion.(map[string]interface{})["InformacionProveedor"]
+		}
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_contable/?query=Concepto.Id:"+conceptoId+",CodigoDocumentoAfectante:"+idLegTipo+",TipoDocumentoAfectante.Id:"+idTipoDocAfectante+"&fields=Id,Credito,Debito,CuentaContable,Concepto", &resMovimientoContable); err == nil {
+			if resMovimientoContable != nil {
+				rpintfcCp["MovimientoContable"] = resMovimientoContable
+			}
+		} else {
+			beego.Error("Error", err.Error())
+		}
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	return rpintfcCp
 }

@@ -7,6 +7,54 @@ import (
 
 func init() {
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "Post",
+			Router: `/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "GetAll",
+			Router: `/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "GetOne",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "Put",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"put"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "Delete",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "GetPersona",
+			Router: `/GetPersona/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionController"],
 		beego.ControllerComments{
 			Method: "AprobacionAsignacionInicial",
@@ -91,6 +139,54 @@ func init() {
 		beego.ControllerComments{
 			Method: "SaldoApropiacion",
 			Router: `/SaldoApropiacion/:rubro/:unidadEjecutora/:vigencia`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "Post",
+			Router: `/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "GetAll",
+			Router: `/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "GetOne",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "Put",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"put"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "Delete",
+			Router: `/:id`,
+			AllowHTTPMethods: []string{"delete"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
+		beego.ControllerComments{
+			Method: "GetAvanceById",
+			Router: `/:id`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
@@ -651,6 +747,14 @@ func init() {
 		beego.ControllerComments{
 			Method: "GetAllLegalizacionTipo",
 			Router: `/GetAllLegalizacionTipo`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:LegalizacionAvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:LegalizacionAvanceController"],
+		beego.ControllerComments{
+			Method: "GetLegalizacionAccountantInformation",
+			Router: `/GetLegalizacionAccountantInformation/:idAvcLegalizacion`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
