@@ -96,7 +96,7 @@ func (c *GiroController) CreateGiro() {
 	var giro map[string]interface{}
 	var response map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &giro); err == nil {
-		beego.Error("valor giro ", giro)
+		//beego.Error("valor giro ", giro)
 		if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro/RegistrarGiro", "POST", &response, giro); err == nil {
 			if strings.Compare(response["Type"].(string), "success") == 0 {
 				c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: response["Body"]}
