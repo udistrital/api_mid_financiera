@@ -130,6 +130,11 @@ func init() {
 				&controllers.AdministrativaPersonasController{},
 			),
 		),
+		beego.NSNamespace("/avance",
+			beego.NSInclude(
+				&controllers.AvanceController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }

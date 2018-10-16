@@ -95,7 +95,6 @@ func (c *AdministrativaPersonasController) GetPersona() {
 	var resProveedor []map[string]interface{}
 	var resPersonaNat []map[string]interface{}
 	var resPersonaJur []map[string]interface{}
-	beego.Error("going on get persona")
 	if v := c.GetString("numberId"); v != "" {
 		numberIdStr = v
 	}

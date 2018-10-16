@@ -186,7 +186,7 @@ func init() {
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
 		beego.ControllerComments{
 			Method: "GetAvanceById",
-			Router: `/:id`,
+			Router: `/GetAvanceById`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
