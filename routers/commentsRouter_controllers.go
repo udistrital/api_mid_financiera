@@ -239,6 +239,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"],
+		beego.ControllerComments{
+			Method: "Post",
+			Router: `/RegistrarFuente`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionChequesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionChequesController"],
 		beego.ControllerComments{
 			Method: "Post",
