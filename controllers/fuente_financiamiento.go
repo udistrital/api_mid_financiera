@@ -31,7 +31,8 @@ func (c *FuenteFinanciamientoController) Post() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		var resCrud interface{}
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/RegistrarFuenteFinanciamientoTr", "POST", &resCrud, &v); err == nil {
-			c.Data["json"] = resCrud
+			alert := models.Alert{Type: "success", Code: "S_F0001", Body: resCrud}
+			c.Data["json"] = alert
 		} else {
 			alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
 			c.Data["json"] = alert
@@ -54,11 +55,12 @@ func AddFuenteFinanciamientoMongo(parameter ...interface{}) (err interface{}) {
 		beego.Info(infoAfectacion)
 		panic("No sé que más hacer !!!")
 	}).Catch(func(e try.E) {
-		beego.Error("Retroceder Tr")
-		idFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})["Id"].(int)
+		beego.Error("Retroceder Tr ")
+		idFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64)
+		beego.Error("IdFuente ", idFuente)
 		var resCrud interface{}
-		request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteMovimientoFuenteFinanciamientoTr/"+strconv.Itoa(idFuente), "DELETE", &resCrud, nil)
-		beego.Error("error job ", e)
+		request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteMovimientoFuenteFinanciamientoTr/"+strconv.Itoa(int(idFuente)), "DELETE", &resCrud, nil)
+		beego.Error("res crud ", resCrud)
 	})
 
 	return

@@ -119,9 +119,10 @@ func sendFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
 	try.This(func() {
 		var serviceResponse models.Alert
 		err := formatdata.FillStruct(ctx.Input.Data()["json"], &serviceResponse)
-		if err != nil {
+		if err != nil || serviceResponse.Body == nil {
 			panic(err.Error())
 		}
+		beego.Info("Job Fuente start!! ", ctx.Input.Data()["json"])
 		var params []interface{}
 		if serviceResponse.Type == "success" {
 			info := serviceResponse.Body
