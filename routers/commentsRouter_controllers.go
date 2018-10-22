@@ -55,6 +55,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AdministrativaPersonasController"],
+		beego.ControllerComments{
+			Method: "GetPersonabyId",
+			Router: `/GetPersonabyId/`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AprobacionController"],
 		beego.ControllerComments{
 			Method: "AprobacionAsignacionInicial",

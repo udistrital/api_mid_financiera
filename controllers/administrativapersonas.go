@@ -9,6 +9,9 @@ import (
 type AdministrativaPersonasController struct {
 	beego.Controller
 }
+type TipoDocumentoAfectante struct {
+	Id int
+}
 
 // URLMapping ...
 func (c *AdministrativaPersonasController) URLMapping() {
@@ -127,6 +130,58 @@ func (c *AdministrativaPersonasController) GetPersona() {
 					}
 				}
 			}
+		}
+	} else {
+		beego.Error("Error", err.Error())
+		return
+	}
+}
+
+// GetPersonabyId ...
+// @Title GetPersona
+// @Description get search person by id type and number
+// @Param	Id	query	string	false	"id proovedor"
+// @Success 200 {object} models.AdministrativaPersonas
+// @Failure 403
+// @router /GetPersonabyId/ [get]
+func (c *AdministrativaPersonasController) GetPersonabyId() {
+	defer c.ServeJSON()
+	var Id string
+	var tipoDocumento TipoDocumentoAfectante
+	var resProveedor map[string]interface{}
+	var resPersonaNat map[string]interface{}
+	var resPersonaJur map[string]interface{}
+	if v := c.GetString("Id"); v != "" {
+		Id = v
+	}
+
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/"+Id, &resProveedor); err == nil {
+		if resProveedor != nil {
+			if resProveedor["Tipopersona"].(string) == "NATURAL" {
+				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+resProveedor["NumDocumento"].(string), &resPersonaNat); err == nil {
+					if resPersonaNat != nil {
+						resProveedor["TipoDocumento"] = resPersonaNat["TipoDocumento"]
+						c.Data["json"] = resProveedor
+						return
+					}
+				} else {
+					beego.Error("Error" + err.Error())
+				}
+			} else {
+				if resProveedor["Tipopersona"].(string) == "JURIDICA" {
+					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+resProveedor["NumDocumento"].(string), &resPersonaJur); err != nil {
+						if resPersonaJur != nil {
+							tipoDocumento.Id = 11
+							resProveedor["TipoDocumento"] = tipoDocumento
+							c.Data["json"] = resProveedor
+							return
+						}
+					} else {
+						beego.Error("Error" + err.Error())
+					}
+				}
+			}
+
 		}
 	} else {
 		beego.Error("Error", err.Error())
