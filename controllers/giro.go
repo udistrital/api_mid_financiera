@@ -94,11 +94,20 @@ func (c *GiroController) Delete() {
 func (c *GiroController) CreateGiro() {
 	defer c.ServeJSON()
 	var giro map[string]interface{}
+	// var resProveedor []map[string]interface{}
+	// var idCuentasEspeciales []int
 	var response map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &giro); err == nil {
 		//beego.Error("valor giro ", giro)
 		if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro/RegistrarGiro", "POST", &response, giro); err == nil {
 			if strings.Compare(response["Type"].(string), "success") == 0 {
+			// for _, element := range response["OrdenesPago"].(map[string]interface{}) {
+			// 	err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro/GetCuentasEspeciales", &idCuentasEspeciales)	
+								
+			// 	if err = request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=NumDocumento:"+numberIdStr+"&limit=1", &resProveedor); err== nil {
+					
+			// 	}
+			// }
 				c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: response["Body"]}
 				c.Ctx.Output.SetStatus(201)
 			} else {
