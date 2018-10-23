@@ -88,6 +88,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 	id_sucursal := c.GetString("id_sucursal")
 	var sucursales []models.Organizacion
+	beego.Error(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU")
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
@@ -102,6 +103,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 		c.Data["json"] = informacion_sucursal
 	}else{
+		beego.Error(err)
 		c.Data["json"] = err
 	}
 
