@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"github.com/astaxie/beego"
@@ -94,20 +95,29 @@ func (c *GiroController) Delete() {
 func (c *GiroController) CreateGiro() {
 	defer c.ServeJSON()
 	var giro map[string]interface{}
-	// var resProveedor []map[string]interface{}
-	// var idCuentasEspeciales []int
+	var resProveedor []map[string]interface{}
+	var idCuentasEspeciales []map[string]interface{}
 	var response map[string]interface{}
+	var responseDescuentos map[string]interface{}
+	giroDescuentos := make(map[string]interface{})
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &giro); err == nil {
 		//beego.Error("valor giro ", giro)
-		if err = request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro/RegistrarGiro", "POST", &response, giro); err == nil {
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+		if err = request.SendJson(urlcrud+"/giro/RegistrarGiro", "POST", &response, giro); err == nil {
 			if strings.Compare(response["Type"].(string), "success") == 0 {
-			// for _, element := range response["OrdenesPago"].(map[string]interface{}) {
-			// 	err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro/GetCuentasEspeciales", &idCuentasEspeciales)	
-								
-			// 	if err = request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=NumDocumento:"+numberIdStr+"&limit=1", &resProveedor); err== nil {
-					
-			// 	}
-			// }
+				for _, element := range response["OrdenesPago"].([]interface{}) {
+					if err = request.GetJson(urlcrud+"/giro/GetCuentasEspeciales?idordenpago="+strconv.FormatFloat(element.(map[string]interface{})["Id"].(float64), 'f', -1, 64), &idCuentasEspeciales); err == nil {
+						for _, cuenta := range idCuentasEspeciales {
+							if err = request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=Id:"+cuenta["informacion_persona_juridica"].(string)+"&limit=1", &resProveedor); err == nil {
+								giroDescuentos["idCuenta"] = cuenta["cuenta_especial"].(string)
+								giroDescuentos["idOrdenPago"] = strconv.FormatFloat(element.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+								giroDescuentos["idGiro"] = strconv.FormatFloat(response["IdGiro"].(float64), 'f', -1, 64)
+								giroDescuentos["resProveedor"] = resProveedor
+								err = request.SendJson(urlcrud+"/giro/RegistrarGiroDescuentos", "POST", &responseDescuentos, giroDescuentos)
+							}
+						}
+					}
+				}
 				c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: response["Body"]}
 				c.Ctx.Output.SetStatus(201)
 			} else {
