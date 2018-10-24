@@ -1,10 +1,10 @@
 package models
 
 type InformacionSucursal struct {
-	Nombre        string
-	Direccion     string
-	Telefono      string
-	Pais          string
-	Departamento  string
-	Ciudad        string
+	Organizacion   Organizacion
+	Direccion     interface{}
+	Telefono      interface{}
+	Pais          interface{}
+	Departamento  interface{}
+	Ciudad        interface{}
 }

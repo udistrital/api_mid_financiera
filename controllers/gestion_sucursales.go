@@ -19,6 +19,7 @@ type GestionSucursalesController struct {
 func (c *GestionSucursalesController) URLMapping() {
 	c.Mapping("InsertarSucursales", c.InsertarSucursales)
 	c.Mapping("ListarSucursales", c.ListarSucursales)
+	c.Mapping("Put", c.Put)
 }
 
 // InsertarSucursales ...
@@ -36,9 +37,9 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
 
-		ciudad,_ := strconv.Atoi(info_sucursal.Ciudad)
-		departamento,_ := 	strconv.Atoi(info_sucursal.Departamento)
-		pais,_ := strconv.Atoi(info_sucursal.Pais)
+		ciudad:= int(info_sucursal.Ciudad.(map[string]interface{})["Id"].(float64))
+		departamento := int(info_sucursal.Departamento.(map[string]interface{})["Id"].(float64))
+		pais := int(info_sucursal.Pais.(map[string]interface{})["Id"].(float64))
 		//Primero, se busca el código del tipo ente correspondiente al código de abreviación
 		if err = request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/tipo_ente?query=CodigoAbreviacion:TE_3", &tipo_ente); err == nil {
 
@@ -49,9 +50,9 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 					idTarget := res["Body"].(map[string]interface{})["Id"].(float64)
 					id_ente := int(idTarget)
 					//SE TOMA ESE ENTE Y SE INSERTA EN SUCURSAL, UBICACION Y CONTACTO
-				 	respuesta, err = InsertarSucursal(info_sucursal.Nombre, id_ente)
-				  respuesta, err = InsertarContacto(info_sucursal.Telefono,id_ente)
-					respuesta, err = InsertarUbicacion(info_sucursal.Direccion,pais, departamento, ciudad, id_ente)
+				 	respuesta, err = InsertarSucursal(info_sucursal.Organizacion.Nombre, id_ente)
+				  respuesta, err = InsertarContacto(info_sucursal.Telefono.(string),id_ente)
+					respuesta, err = InsertarUbicacion(info_sucursal.Direccion.(string),pais, departamento, ciudad, id_ente)
 
 					c.Data["json"] = respuesta
 
@@ -93,11 +94,10 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
-			informacion_sucursal[i].Nombre = suc.Nombre
-			informacion_sucursal[i].Direccion = BuscarDireccion(suc.Ente)
+			informacion_sucursal[i].Organizacion.Nombre = suc.Nombre
 			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
 			ubicaciones := BuscarUbicaciones(suc.Ente)
-			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad = BuscarLugar(ubicaciones,suc.Ente)
+			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad,informacion_sucursal[i].Direccion = BuscarLugar(ubicaciones,suc.Ente)
 
     }
 
@@ -124,11 +124,10 @@ func (c *GestionSucursalesController) ListarSucursales() {
 
 		var informacion_sucursal  = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales{
-			informacion_sucursal[i].Nombre = suc.Nombre
-			informacion_sucursal[i].Direccion = BuscarDireccion(suc.Ente)
 			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
 			ubicaciones := BuscarUbicaciones(suc.Ente)
-			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad = BuscarLugar(ubicaciones,suc.Ente)
+			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad,informacion_sucursal[i].Direccion  = BuscarLugar(ubicaciones,suc.Ente)
+			informacion_sucursal[i].Organizacion = suc;
 
     }
 
@@ -225,10 +224,11 @@ func InsertarContacto(telefono string, id_ente int)(res interface{}, err error){
 
 	var tipo_contacto []models.TipoContacto
 	var respuesta interface{}
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/tipo_contacto?query=CodigoAbreviacion:TEL", &tipo_contacto); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_contacto?query=CodigoAbreviacion:TEL", &tipo_contacto); err == nil {
 
 			objeto_contacto := &models.ContactoEnte {Valor: telefono, Ente: &models.Ente {Id: id_ente}, TipoContacto : &models.TipoContacto{Id: tipo_contacto[0].Id}}
-			if err := request.SendJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/contacto_ente/", "POST", &respuesta, &objeto_contacto); err == nil {
+			beego.Error("Objeto contacto",objeto_contacto,"ente ",objeto_contacto.Ente);
+			if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/", "POST", &respuesta, &objeto_contacto); err == nil {
 
 			}else{
 				fmt.Println("error al insertar contacto")
@@ -242,12 +242,12 @@ func InsertarContacto(telefono string, id_ente int)(res interface{}, err error){
 }
 
 
-func InsertarUbicacion(direccion string, pais, departamento, ciudad int,id_ente int)(res interface{}, err error){
+func InsertarUbicacion(direccion string, pais, departamento, ciudad ,id_ente int)(res interface{}, err error){
 
 	var tipo_relacion_ubicacion_ente []models.TipoRelacionUbicacionEnte
 	var respuesta interface{}
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/tipo_relacion_ubicacion_ente?query=CodigoAbreviacion:LR", &tipo_relacion_ubicacion_ente); err == nil {
-
+//convertir interfaces y sacar el id
 			objeto_ubicacion_ente := &models.UbicacionEnte {Lugar: pais, Ente: &models.Ente {Id: id_ente}, TipoRelacionUbicacionEnte : &models.TipoRelacionUbicacionEnte{Id: tipo_relacion_ubicacion_ente[0].Id}, Activo: true}
 			if err := request.SendJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/ubicacion_ente/", "POST", &respuesta, &objeto_ubicacion_ente); err == nil {
 
@@ -273,7 +273,7 @@ func InsertarUbicacion(direccion string, pais, departamento, ciudad int,id_ente 
 		fmt.Println("error al consultar tipo_ubicacion")
 	}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/tipo_relacion_ubicacion_ente?query=CodigoAbreviacion:LR", &tipo_relacion_ubicacion_ente); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"/tipo_relacion_ubicacion_ente?query=CodigoAbreviacion:LR", &tipo_relacion_ubicacion_ente); err == nil {
 
 			objeto_ubicacion_ente := &models.UbicacionEnte {Lugar: ciudad, Ente: &models.Ente {Id: id_ente}, TipoRelacionUbicacionEnte : &models.TipoRelacionUbicacionEnte{Id: tipo_relacion_ubicacion_ente[0].Id}, Activo: true}
 			if err := request.SendJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/ubicacion_ente/", "POST", &respuesta, &objeto_ubicacion_ente); err == nil {
@@ -305,86 +305,93 @@ func InsertarUbicacion(direccion string, pais, departamento, ciudad int,id_ente 
 
 }
 
-func BuscarDireccion(id_ente int)(direccion string){
 
-	return "No registrado"
-}
+func BuscarTelefono(id_ente int)(telefono interface{}){
 
-
-func BuscarTelefono(id_ente int)(telefono string){
-
-	var tel string;
 	var contacto_ente []models.ContactoEnte
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/contacto_ente?query=Ente:"+strconv.Itoa(id_ente), &contacto_ente); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"contacto_ente?query=Ente:"+strconv.Itoa(id_ente)+",TipoContacto.CodigoAbreviacion:TEL", &contacto_ente); err == nil {
 		if(contacto_ente != nil){
-			tel = contacto_ente[0].Valor
-		}else{
-			tel = "No registrado"
+			telefono = contacto_ente[0]
 		}
-
 	}else{
-		tel = "No registrado"
+		beego.Error(err.Error())
 	}
-
- return tel
+ return
 }
 
 func BuscarUbicaciones(id_ente int)(ub []models.UbicacionEnte){
 
 	var ubicaciones []models.UbicacionEnte
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlente")+":"+beego.AppConfig.String("Portente")+"/"+beego.AppConfig.String("Nsente")+"/ubicacion_ente?query=Ente:"+strconv.Itoa(id_ente), &ubicaciones); err == nil {
-		if(ubicaciones != nil){
-
-		}else{
-			ubicaciones = nil;
-		}
-
-	}else{
+	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"/ubicacion_ente?query=Ente:"+strconv.Itoa(id_ente), &ubicaciones); err != nil {
+		beego.Error(err.Error())
 		ubicaciones = nil;
 	}
 
 	return ubicaciones
 }
 
-func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int)(p, c,d string){
+func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int)(p, c,d,dir interface{}){
 
-	var pais = "No registrado"
-	var departamento = "No registrado"
-	var ciudad = "No registrado"
-
+	var pais interface{}
+	var departamento interface{}
+	var ciudad interface{}
+	var direccion interface{}
   var objeto_lugar []models.Lugar
-
-
+	var valAtribUbic []map[string]interface{}
   if(ubicaciones != nil){
 				for _, ubi := range ubicaciones{
-
-				  if err := request.GetJson("http://"+beego.AppConfig.String("Urlubicacion")+":"+beego.AppConfig.String("Portubicacion")+"/"+beego.AppConfig.String("Nsubicacion")+"/lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
-
+				  if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
 						if(objeto_lugar != nil && objeto_lugar[0].Id != 0){
-
-
 							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "CIUDAD"){
-								ciudad = objeto_lugar[0].Nombre
+								ciudad = objeto_lugar[0]
+								ciudad.(map[string]interface{})["UbicacionEnte"] = ubi
 							}
-
 							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "DEPARTAMENTO"){
-								departamento = objeto_lugar[0].Nombre
+								departamento = objeto_lugar[0]
+								departamento.(map[string]interface{})["UbicacionEnte"] = ubi
 							}
-
 							if(objeto_lugar[0].TipoLugar.CodigoAbreviacion == "PAIS"){
-								pais = objeto_lugar[0].Nombre
+								pais = objeto_lugar[0]
+								pais.(map[string]interface{})["UbicacionEnte"] = ubi
+							}
+							if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"valor_atributo_ubicacion?query=?query=AtributoUbicacion.NumeroOrden:1,UbicacionEnte:"+strconv.Itoa(ubi.Id), &valAtribUbic); err == nil {
+								 direccion = valAtribUbic[0]["Valor"]
 							}
 						}
-
-
 				  }
+			}
+	}
+	return pais,departamento,ciudad,direccion
+}
 
+
+// EditarSucursal ...
+// @Title Editar Sucursal
+// @Description update the sucursal Information
+// @Param	idEnte		path 	string	true		"The id you want to update"
+// @Param	body		body 	interface{} true		"body for Gestion_cheques content"
+// @Success 200 {object} interface{}
+// @Failure 403 Body is empty
+// @router /EditarSucursal/:idEnte [put]
+func (c *GestionSucursalesController)  EditarSucursal() {
+	var v map[string]interface{}
+	var idEnte int
+	var telefono interface{}
+	idEnteStr := c.Ctx.Input.Param(":idEnte")
+	idEnte, _ = strconv.Atoi(idEnteStr)
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		telefono = v["Telefono"]
+		if telefono.(map[string]interface{})["Id"] != nil {
+
+		}else{
+			beego.Error("valor  ",telefono.(map[string]interface{})["Valor"].(string)," idEnte  ",idEnte)
+			if respuesta,err := InsertarContacto(telefono.(map[string]interface{})["Valor"].(string), idEnte);err==nil{
+				beego.Error("respuesta ",respuesta)
+			}else{
+				beego.Error(" Error ",err.Error())
 			}
 
-
-
+		}
 	}
-
-	return pais, departamento, ciudad
 }
