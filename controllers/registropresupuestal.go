@@ -883,8 +883,12 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
-		request.SendJson(Urlcrud, "DELETE", &resC, nil)
-		beego.Info("Data ", resC)
+		if error_delete := request.SendJson(Urlcrud, "DELETE", &resC, nil); error_delete == nil{
+			beego.Info("Data ", resC)
+		}else{
+			beego.Info("Error ", error_delete)
+		}
+
 		err = e
 	})
 	return
@@ -929,8 +933,12 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
-		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
-		beego.Info("Data ", resC)
+		if error_put := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); error_put == nil {
+				beego.Info("Data ", resC)
+		}else{
+				beego.Info("Error ", error_put)
+		}
+
 	})
 	return
 }

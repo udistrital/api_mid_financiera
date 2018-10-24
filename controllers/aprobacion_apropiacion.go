@@ -13,6 +13,7 @@ import (
 	"github.com/udistrital/utils_oas/ruler"
 )
 
+// AprobacionController operations for AprobacionController
 type AprobacionController struct {
 	beego.Controller
 }
@@ -110,12 +111,12 @@ func comprobar_apropiacion(padre models.Apropiacion) string {
 	var regla string
 	var apropiacion_hijo []models.Apropiacion
 	var hoja int
-	request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.Itoa(padre.Rubro.Id)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubro_hijo)
-	if rubro_hijo != nil {
+	err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.Itoa(padre.Rubro.Id)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubro_hijo)
+	if (rubro_hijo != nil && err == nil) {
 		for i := 0; i < len(rubro_hijo); i++ {
 
-			request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.Itoa(rubro_hijo[i].RubroHijo.Id)+"", &apropiacion_hijo)
-			if apropiacion_hijo != nil {
+			err:= request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.Itoa(rubro_hijo[i].RubroHijo.Id)+"", &apropiacion_hijo)
+			if apropiacion_hijo != nil  && err == nil{
 				hoja = 0
 				for i := 0; i < len(apropiacion_hijo); i++ {
 					if apropiacion_hijo[i].Estado.Id == 2 {

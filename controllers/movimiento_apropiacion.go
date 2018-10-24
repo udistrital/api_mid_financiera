@@ -121,17 +121,26 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		estadoMov := infoMovimiento["EstadoMovimientoApropiacion"].(map[string]interface{})
 		estadoMov["Id"] = 1
 		infoMovimiento["EstadoMovimientoApropiacion"] = estadoMov
-		request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento)
-		for _, data := range movimientos {
-			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
-				idDisp := dispo["Id"].(float64)
-				Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadMovimiento/" + strconv.Itoa(int(idDisp))
-				request.SendJson(Urlcrud, "DELETE", &resC, nil)
-				beego.Info(resC)
-			}
+		if error_put := request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento); error_put == nil{
+			for _, data := range movimientos {
+				if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
+					idDisp := dispo["Id"].(float64)
+					Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadMovimiento/" + strconv.Itoa(int(idDisp))
+					if error_delete := request.SendJson(Urlcrud, "DELETE", &resC, nil); error_delete == nil {
+						beego.Info(resC)
+					}else{
+						beego.Info(error_delete)
+					}
 
+				}
+
+			}
+			beego.Error("error job ", e)
+
+		}else{
+			beego.Error("error en put ", error_put)
 		}
-		beego.Error("error job ", e)
+
 	})
 	return
 }

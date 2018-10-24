@@ -322,22 +322,38 @@ func formatoSolicitudCDP(solicitudint interface{}, params ...interface{}) (res i
 		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"necesidad?limit=1&query=Id:"+strconv.Itoa(int(solicitud["Necesidad"].(map[string]interface{})["Id"].(float64))), &necesidad); err == nil {
 			necesidadaux := necesidad[0]
 			solicitud["Necesidad"] = &necesidadaux
-			request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes)
-			if depNes != nil {
-				request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol)
-				if jefe_dep_sol != nil {
-					request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol)
-					if depSol != nil {
-						request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia)
-						request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador)
+			err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(necesidad[0].Id), &depNes)
+			if depNes != nil && err == nil {
+				err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol)
+				if jefe_dep_sol != nil && err == nil {
+					err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol)
+					if depSol != nil && err == nil{
+						if err_jefe_dep := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_sol[0].TerceroId), &depSol[0].InfoJefeDependencia); err_jefe_dep == nil {
+							fmt.Println("Información del jefe de dependencia consultada correctamente")
+						}else{
+							fmt.Println("Error al consultar Información del jefe de dependencia")
+						}
+						if error_info_ordenador := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depSol[0].InfoOrdenador); error_info_ordenador  == nil {
+							fmt.Println("Información del ordenador consultada correctamente")
+						}else{
+							fmt.Println("Error al consultar el ordenador")
+						}
 					}
 				}
-				request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaDestino), &jefe_dep_dest)
-				if jefe_dep_dest != nil {
-					request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest)
-					if depDest != nil {
-						request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia)
-						request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador)
+				err_1:= request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=0&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaDestino), &jefe_dep_dest)
+				if jefe_dep_dest != nil && err_1 == nil{
+					err:= request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=0&query=Id:"+strconv.Itoa(jefe_dep_dest[0].DependenciaId), &depDest)
+					if depDest != nil && err == nil {
+						if err_jefe_dep := request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(jefe_dep_dest[0].TerceroId), &depDest[0].InfoJefeDependencia); err_jefe_dep == nil {
+							fmt.Println("Información del jefe de dependencia consultada correctamente")
+						}else{
+							fmt.Println("Error al consultar Información del jefe de dependencia")
+						}
+						if error_info_ordenador :=request.GetJson("http://"+beego.AppConfig.String("agoraService")+"informacion_persona_natural/"+strconv.Itoa(depNes[0].OrdenadorGasto), &depDest[0].InfoOrdenador) ; error_info_ordenador  == nil {
+							fmt.Println("Información del ordenador consultada correctamente")
+						}else{
+							fmt.Println("Error al consultar el ordenador")
+						}
 					}
 				}
 			}
@@ -731,8 +747,10 @@ func (this *DisponibilidadController) Post() {
 				err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad", "POST", &respuesta, &disponibilidad)
 				fmt.Println(respuesta)
 				if err == nil {
-					request.SendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id), "PUT", &respuesta_mod, &solicitudes_disponibilidad[i].SolicitudDisponibilidad)
-					fmt.Println("err", respuesta_mod)
+					error_resp_mod := request.SendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(solicitudes_disponibilidad[i].SolicitudDisponibilidad.Id), "PUT", &respuesta_mod, &solicitudes_disponibilidad[i].SolicitudDisponibilidad)
+
+					if (error_resp_mod == nil){
+
 					for j := 0; j < len(rubros_solicitud); j++ {
 
 						if rubros_solicitud[j].FuenteFinanciamiento > 0 {
@@ -742,18 +760,31 @@ func (this *DisponibilidadController) Post() {
 								Valor:                rubros_solicitud[j].MontoParcial,
 								FuenteFinanciamiento: &models.FuenteFinanciacion{Id: rubros_solicitud[j].FuenteFinanciamiento},
 							}
-							request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
+
+							if err:= request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion); err == nil {
+									fmt.Println("post en disponibilidad_apropiacion realizado correctamente")
+							}else{
+									fmt.Println("error en post en disponibilidad_apropiacion")
+							}
 						} else {
 							disponibilidad_apropiacion := models.DisponibilidadApropiacion{
 								Apropiacion:    &models.Apropiacion{Id: rubros_solicitud[j].Apropiacion},
 								Disponibilidad: &respuesta, //&respuesta,
 								Valor:          rubros_solicitud[j].MontoParcial,
 							}
-							request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion)
+							if err:= request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion", "POST", &respuesta_disponibilidad_rubro, &disponibilidad_apropiacion); err == nil {
+								fmt.Println("post en disponibilidad_apropiacion realizado correctamente")
+							}else{
+								fmt.Println("error en post en disponibilidad_apropiacion")
+							}
 						}
 
 					}
 					alertas = append(alertas, models.Alert{Code: "S_CDP001", Body: disponibilidad, Type: "success"})
+				}else{
+					fmt.Println(error_resp_mod, respuesta_mod)
+				}
+
 				} else {
 					alertas = append(alertas, models.Alert{Code: "E_0459", Body: solicitudes_disponibilidad[i], Type: "success"})
 					fmt.Println("err", err)
@@ -1002,7 +1033,11 @@ func ExpedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 					var respuesta_mod interface{}
 					modsol := solicitud["SolicitudDisponibilidad"].(map[string]interface{})
 					modsol["Expedida"] = true
-					request.SendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))), "PUT", &respuesta_mod, &modsol)
+					if err:= request.SendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))), "PUT", &respuesta_mod, &modsol); err == nil{
+						fmt.Println("solicitud de disponibilidad actualizada correctamente")
+					}else{
+						fmt.Println("error al actualizar solicitud de disponiblidad")
+					}
 					alertas = append(alertas, respuesta)
 				} else {
 					alertas = append(alertas, models.Alert{Code: "E_0458", Body: solicitud, Type: "error"})
@@ -1261,9 +1296,15 @@ func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 		beego.Info("Exepc ", e)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadData/" + strconv.Itoa(idDisp)
-		request.SendJson(Urlcrud, "DELETE", &resC, nil)
-		beego.Info("Data ", resC)
-		err = e
+		if err_delete:= request.SendJson(Urlcrud, "DELETE", &resC, nil); err_delete == nil {
+			fmt.Println("registro borrado correctamente")
+			beego.Info("Data ", resC)
+			err = e
+		}else{
+			fmt.Println("registro borrado correctamente")
+		}
+
+
 	})
 	return
 }
@@ -1307,8 +1348,13 @@ func AddAnulacionCdpMongo(parameter ...interface{}) (err interface{}) {
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_disponibilidad/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
-		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
-		beego.Info("Data ", resC)
+		if error_put := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); error_put == nil {
+			fmt.Println("actualizado correctamente")
+			beego.Info("Data ", resC)
+		}else{
+			beego.Info("Error ", error_put)
+		}
+
 	})
 	return
 }
