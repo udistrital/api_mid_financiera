@@ -80,7 +80,7 @@ func (c *AvanceController) Delete() {
 
 }
 
-// GetOne ...
+// GetAvanceById ...
 // @Title GetAvanceById
 // @Description get All information of an advance payment by id
 // @Param	id		path 	string	true		"The key for staticblock"

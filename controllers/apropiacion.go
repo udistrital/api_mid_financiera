@@ -11,7 +11,7 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-//  ApropiacionController operations for Apropiacion
+//  ApropiacionController operations for  ApropiacionController
 type ApropiacionController struct {
 	beego.Controller
 }
