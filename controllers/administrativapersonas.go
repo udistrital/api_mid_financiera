@@ -90,24 +90,24 @@ func (c *AdministrativaPersonasController) Delete() {
 // @router /GetPersona/ [get]
 func (c *AdministrativaPersonasController) GetPersona() {
 	defer c.ServeJSON()
-	var numberIdStr string
-	var typeIdStr string
+	var numberIDStr string
+	var typeIDStr string
 	var resProveedor []map[string]interface{}
 	var resPersonaNat []map[string]interface{}
 	var resPersonaJur []map[string]interface{}
 	beego.Error("going on get persona")
 	if v := c.GetString("numberId"); v != "" {
-		numberIdStr = v
+		numberIDStr = v
 	}
 
 	if v := c.GetString("typeId"); v != "" {
-		typeIdStr = v
+		typeIDStr = v
 	}
-	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=NumDocumento:"+numberIdStr+"&limit=1", &resProveedor); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/?query=NumDocumento:"+numberIDStr+"&limit=1", &resProveedor); err == nil {
 		if resProveedor != nil {
 			for _, v := range resProveedor {
 				if v["Tipopersona"].(string) == "NATURAL" {
-					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/?query=Id:"+numberIdStr+",TipoDocumento.Id:"+typeIdStr+"&limit=1", &resPersonaNat); err == nil {
+					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/?query=Id:"+numberIDStr+",TipoDocumento.Id:"+typeIDStr+"&limit=1", &resPersonaNat); err == nil {
 						if resPersonaNat != nil {
 							c.Data["json"] = v
 							return
@@ -117,8 +117,8 @@ func (c *AdministrativaPersonasController) GetPersona() {
 					}
 				} else {
 					if v["Tipopersona"].(string) == "JURIDICA" {
-						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIdStr, &resPersonaJur); err != nil {
-							if resPersonaJur != nil && typeIdStr == "11" {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIDStr, &resPersonaJur); err != nil {
+							if resPersonaJur != nil && typeIDStr == "11" {
 								c.Data["json"] = v
 								return
 							}

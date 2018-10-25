@@ -110,7 +110,7 @@ func (c *OrganizacionesCoreNewController) GetOrganizacion()() {
 
 	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_ente?limit="+strconv.FormatInt(limit,10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &tipoEnte); err == nil {
 				idEnte:=int(tipoEnte[0]["Id"].(float64));
-				if request.GetJson(beego.AppConfig.String("coreEnteService")+"ente?limit=-1&query=TipoEnte.Id:"+strconv.Itoa(idEnte), &ente);err==nil{
+				if err_1 := request.GetJson(beego.AppConfig.String("coreEnteService")+"ente?limit=-1&query=TipoEnte.Id:"+strconv.Itoa(idEnte), &ente);err_1==nil{
 				if ente!=nil {
 					done := make(chan interface{})
 					defer close(done)

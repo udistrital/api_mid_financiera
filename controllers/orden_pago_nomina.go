@@ -27,11 +27,11 @@ func formatoListaLiquidacion(dataLiquidacion interface{}, params ...interface{})
 	if e {
 		if err := request.GetJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/administrativaProxy/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
 			row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]
-			
+
 			if e {
 				return row
 			} else {
-				
+
 				return
 			}
 
@@ -179,16 +179,17 @@ func (c *OrdenPagoNominaController) PreviewCargueMasivoOp() {
 	var params []interface{}
 	if err1 == nil && err2 == nil && err3 == nil {
 		var liquidacion interface{}
-		fmt.Println("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion))
+		beego.Info("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion))
 		if err := request.GetJson("http://"+beego.AppConfig.String("titanService")+"preliquidacion/contratos_x_preliquidacion?idNomina="+strconv.Itoa(idNomina)+"&mesLiquidacion="+strconv.Itoa(mesLiquidacion)+"&anioLiquidacion="+strconv.Itoa(anioLiquidacion), &liquidacion); err == nil {
 			if liquidacion != nil {
 
 				f := formatoPreviewOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
 				var res interface{}
 				if f != nil {
+					fmt.Println(params)
 					res = f(liquidacion, params...)
 				}
-			
+
 				c.Data["json"] = res
 			}
 		} else {
