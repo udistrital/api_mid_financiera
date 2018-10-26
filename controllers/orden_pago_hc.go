@@ -10,13 +10,13 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-// Orden_pago_hcController operations for Orden_pago_hc
-type Orden_pago_hcController struct {
+// OrdenPagoHCController  operations for OrdenPagoHC
+type OrdenPagoHCController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *Orden_pago_hcController) URLMapping() {
+func (c *OrdenPagoHCController) URLMapping() {
 
 }
 func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (res interface{}) {

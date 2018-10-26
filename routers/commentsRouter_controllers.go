@@ -185,7 +185,7 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:AvanceController"],
 		beego.ControllerComments{
-			Method: "GetAvanceById",
+			Method: "GetAvanceByID",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
@@ -321,7 +321,7 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:DisponibilidadController"],
 		beego.ControllerComments{
-			Method: "InfoSolicitudDisponibilidadById",
+			Method: "InfoSolicitudDisponibilidadByID",
 			Router: `SolicitudById/:id`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
@@ -945,7 +945,7 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:RegistroPresupuestalController"],
 		beego.ControllerComments{
-			Method: "GetSolicitudesRpById",
+			Method: "GetSolicitudesRpByID",
 			Router: `/GetSolicitudesRpById/:id`,
 			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
