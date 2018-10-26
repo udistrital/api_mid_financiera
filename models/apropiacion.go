@@ -1,5 +1,6 @@
 package models
 
+//Apropiacion ...
 type Apropiacion struct {
 	Id              int                `orm:"column(id);pk"`
 	Vigencia        float64            `orm:"column(vigencia);null"`

@@ -1,5 +1,6 @@
 package models
 
+//AnulacionRegistroPresupuestalDisponibilidadApropiacion ...
 type AnulacionRegistroPresupuestalDisponibilidadApropiacion struct {
 	Id                                            int                                            `orm:"auto;column(id);pk"`
 	AnulacionRegistroPresupuestal                 *AnulacionRegistroPresupuestal                 `orm:"column(anulacion_registro_presupuestal);rel(fk)"`

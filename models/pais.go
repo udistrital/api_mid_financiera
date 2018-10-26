@@ -1,7 +1,7 @@
 package models
 
 
-
+// Pais ...
 type Pais struct {
 	Id            int    `orm:"column(id_pais);pk"`
 	NombrePais    string `orm:"column(nombre_pais)"`

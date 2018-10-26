@@ -1,5 +1,6 @@
 package models
 
+// InformacionSucursal ...
 type InformacionSucursal struct {
 	Nombre        string
 	Direccion     string

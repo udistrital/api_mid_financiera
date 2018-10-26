@@ -11,7 +11,8 @@ import (
 	"github.com/astaxie/beego"
 )
 
-type Homologacion_rubro struct {
+// HomologacionRubro ...
+type HomologacionRubro struct {
 	Id               int64  `orm:"auto"`
 	CodigoHomologado string `orm:"size(128)"`
 	NombreHomologado string `orm:"size(128)"`
@@ -20,34 +21,34 @@ type Homologacion_rubro struct {
 }
 
 func init() {
-	orm.RegisterModel(new(Homologacion_rubro))
+	orm.RegisterModel(new(HomologacionRubro))
 }
 
-// AddHomologacion_rubro insert a new Homologacion_rubro into database and returns
+// AddHomologacionRubro insert a new HomologacionRubro into database and returns
 // last inserted Id on success.
-func AddHomologacion_rubro(m *Homologacion_rubro) (id int64, err error) {
+func AddHomologacionRubro(m *HomologacionRubro) (id int64, err error) {
 	o := orm.NewOrm()
 	id, err = o.Insert(m)
 	return
 }
 
-// GetHomologacion_rubroById retrieves Homologacion_rubro by Id. Returns error if
+// GetHomologacionRubroByID retrieves HomologacionRubro by Id. Returns error if
 // Id doesn't exist
-func GetHomologacion_rubroById(id int64) (v *Homologacion_rubro, err error) {
+func GetHomologacionRubroByID(id int64) (v *HomologacionRubro, err error) {
 	o := orm.NewOrm()
-	v = &Homologacion_rubro{Id: id}
-	if err = o.QueryTable(new(Homologacion_rubro)).Filter("Id", id).RelatedSel().One(v); err == nil {
+	v = &HomologacionRubro{Id: id}
+	if err = o.QueryTable(new(HomologacionRubro)).Filter("Id", id).RelatedSel().One(v); err == nil {
 		return v, nil
 	}
 	return nil, err
 }
 
-// GetAllHomologacion_rubro retrieves all Homologacion_rubro matches certain condition. Returns empty list if
+// GetAllHomologacionRubro retrieves all HomologacionRubro matches certain condition. Returns empty list if
 // no records exist
-func GetAllHomologacion_rubro(query map[string]string, fields []string, sortby []string, order []string,
+func GetAllHomologacionRubro(query map[string]string, fields []string, sortby []string, order []string,
 	offset int64, limit int64) (ml []interface{}, err error) {
 	o := orm.NewOrm()
-	qs := o.QueryTable(new(Homologacion_rubro))
+	qs := o.QueryTable(new(HomologacionRubro))
 	// query k=v
 	for k, v := range query {
 		// rewrite dot-notation to Object__Attribute
@@ -93,7 +94,7 @@ func GetAllHomologacion_rubro(query map[string]string, fields []string, sortby [
 		}
 	}
 
-	var l []Homologacion_rubro
+	var l []HomologacionRubro
 	qs = qs.OrderBy(sortFields...).RelatedSel()
 	if _, err = qs.Limit(limit, offset).All(&l, fields...); err == nil {
 		if len(fields) == 0 {
@@ -116,11 +117,11 @@ func GetAllHomologacion_rubro(query map[string]string, fields []string, sortby [
 	return nil, err
 }
 
-// UpdateHomologacion_rubro updates Homologacion_rubro by Id and returns error if
-// the record to be updated doesn't exist
-func UpdateHomologacion_rubroById(m *Homologacion_rubro) (err error) {
+// UpdateHomologacionRubro ...
+// updates HomologacionRubro by Id and returns error if the record to be updated doesn't exist
+func UpdateHomologacionRubroByID(m *HomologacionRubro) (err error) {
 	o := orm.NewOrm()
-	v := Homologacion_rubro{Id: m.Id}
+	v := HomologacionRubro{Id: m.Id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
@@ -131,15 +132,15 @@ func UpdateHomologacion_rubroById(m *Homologacion_rubro) (err error) {
 	return
 }
 
-// DeleteHomologacion_rubro deletes Homologacion_rubro by Id and returns error if
+// DeleteHomologacionRubro deletes HomologacionRubro by Id and returns error if
 // the record to be deleted doesn't exist
-func DeleteHomologacion_rubro(id int64) (err error) {
+func DeleteHomologacionRubro(id int64) (err error) {
 	o := orm.NewOrm()
-	v := Homologacion_rubro{Id: id}
+	v := HomologacionRubro{Id: id}
 	// ascertain id exists in the database
 	if err = o.Read(&v); err == nil {
 		var num int64
-		if num, err = o.Delete(&Homologacion_rubro{Id: id}); err == nil {
+		if num, err = o.Delete(&HomologacionRubro{Id: id}); err == nil {
 			fmt.Println("Number of records deleted in database:", num)
 		}
 	}
@@ -149,15 +150,16 @@ func DeleteHomologacion_rubro(id int64) (err error) {
 func formatoHomologacionF(tipo int) (function func(data interface{}, params ...interface{}) interface{}){
 	switch tipo {
 	case 1:
-		return GetOrganizacion
+		return getOrganizacion
 	case 2:
-	  return GetOrganizacionDisponibilidad
+	  return getOrganizacionDisponibilidad
 	default:
 		return nil
 	}
 }
 
-func GetOrganizacionDisponibilidad (data interface{},params ...interface{}) (res interface{}) {
+
+func getOrganizacionDisponibilidad (data interface{},params ...interface{}) (res interface{}) {
 	var organizacion interface{}
 	var rubroHomolMap map[string]interface{}
 	var cntRubroHomologado map[string]interface{}
@@ -183,7 +185,7 @@ func GetOrganizacionDisponibilidad (data interface{},params ...interface{}) (res
 	return
 }
 
-func GetOrganizacion (data interface{},params ...interface{}) (res interface{}) {
+func getOrganizacion (data interface{},params ...interface{}) (res interface{}) {
 	var organizacion interface{}
 	var rubroHomolMap map[string]interface{}
 
@@ -198,7 +200,8 @@ func GetOrganizacion (data interface{},params ...interface{}) (res interface{}) 
 	return
 }
 
-//getValue from organizacion for all rows
+// GetOrganizacionRubroHomologado ...
+// getValue from organizacion for all rows
 func GetOrganizacionRubroHomologado(rubroHomol interface{},params ...interface{})(res interface{}){
  var tipo int
 	if rubroHomol.(map[string]interface{})["RubroHomologado"]!= nil{

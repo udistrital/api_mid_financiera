@@ -245,7 +245,7 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 	c.ServeJSON()
 }
 
-func RegistroOpProveedor(datain map[string]interface{}, params ...interface{}) (res interface{}) {
+func registroOpProveedor(datain map[string]interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
 	dataconv, _ := datain["DetalleCargueOp"].([]interface{})
 	alerts := []models.Alert{}
@@ -724,9 +724,9 @@ func formatoPreviewOpFunctionDispatcher(tipo string) (f func(data interface{}, p
 func registroOpFunctionDispatcher(tipo string) (f func(data map[string]interface{}, params ...interface{}) interface{}) {
 	switch os := tipo; os {
 	case "HCS":
-		return RegistroOpProveedor
+		return registroOpProveedor
 	case "HCH":
-		return RegistroOpProveedor
+		return registroOpProveedor
 	case "FP":
 		return RegistroOpPlanta
 	default:
@@ -744,7 +744,7 @@ func ConsultarDevengosNominaPorContrato(idLiquidacion float64, nContrato string,
 	}
 }
 
-// ConsultarDescuentosNominaPorContrato(idLiquidacion ...
+// ConsultarDescuentosNominaPorContrato ...
 func ConsultarDescuentosNominaPorContrato(idLiquidacion float64, nContrato string, vigenciaContrato float64) (detalle []interface{}, err error) {
 	if err = request.GetJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &detalle); err == nil {
 		return

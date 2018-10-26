@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// SolicitudRp ...
 type SolicitudRp struct {
 	Id                  int
 	Vigencia            int       `orm:"column(vigencia)"`

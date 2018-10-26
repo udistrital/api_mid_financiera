@@ -1,6 +1,6 @@
 package models
 
-
+//ActividadSolicitudNecesidad ...
 type ActividadSolicitudNecesidad struct {
 	Id                      int                      `orm:"column(id);pk"`
 	Actividad               *ActividadesCentroCostos `orm:"column(actividad);rel(fk)"`

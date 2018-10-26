@@ -1,6 +1,6 @@
 package models
 
-
+// UbicacionEnte ...
 type UbicacionEnte struct {
 	Id                        int                        `orm:"column(id);pk;auto"`
 	Lugar                     int                        `orm:"column(lugar)"`

@@ -1,5 +1,6 @@
 package models
 
+// TipoEnte ...
 type TipoEnte struct {
 	Id                int     `orm:"column(id);pk;auto"`
 	Nombre            string  `orm:"column(nombre)"`

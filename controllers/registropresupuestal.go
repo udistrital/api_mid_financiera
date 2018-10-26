@@ -114,7 +114,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		fmt.Println("error cdp: ", err)
 	}
 	//obtener informacion del contrato del rp
-	//var info_contrato []models.ContratoGeneral
+	//var infoContrato []models.ContratoGeneral
 	/*var contratista []models.InformacionProveedor
 	fmt.Println("prov ", solicitud.Proveedor)
 	if solicitud.Proveedor != 0 {
@@ -412,11 +412,11 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpByID() {
 					fmt.Println("error cdp: ", err)
 				}
 				//obtener informacion del contrato del rp
-				var info_contrato []models.ContratoGeneral
+				var infoContrato []models.ContratoGeneral
 				var contratista []models.InformacionProveedor
-				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
-					if info_contrato != nil {
-						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &infoContrato); err == nil {
+					if infoContrato != nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(infoContrato[0].Contratista), &contratista); err == nil {
 							solicitud.DatosProveedor = &contratista[0]
 						} else {
 							//error consulta proveedor
@@ -548,7 +548,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 
 }
 
-func ListaNecesidadesByRp(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
+func listaNecesidadesByRp(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
 	solicitud, e := solicitudintfc.(map[string]interface{})
 	var rp []map[string]interface{}
 	if e {
@@ -624,7 +624,7 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := optimize.GenChanInterface(solicitudNecesidad...)
-				chsolicitud := optimize.Digest(done, ListaNecesidadesByRp, resch, nil)
+				chsolicitud := optimize.Digest(done, listaNecesidadesByRp, resch, nil)
 				for solicitud := range chsolicitud {
 					if solicitud != nil {
 						respuesta = append(respuesta, solicitud.(map[string]interface{}))
@@ -846,6 +846,7 @@ func (c *RegistroPresupuestalController) AprobarAnulacion() {
 	c.ServeJSON()
 }
 
+// AddRpMongo ...
 func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
@@ -883,10 +884,10 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
-		if error_delete := request.SendJson(Urlcrud, "DELETE", &resC, nil); error_delete == nil{
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil{
 			beego.Info("Data ", resC)
 		}else{
-			beego.Info("Error ", error_delete)
+			beego.Info("Error ", errorDelete)
 		}
 
 		err = e
@@ -894,6 +895,7 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	return
 }
 
+//AddAnulacionRpMongo ...
 func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 	infoAnulacion := models.AnulacionRegistroPresupuestal{}
 	try.This(func() {
@@ -933,10 +935,10 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
-		if error_put := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); error_put == nil {
+		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); errorPut == nil {
 				beego.Info("Data ", resC)
 		}else{
-				beego.Info("Error ", error_put)
+				beego.Info("Error ", errorPut)
 		}
 
 	})
@@ -955,19 +957,19 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 func (c *RegistroPresupuestalController) SaldoRp() {
 	try.This(func() {
 		var (
-			cdpId     int
+			cdpID     int
 			err       error
 			infoSaldo map[string]float64
 		)
 
-		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		cdpID, err = c.GetInt(":idPsql") // id psql del cdp
 		if err != nil {
 			panic(err.Error())
 		}
 		rubro := c.GetString(":rubro")
 		fuente := c.GetString("fuente")
 		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoOp": true}
-		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpId, valoresSuman)
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpID, valoresSuman)
 		c.Data["json"] = infoSaldo
 
 	}).Catch(func(e try.E) {

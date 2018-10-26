@@ -1,5 +1,6 @@
 package models
 
+// Necesidad ...
 type Necesidad struct {
 	Id                          int     `orm:"column(id);pk"`
 	Numero                      int     `orm:"column(numero);null"`
