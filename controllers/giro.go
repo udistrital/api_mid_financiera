@@ -133,3 +133,80 @@ func (c *GiroController) CreateGiro() {
 		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
 }
+
+// ListarGiros ...
+// @Title ListarGiros
+// @Description get RP by vigencia
+// @Param	vigencia	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	query	query	string	false	"query de filtrado "
+// @Success 200 {object} models.Giro
+// @Failure 403
+// @router ListarGiros/:vigencia [get]
+func (c *GiroController) ListarGiros() {
+	vigenciaStr := c.Ctx.Input.Param(":vigencia")
+	vigencia, err1 := strconv.Atoi(vigenciaStr)
+	var giro []interface{}
+	//var respuesta []map[string]interface{}
+	var limit int64 = 10
+	var offset int64
+	var startrange string
+	var endrange string
+	var query string
+	var querybase string
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("rangoinicio"); r != "" {
+		startrange = r
+
+	}
+
+	if r := c.GetString("rangofin"); r != "" {
+		endrange = r
+
+	}
+	if r := c.GetString("query"); r != "" {
+		querybase = r
+
+	}
+	if startrange != "" && endrange != "" {
+		query = querybase + ",FechaRegistro__gte:" + startrange + ",FechaRegistro__lte:" + endrange
+
+	} else if querybase != "" {
+		query = "," + querybase
+	}
+	if err1 == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &giro); err == nil {
+			if giro != nil {
+				// done := make(chan interface{})
+				// defer close(done)
+				// resch := optimize.GenChanInterface(rpresupuestal...)
+				// chrpresupuestal := optimize.Digest(done, FormatoListaRP, resch, nil)
+				// for rp := range chrpresupuestal {
+				// 	if rp != nil {
+				// 		respuesta = append(respuesta, rp.(map[string]interface{}))
+				// 	}
+
+				// }
+				c.Data["json"] = giro
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+
+	c.ServeJSON()
+}
