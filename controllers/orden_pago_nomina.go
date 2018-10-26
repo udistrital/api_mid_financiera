@@ -221,7 +221,7 @@ func (c *OrdenPagoNominaController) RegistroCargueMasivoOp() {
 			done := make(chan interface{})
 			defer close(done)
 			if tipo, e := v["TipoLiquidacion"].(string); e {
-				f := RegistroOpFunctionDispatcher(tipo)
+				f := registroOpFunctionDispatcher(tipo)
 				if f != nil {
 					alert = f(v, param)
 				}
@@ -586,7 +586,7 @@ func formatoInfoRp(nContrato string, vigenciaContrato float64) (desagregacionrp 
 	}
 }
 
-func formatoInfoRpById(idRp float64) (desagregacionrp []map[string]interface{}) {
+func formatoInfoRpByID(idRp float64) (desagregacionrp []map[string]interface{}) {
 	var rp []interface{}
 	var saldoRp map[string]float64
 	if err := request.GetJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal?limit=-1&query=Id:"+strconv.Itoa(int(idRp)), &rp); err == nil && rp != nil {
@@ -622,6 +622,7 @@ func formatoInfoRpById(idRp float64) (desagregacionrp []map[string]interface{}) 
 	}
 }
 
+//GetRpDesdeNecesidadProcesoExternoGeneral ....
 func GetRpDesdeNecesidadProcesoExternoGeneral(idLiquidacion float64, CodigoAbreviacion string) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
 	//var outputError []map[string]interface{}
 	if idLiquidacion != 0 {
@@ -720,7 +721,7 @@ func formatoPreviewOpFunctionDispatcher(tipo string) (f func(data interface{}, p
 	}
 }
 
-func RegistroOpFunctionDispatcher(tipo string) (f func(data map[string]interface{}, params ...interface{}) interface{}) {
+func registroOpFunctionDispatcher(tipo string) (f func(data map[string]interface{}, params ...interface{}) interface{}) {
 	switch os := tipo; os {
 	case "HCS":
 		return RegistroOpProveedor
@@ -733,6 +734,7 @@ func RegistroOpFunctionDispatcher(tipo string) (f func(data map[string]interface
 	}
 }
 
+// ConsultarDevengosNominaPorContrato ...
 func ConsultarDevengosNominaPorContrato(idLiquidacion float64, nContrato string, vigenciaContrato float64) (detalle []interface{}, err error) {
 	//fmt.Println("http://" + beego.AppConfig.String("titanService") + "detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:devengo,Preliquidacion.Id:" + strconv.Itoa(int(idLiquidacion)) + ",NumeroContrato:" + nContrato + ",VigenciaContrato:" + strconv.Itoa(int(vigenciaContrato)))
 	if err = request.GetJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:devengo,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &detalle); err == nil {
@@ -742,6 +744,7 @@ func ConsultarDevengosNominaPorContrato(idLiquidacion float64, nContrato string,
 	}
 }
 
+// ConsultarDescuentosNominaPorContrato(idLiquidacion ...
 func ConsultarDescuentosNominaPorContrato(idLiquidacion float64, nContrato string, vigenciaContrato float64) (detalle []interface{}, err error) {
 	if err = request.GetJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?limit=-1&query=Concepto.NaturalezaConcepto.Nombre:descuento,Preliquidacion.Id:"+strconv.Itoa(int(idLiquidacion))+",NumeroContrato:"+nContrato+",VigenciaContrato:"+strconv.Itoa(int(vigenciaContrato)), &detalle); err == nil {
 		return

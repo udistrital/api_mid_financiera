@@ -2,5 +2,5 @@ projectKey=api__mid_financiera
 serverUrl=http://localhost:9000
 serverVersion=7.0.0.36138
 dashboardUrl=http://localhost:9000/dashboard/index/api__mid_financiera
-ceTaskId=AWan9aYdVk-wXefyEhgL
-ceTaskUrl=http://localhost:9000/api/ce/task?id=AWan9aYdVk-wXefyEhgL
+ceTaskId=AWatrMfOVk-wXefyEhgQ
+ceTaskUrl=http://localhost:9000/api/ce/task?id=AWatrMfOVk-wXefyEhgQ

@@ -80,14 +80,14 @@ func (c *AvanceController) Delete() {
 
 }
 
-// GetAvanceById ...
-// @Title GetAvanceById
+// GetAvanceByID ...
+// @Title GetAvanceByID
 // @Description get All information of an advance payment by id
 // @Param	id		path 	string	true		"The key for staticblock"
 // @Success 200 {object} models.Legalizacion_avance
 // @Failure 403 :id is empty
 // @router /:id [get]
-func (c *AvanceController) GetAvanceById() {
+func (c *AvanceController) GetAvanceByID() {
 	idStr := c.Ctx.Input.Param(":id")
 	var resEstado []map[string]interface{}
 	var rpintfc interface{}

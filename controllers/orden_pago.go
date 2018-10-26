@@ -44,7 +44,7 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 			done := make(chan interface{})
 			defer close(done)
 			resch := optimize.GenChanInterface(registroPresupuestales...)
-			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpId, resch, parametro)
+			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpID, resch, parametro)
 			for arrayOrdenPago := range chlistaOrdenes {
 				if dataOrden, e := arrayOrdenPago.([]interface{}); e {
 					for _, ordenPago := range dataOrden {
@@ -69,14 +69,14 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 
 }
 
-func searchOrdenPagoByRpId(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
-	unidadEjecutoraId, e1 := params[0].(string)
+func searchOrdenPagoByRpID(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
+	unidadEjecutoraID, e1 := params[0].(string)
 	rowRp, e2 := inputRegistroPresupuestal.(map[string]interface{})
-	// beego.Info("unidadEjecutoraId: ",unidadEjecutoraId)
+	// beego.Info("unidadEjecutoraID: ",unidadEjecutoraID)
 	if e1 && e2 {
 		var ordenesPagos []interface{}
 		// seach dependencia de necesidad
-		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraId); necesidad != nil {
+		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraID); necesidad != nil {
 			// beego.Info("necesidad: ",necesidad)
 			// beego.Info("necesidad?")
 			if areaNecesidad := getAreaDeNecesidad(necesidad); areaNecesidad != nil {

@@ -11,7 +11,7 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-//  ApropiacionController operations for  ApropiacionController
+// ApropiacionController operations for  Apropiacion
 type ApropiacionController struct {
 	beego.Controller
 }
@@ -229,6 +229,7 @@ func (c *ApropiacionController) SaldoApropiacion() {
 	c.ServeJSON()
 }
 
+//CalcularSaldoApropiacion ....
 func CalcularSaldoApropiacion(rubroParam string, unidadEParam, vigenciaParam int) (res map[string]float64) {
 	var saldo float64
 	urlmongo := ""

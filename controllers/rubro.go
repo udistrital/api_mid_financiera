@@ -152,11 +152,25 @@ func (c *RubroController) calcularIngresos(reporteData *cuerpoPac, finicio time.
 						err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 						if err == nil {
 
-							formatdata.FillStruct(dataIngresos["ejecutado"], &ejecutado)
-							formatdata.FillStruct(dataIngresos["proyectado"], &proyectado)
-							formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor)
-							formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion)
-							formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion)
+							if error_ejecutado := formatdata.FillStruct(dataIngresos["ejecutado"], &ejecutado); error_ejecutado != nil {
+								beego.Info("error llenando estructura ejecutado")
+							}
+
+							if error_proyectado := formatdata.FillStruct(dataIngresos["proyectado"], &proyectado); error_proyectado != nil {
+								beego.Info("error llenando estructura proyectado")
+							}
+
+							if error_reporte_valor := formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor); error_reporte_valor != nil {
+								beego.Info("error llenando estructura reporte valor")
+							}
+
+							if error_reporte_proyeccion := formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion); error_reporte_proyeccion != nil{
+								beego.Info("error llenando estructura reporte proyeccion")
+							}
+
+							if error_variacion := formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion); error_variacion != nil{
+								beego.Info("error llenando estructura variacion")
+							}
 						}
 
 					} else {
@@ -204,11 +218,30 @@ func (c *RubroController) calcularEgresos(reporteData *cuerpoPac, finicio time.T
 						var dataEgresos map[string]interface{}
 						err := formatdata.FillStruct(valorEgresos, &dataEgresos)
 						if err == nil {
-							formatdata.FillStruct(dataEgresos["ejecutado"], &ejecutado)
-							formatdata.FillStruct(dataEgresos["proyectado"], &proyectado)
-							formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion)
-							formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor)
-							formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion)
+
+							if error_ejecutado := formatdata.FillStruct(dataEgresos["ejecutado"], &ejecutado); error_ejecutado != nil {
+								beego.Info("error llenando estructura ejecutado")
+							}
+
+							if error_proyectado := formatdata.FillStruct(dataEgresos["proyectado"], &proyectado); error_proyectado != nil {
+								beego.Info("error llenando estructura proyectado")
+							}
+
+							if error_reporte_valor := formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor); error_reporte_valor != nil {
+								beego.Info("error llenando estructura reporte valor")
+							}
+
+							if error_reporte_proyeccion := formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion); error_reporte_proyeccion != nil{
+								beego.Info("error llenando estructura reporte proyeccion")
+							}
+
+							if error_variacion := formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion); error_variacion != nil{
+								beego.Info("error llenando estructura variacion")
+							}
+
+
+
+
 						}
 
 					} else {
@@ -263,7 +296,9 @@ func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, fini
 						} else {
 							for _, valorData := range dataEngresos {
 								//fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-								formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
+								if error_valor := formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor); error_valor != nil{
+									beego.Info("error struct reporte Valor")
+								}
 							}
 
 						}
@@ -1029,16 +1064,21 @@ func (c *RubroController) RegistrarRubro() {
 						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro/registrarRubro"
 						var data map[string]interface{}
 						sendData := res["Body"].(map[string]interface{})
-						request.SendJson(urlmongo, "POST", &data, &sendData)
+						err:= request.SendJson(urlmongo, "POST", &data, &sendData)
 						beego.Info("data: ", sendData)
-						if data["Type"] != nil {
+						if data["Type"] != nil && err == nil {
 							if data["Type"].(string) == "error" {
 								resul := res["Body"].(map[string]interface{})
 								ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
 								urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
-								request.SendJson(urlcrud, "DELETE", &data, nil)
-								beego.Info("Data ", data)
-								panic("Mongo API Error")
+								if error_delete := request.SendJson(urlcrud, "DELETE", &data, nil); error_delete == nil{
+									beego.Info("Data ", data)
+									panic("Mongo API Error")
+								}else{
+									beego.Info("Error delete ", error_delete)
+									panic("Delete API Error")
+								}
+
 							} else if data["Type"].(string) == "success" {
 								beego.Info("Registrado en Mongo")
 							}
@@ -1046,9 +1086,14 @@ func (c *RubroController) RegistrarRubro() {
 							resul := res["Body"].(map[string]interface{})
 							ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
 							urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
-							request.SendJson(urlcrud, "DELETE", &data, nil)
-							beego.Info("Data ", data)
-							panic("Mongo API not Found")
+							if error_delete := request.SendJson(urlcrud, "DELETE", &data, nil); error_delete == nil{
+								beego.Info("Data ", data)
+								panic("Mongo API not Found")
+							}else{
+								beego.Info("Error delete ", error_delete)
+								panic("Delete API Error")
+							}
+
 						}
 					} else if res["Type"] == nil {
 						panic("Financiera Crud Service Error")
@@ -1070,26 +1115,36 @@ func (c *RubroController) RegistrarRubro() {
 						var data map[string]interface{}
 						res["Body"] = map[string]interface{}{"RubroHijo": res["Body"].(map[string]interface{}), "RubroPadre": map[string]interface{}{}}
 						rubroRow := res["Body"].(map[string]interface{})
-						request.SendJson(urlmongo, "POST", &data, &rubroRow)
+						error_post := request.SendJson(urlmongo, "POST", &data, &rubroRow)
 						beego.Info("data: ", urlmongo)
-						if data["Type"] != nil {
+						if data["Type"] != nil && error_post == nil {
 							if data["Type"].(string) == "error" {
 								beego.Info("Error en mongo")
 								resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
 								beego.Info("Send Data: ", resul)
 								urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-								request.SendJson(urlcrud, "DELETE", &data, nil)
-								beego.Info("Data ", data)
-								panic("Mongo API Error")
+								if error_delete := request.SendJson(urlcrud, "DELETE", &data, nil); error_delete == nil {
+									beego.Info("Data ", data)
+									panic("Mongo API Error")
+								}else{
+									beego.Info("Error ", error_delete)
+									panic("delete API Error")
+								}
+
 							} else if data["Type"].(string) == "success" {
 								beego.Info("Registrado en Mongo")
 							}
 						} else {
 							resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
 							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-							request.SendJson(urlcrud, "DELETE", &data, nil)
-							beego.Info("Data ", data)
-							panic("Mongo API not Found")
+							if error_delete := request.SendJson(urlcrud, "DELETE", &data, nil); error_delete == nil{
+								beego.Info("Data ", data)
+								panic("Mongo API not Found")
+							}else{
+								beego.Info("Error ", error_delete)
+								panic("delete API Error")
+							}
+
 						}
 
 					} else if res["Type"] == nil {

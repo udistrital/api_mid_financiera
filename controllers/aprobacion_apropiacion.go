@@ -63,7 +63,7 @@ func (c *AprobacionController) Aprobar() {
 			}
 			for i := len(apropiacion) - 1; i >= 0; i-- {
 
-				comprobacion = comprobar_apropiacion(apropiacion[i])
+				comprobacion = comprobarApropiacion(apropiacion[i])
 				if comprobacion == "" {
 					alertas = append(alertas, "Apropiacion del rubro "+apropiacion[i].Rubro.Codigo+" No aprobada, algunas apropiaciones hijo no se encuentran aprobadas")
 				} else {
@@ -105,7 +105,7 @@ func (c *AprobacionController) Aprobar() {
 
 }
 
-func comprobar_apropiacion(padre models.Apropiacion) string {
+func comprobarApropiacion(padre models.Apropiacion) string {
 	var rubroHijo []models.RubroRubro
 	var listaValores []string
 	var regla string
@@ -188,7 +188,7 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 			var res []string
 			var infoSaldoInicial []map[string]interface{}
 			//saldo := make(map[string]interface{})
-			formatdata.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
+			if errorFill := formatdata.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res); errorFill == nil{
 			for _, rpadre := range res {
 				var rubro []map[string]interface{}
 				urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/ArbolApropiacion/" + rpadre + "/" + strconv.Itoa(unidadejecutora) + "/" + strconv.Itoa(vigencia)
@@ -212,6 +212,7 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 				}
 
 			}
+		}
 			//c.Data["json"] = map[string]interface{}{"Aprobado": "0", "Data": infoSaldoInicial}
 			for _, apr := range infoSaldoInicial {
 				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["ApropiacionInicial"]) + ").")
