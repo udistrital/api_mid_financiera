@@ -115,6 +115,7 @@ func sendMovimientoInfoToMongo(ctx *context.Context) {
 	})
 }
 
+// PresupuestoMongoJobInit ... 
 func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que deben guardarse simultaneamente en postgres y mongo
 	optimize.StartDispatcher(1, 200)
 

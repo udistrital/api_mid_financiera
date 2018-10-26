@@ -1,5 +1,6 @@
 package models
 
+// InformacionPersonaNatural ...
 type InformacionPersonaNatural struct {
 	TipoDocumento          *ParametroEstandar `orm:"column(tipo_documento);rel(fk)"`
 	Id                     string             `orm:"column(num_documento_persona);pk"`

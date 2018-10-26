@@ -67,7 +67,7 @@ func (c *AprobacionController) Aprobar() {
 				if comprobacion == "" {
 					alertas = append(alertas, "Apropiacion del rubro "+apropiacion[i].Rubro.Codigo+" No aprobada, algunas apropiaciones hijo no se encuentran aprobadas")
 				} else {
-					estadoAp, _ = strconv.Atoi(golog.Comprobar_aprobacion(reglasbase, comprobacion))
+					estadoAp, _ = strconv.Atoi(golog.ComprobarAprobacion(reglasbase, comprobacion))
 					estado := models.EstadoApropiacion{Id: estadoAp}
 					apropiacion[i].Estado = &estado
 					var respuesta interface{}

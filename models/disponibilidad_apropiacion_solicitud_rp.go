@@ -1,6 +1,7 @@
 package models
 
-type DisponibilidadApropiacionSolicitud_rp struct {
+// DisponibilidadApropiacionSolicitud_rp ...
+type DisponibilidadApropiacionSolicitudRp struct {
 	Id                        int
 	DisponibilidadApropiacion int `orm:"column(disponibilidad_apropiacion)"`
 	SolicitudRp               int `orm:"column(solicitud_rp)"`

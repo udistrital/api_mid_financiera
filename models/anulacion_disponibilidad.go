@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+//AnulacionDisponibilidad ...
 type AnulacionDisponibilidad struct {
 	Id                                 int                                   `orm:"column(id);pk;auto"`
 	Consecutivo                        int                                   `orm:"column(consecutivo)"`

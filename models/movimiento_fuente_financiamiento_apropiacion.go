@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// MovimientoFuenteFinanciamientoApropiacion ...
 type MovimientoFuenteFinanciamientoApropiacion struct {
 	Id                                        int                              `orm:"column(id);pk;auto"`
 	Fecha                                     time.Time                        `orm:"column(fecha_registro);type(date)"`

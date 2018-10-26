@@ -1,5 +1,6 @@
 package models
 
+// RegistroPresupuestalDisponibilidadApropiacion ...
 type RegistroPresupuestalDisponibilidadApropiacion struct {
 	Id                        int                        `orm:"column(id);pk"`
 	RegistroPresupuestal      *RegistroPresupuestal       `orm:"column(registro_presupuestal);rel(fk)"`
