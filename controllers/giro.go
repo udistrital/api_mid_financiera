@@ -2,15 +2,15 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
-	"fmt"
 
 	"github.com/astaxie/beego"
 	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/utils_oas/request"
 	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // GiroController operations for Giro
@@ -214,7 +214,6 @@ func (c *GiroController) ListarGiros() {
 	c.ServeJSON()
 }
 
-
 // GetGirosById ...
 // @Title GetGirosById
 // @Description get RP by vigencia
@@ -267,7 +266,7 @@ func (c *GiroController) GetGirosById() {
 	}
 	if err1 == nil {
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
-		if err := request.GetJson(urlcrud + "/giro?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Id:"+strconv.Itoa(vigencia)+query, &giro); err == nil {
+		if err := request.GetJson(urlcrud+"/giro?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Id:"+strconv.Itoa(vigencia)+query, &giro); err == nil {
 			if giro != nil {
 				done := make(chan interface{})
 				defer close(done)
@@ -297,17 +296,32 @@ func (c *GiroController) GetGirosById() {
 //funcion para recopilar datos detallados del giro
 func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{}) {
 	giroDetalle := girointfc.(map[string]interface{})
+	var resProveedor []map[string]interface{}
 	try.This(func() {
 		idCuentaEspecial := giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
 		// beego.Info("idCuentaEspecial:",idCuentaEspecial)
 		//solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
-
+		urladministrativa := "http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor/?query=Id:"
 		if idCuentaEspecial == 0 {
-			giroDetalle["InfoCuentaTercero"] = idCuentaEspecial
+			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoRegistroPresupuestal"].([]interface{})[0].(map[string]interface{})["RegistroPresupuestal"].(map[string]interface{})["Beneficiario"].(float64), 'f', -1, 64), &resProveedor); err == nil {
+				giroDetalle["InfoProveedor"] = resProveedor
+				giroDetalle["ValorBasePago"] = giroDetalle["OrdenPago"].(map[string]interface{})["ValorBase"].(float64)
+			}
+		} else {
+			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["CuentaEspecial"].(map[string]interface{})["InformacionPersonaJuridica"].(float64), 'f', -1, 64), &resProveedor); err == nil {
+
+				giroDetalle["InfoProveedorDescuento"] = resProveedor
+				giroDetalle["ValorBasePagoDescuento"] = giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
+				for _, element := range giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoCuentaEspecial"].([]interface{}) {
+					if giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64) == element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
+						giroDetalle["ValorBasePagoDescuento"] = element.(map[string]interface{})["ValorBase"].(float64)
+					}
+				}
+			}
 		}
 	}).Catch(func(e try.E) {
 		// Print crash
-		fmt.Println("expc ",e)
+		fmt.Println("expc ", e)
 	})
 	return giroDetalle
 }
