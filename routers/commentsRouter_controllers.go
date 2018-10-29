@@ -489,6 +489,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GiroController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GiroController"],
 		beego.ControllerComments{
+			Method: "GetGirosById",
+			Router: `GetGirosById/:Id`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GiroController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GiroController"],
+		beego.ControllerComments{
 			Method: "ListarGiros",
 			Router: `ListarGiros/:vigencia`,
 			AllowHTTPMethods: []string{"get"},
