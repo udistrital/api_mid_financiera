@@ -88,7 +88,6 @@ func (c *GestionSucursalesController) ListarSucursal() {
 
 	id_sucursal := c.GetString("id_sucursal")
 	var sucursales []models.Organizacion
-	beego.Error(beego.AppConfig.String("coreOrganizacionService") + "organizacion?query=Id:" + id_sucursal + ",TipoOrganizacion.CodigoAbreviacion:SU")
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal = make([]models.InformacionSucursal, len(sucursales))
@@ -173,7 +172,11 @@ func getValuesSucursales(rpintfc interface{}, params ...interface{}) (res interf
 	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionHija"].(float64), 'f', -1, 64)
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
 		if resSucursal[0] != nil {
+			id_ente:=int(resSucursal[0]["Ente"].(float64))
 			rpintfc.(map[string]interface{})["OrganizacionHija"] = resSucursal[0]
+				rpintfc.(map[string]interface{})["OrganizacionHija"].(map[string]interface{})["Telefono"] = BuscarTelefono(id_ente)
+				ubicaciones := BuscarUbicaciones(id_ente)
+				rpintfc.(map[string]interface{})["OrganizacionHija"].(map[string]interface{})["Pais"],rpintfc.(map[string]interface{})["OrganizacionHija"].(map[string]interface{})["Departamento"], rpintfc.(map[string]interface{})["OrganizacionHija"].(map[string]interface{})["Ciudad"], rpintfc.(map[string]interface{})["OrganizacionHija"].(map[string]interface{})["Direccion"] = BuscarLugar(ubicaciones, id_ente)
 		}
 	} else {
 		beego.Error("Error", err.Error())
@@ -459,10 +462,82 @@ func updateLugarUbicacion(lugar interface{}, idEnte int) (respuesta interface{},
 		} else {
 			idLugar := int(lugar.(map[string]interface{})["Lugar"].(float64))
 			if respuesta, err = InsertarLugar(idLugar, idEnte); err != nil {
-				beego.Error("error al insertar lugar ubicacion ente")
+
 				err = errors.New("error al insertar lugar ubicacion ente")
+				beego.Error(err.Error())
 			}
 		}
 	}
+	return
+}
+
+// InsertarSucursales ...
+// @Title InsertarSucursales
+// @Description InsertarSucursales
+// @Param	body		body 	[]models.InformacionSucursales	true		"body for InformacionSucursales  content"
+// @Success 201
+// @Failure 403 body is empty
+// @router DesvincularSucursales/ [post]
+func (c *GestionSucursalesController) DesvincularSucursales() {
+	defer c.ServeJSON()
+	var info_sucursal []interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
+		eliminados := optimize.ProccDigest(info_sucursal, removeSucursal, nil, 3)
+		beego.Info(eliminados)
+		c.Data["json"]=models.Alert{Type:"success", Code:"S_GS001"}
+		for _, respuesta := range eliminados{
+				if respuesta.(string) != "OK" {
+					c.Data["json"]=models.Alert{Type:"error", Code:"E_GS007"}
+					break
+				}
+		}
+	}
+}
+
+func removeSucursal(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	idSucursal:=strconv.Itoa(int(int(rpintfc.(map[string]interface{})["Id"].(float64))))
+	urlEliminar := beego.AppConfig.String("coreOrganizacionService")+"relacion_organizaciones/"+idSucursal
+	request.SendJson(urlEliminar, "DELETE", &res, nil)
+	return
+}
+
+
+
+// InsertarSucursales ...
+// @Title InsertarSucursales
+// @Description InsertarSucursales
+// @Param	body		body 	[]models.InformacionSucursales	true		"body for InformacionSucursales  content"
+// @Success 201
+// @Failure 403 body is empty
+// @router VincularSucursales/ [post]
+func (c *GestionSucursalesController) VincularSucursales() {
+	defer c.ServeJSON()
+	var info_sucursal []interface{}
+	var params []interface{}
+	var tipoRelacion []interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
+		if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"tipo_relacion_organizaciones/?query=CodigoAbreviacion:TRO_1&&limit=-1", &tipoRelacion); err == nil {
+			params = append(params,tipoRelacion[0]);
+		}else{
+			c.Data["json"]=models.Alert{Type:"error",Code:"E_GS008",Body:err.Error()}
+			return
+		}
+		agregados := optimize.ProccDigest(info_sucursal, addSucursal, params, 3)
+		beego.Info(agregados)
+		c.Data["json"]=models.Alert{Type:"success", Code:"S_GS002",Body:agregados}
+		for _, respuesta := range agregados{
+				if respuesta.(string) != "OK" {
+					c.Data["json"]=models.Alert{Type:"error",Code:"E_GS008" }
+					break
+				}
+		}
+	}
+}
+
+
+func addSucursal(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	rpintfc.(map[string]interface{})["TipoRelacionOrganizaciones"]= params[0]
+	urlPost:= beego.AppConfig.String("coreOrganizacionService")+"relacion_organizaciones"
+	request.SendJson(urlPost, "POST", &res, rpintfc)
 	return
 }
