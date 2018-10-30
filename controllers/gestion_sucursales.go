@@ -14,11 +14,10 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-// GestionSucursalesController operations for GestionSucursales
 type GestionSucursalesController struct {
 	beego.Controller
 }
-// URLMapping ...
+
 func (c *GestionSucursalesController) URLMapping() {
 	c.Mapping("InsertarSucursales", c.InsertarSucursales)
 	c.Mapping("ListarSucursales", c.ListarSucursales)
@@ -39,7 +38,7 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 	var respuesta interface{}
 	var ente models.Ente
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &infoSucursal); err == nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
 
 		ciudad := int(info_sucursal.Ciudad.(map[string]interface{})["Id"].(float64))
 		departamento := int(info_sucursal.Departamento.(map[string]interface{})["Id"].(float64))
@@ -87,9 +86,9 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 // @router listar_sucursal/ [get]
 func (c *GestionSucursalesController) ListarSucursal() {
 
-	idSucur := c.GetString("id_sucursal")
+	id_sucursal := c.GetString("id_sucursal")
 	var sucursales []models.Organizacion
-	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+idSucur+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion?query=Id:"+id_sucursal+",TipoOrganizacion.CodigoAbreviacion:SU", &sucursales); err == nil {
 
 		var informacion_sucursal = make([]models.InformacionSucursal, len(sucursales))
 		for i, suc := range sucursales {
@@ -158,7 +157,7 @@ func (c *GestionSucursalesController) ListarSoloSucursalesBanco() {
 	}
 }
 
-// ListarSucursalesBanco ...
+// GetOne ...
 // @Title ListarSucursalesBanco
 // @Description lista sucursales dado id banco
 // @Param	id		path 	string	true		"The key for staticblock"
@@ -191,8 +190,8 @@ func GetBancoSucursal(idSucursalStr string) (res interface{}, err error) {
 
 func getValuesSucursales(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resSucursal []map[string]interface{}
-	sucursalID := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionHija"].(float64), 'f', -1, 64)
-	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalID, &resSucursal); err == nil {
+	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionHija"].(float64), 'f', -1, 64)
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
 		if resSucursal[0] != nil {
 			id_ente := int(resSucursal[0]["Ente"].(float64))
 			rpintfc.(map[string]interface{})["OrganizacionHija"] = resSucursal[0]
@@ -225,8 +224,8 @@ func getValuesSucursalesOnly(rpintfc interface{}, params ...interface{}) (res in
 
 func getValuesBancos(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resBanco []map[string]interface{}
-	sucursalID := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionPadre"].(float64), 'f', -1, 64)
-	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalID, &resBanco); err == nil {
+	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["OrganizacionPadre"].(float64), 'f', -1, 64)
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resBanco); err == nil {
 		if resBanco[0] != nil {
 			rpintfc = resBanco[0]
 		}
@@ -238,7 +237,7 @@ func getValuesBancos(rpintfc interface{}, params ...interface{}) (res interface{
 
 func InsertarSucursal(nombre string) (res interface{}, err error) {
 
-	var tipoOrganizacion []models.TipoOrganizacion
+	var tipo_organizacion []models.TipoOrganizacion
 	var respuesta interface{}
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"tipo_organizacion?query=CodigoAbreviacion:SU", &tipo_organizacion); err == nil {
 
@@ -256,7 +255,7 @@ func InsertarSucursal(nombre string) (res interface{}, err error) {
 
 func InsertarContacto(telefono string, id_ente int) (res interface{}, err error) {
 
-	var tipoContacto []models.TipoContacto
+	var tipo_contacto []models.TipoContacto
 	var respuesta interface{}
 	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_contacto?query=CodigoAbreviacion:TEL", &tipo_contacto); err == nil {
 
