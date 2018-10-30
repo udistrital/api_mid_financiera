@@ -608,6 +608,10 @@ func getInfoAdicionalBanco(rpintfc interface{}, params ...interface{}) (res inte
 			rpintfc.(map[string]interface{})["CodigoAch"]= infoAdicional[0]["CodigoAch"]
 			rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= infoAdicional[0]["CodigoAch"]
 			rpintfc.(map[string]interface{})["IdInformacionAdicional"]= infoAdicional[0]["CodigoAch"]
+			}else {
+				rpintfc.(map[string]interface{})["CodigoAch"]= 0
+				rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= 0
+				rpintfc.(map[string]interface{})["IdInformacionAdicional"]= 0
 			}
 		}else {
 			rpintfc.(map[string]interface{})["CodigoAch"]= 0
