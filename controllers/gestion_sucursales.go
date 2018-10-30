@@ -533,7 +533,7 @@ func (c *GestionSucursalesController) DesvincularSucursales() {
 }
 
 func removeSucursal(rpintfc interface{}, params ...interface{}) (res interface{}) {
-	idSucursal := strconv.Itoa(int(int(rpintfc.(map[string]interface{})["Id"].(float64))))
+	idSucursal := strconv.Itoa(int(rpintfc.(map[string]interface{})["Id"].(float64)))
 	urlEliminar := beego.AppConfig.String("coreOrganizacionService") + "relacion_organizaciones/" + idSucursal
 	request.SendJson(urlEliminar, "DELETE", &res, nil)
 	return
@@ -575,4 +575,52 @@ func addSucursal(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	urlPost := beego.AppConfig.String("coreOrganizacionService") + "relacion_organizaciones"
 	request.SendJson(urlPost, "POST", &res, rpintfc)
 	return
+}
+
+// ListarBancos ...
+// @Title ListarSucurListarBancossales
+// @Description ListarBancos
+// @Success 201 {object} []models.InformacionSucursal
+// @Failure 403 body is empty
+// @router /ListarBancos/ [get]
+func (c *GestionSucursalesController) ListarBancos() {
+	defer c.ServeJSON()
+	var bancos []interface{}
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:EB&limit=-1", &bancos); err == nil {
+		if bancos != nil{
+			informacion_bancos := optimize.ProccDigest(bancos, getInfoAdicionalBanco, nil, 3)
+			c.Data["json"] = informacion_bancos
+		}
+	} else {
+		c.Data["json"] = err
+	}
+
+}
+
+
+func getInfoAdicionalBanco(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var infoAdicional []map[string]interface{}
+	var infoIden []interface{}
+	idBanco := strconv.Itoa(int(rpintfc.(map[string]interface{})["Id"].(float64)))
+	idEnteBanco := strconv.Itoa(int(rpintfc.(map[string]interface{})["Ente"].(float64)))
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/informacion_adicional_banco/?limit=-1&query=Banco:"+idBanco, &infoAdicional); err == nil {
+		if infoAdicional != nil {
+			rpintfc.(map[string]interface{})["CodigoAch"]= infoAdicional[0]["CodigoAch"]
+			rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= infoAdicional[0]["CodigoAch"]
+			rpintfc.(map[string]interface{})["IdInformacionAdicional"]= infoAdicional[0]["CodigoAch"]
+			}
+		}else {
+			rpintfc.(map[string]interface{})["CodigoAch"]= 0
+			rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= 0
+			rpintfc.(map[string]interface{})["IdInformacionAdicional"]= 0
+		}
+
+	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"identificacion/?query=Ente:"+idEnteBanco, &infoIden); err == nil {
+		if infoIden != nil {
+			rpintfc.(map[string]interface{})["Identificacion"] = infoIden
+		}
+	}else{
+		beego.Error(err.Error())
+	}
+	return rpintfc
 }
