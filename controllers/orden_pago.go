@@ -4,8 +4,9 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/api_financiera/utilidades"
 	"github.com/udistrital/ss_crud_api/models"
+	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // OrdenPagoController operations for Orden_pago
@@ -37,12 +38,13 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 		var parametro []interface{}
 		parametro = append(parametro, unidadEjecutora)
 		// search registro_presupuestal
-		if err := getJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.FuenteFinanciamiento.Id:"+fuente+",Vigencia:"+vigencia+"&limit:-1", &registroPresupuestales); err == nil && registroPresupuestales != nil {
+		beego.Info("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.FuenteFinanciamiento.Id:"+fuente+",Vigencia:"+vigencia+"&limit:-1")
+		if err := request.GetJson("http://"+beego.AppConfig.String("kronosService")+"registro_presupuestal/?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.FuenteFinanciamiento.Id:"+fuente+",Vigencia:"+vigencia+"&limit:-1", &registroPresupuestales); err == nil && registroPresupuestales != nil {
 			var outputOrdenPago []interface{}
 			done := make(chan interface{})
 			defer close(done)
-			resch := utilidades.GenChanInterface(registroPresupuestales...)
-			chlistaOrdenes := utilidades.Digest(done, searchOrdenPagoByRpId, resch, parametro)
+			resch := optimize.GenChanInterface(registroPresupuestales...)
+			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpID, resch, parametro)
 			for arrayOrdenPago := range chlistaOrdenes {
 				if dataOrden, e := arrayOrdenPago.([]interface{}); e {
 					for _, ordenPago := range dataOrden {
@@ -67,16 +69,19 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 
 }
 
-func searchOrdenPagoByRpId(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
-	unidadEjecutoraId, e1 := params[0].(string)
+func searchOrdenPagoByRpID(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
+	unidadEjecutoraID, e1 := params[0].(string)
 	rowRp, e2 := inputRegistroPresupuestal.(map[string]interface{})
+	// beego.Info("unidadEjecutoraID: ",unidadEjecutoraID)
 	if e1 && e2 {
 		var ordenesPagos []interface{}
 		// seach dependencia de necesidad
-		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraId); necesidad != nil {
+		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraID); necesidad != nil {
+			// beego.Info("necesidad: ",necesidad)
+			// beego.Info("necesidad?")
 			if areaNecesidad := getAreaDeNecesidad(necesidad); areaNecesidad != nil {
 				//op
-				if err := getJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:"+strconv.Itoa(int(rowRp["Id"].(float64))), &ordenesPagos); err == nil && ordenesPagos != nil {
+				if err := request.GetJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:"+strconv.Itoa(int(rowRp["Id"].(float64))), &ordenesPagos); err == nil && ordenesPagos != nil {
 					for _, orden := range ordenesPagos {
 						row := orden.(map[string]interface{})
 						row["RegistroPresupuestal"] = rowRp
@@ -85,6 +90,9 @@ func searchOrdenPagoByRpId(inputRegistroPresupuestal interface{}, params ...inte
 					return ordenesPagos
 				}
 			}
+		} else {
+			//beego.Info("No hay Necesidad desde Rp")
+
 		}
 	}
 	return

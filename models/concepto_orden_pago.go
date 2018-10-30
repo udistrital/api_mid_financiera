@@ -1,5 +1,6 @@
 package models
 
+//ConceptoOrdenPago ...
 type ConceptoOrdenPago struct {
 	Id          int        `orm:"column(id);pk;auto"`
 	Valor       float64    `orm:"column(valor)"`

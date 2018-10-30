@@ -7,7 +7,7 @@ import (
 	. "github.com/mndrix/golog"
 )
 
-func Comprobar_aprobacion(reglas string, regla_inyectada string) string {
+func ComprobarAprobacion(reglas string, regla_inyectada string) string {
 	//******QUITAR ARREGLO, DEJAR UNA SOLA VARIABLE PARA LAS REGLAS ******
 	m := NewMachine().Consult(reglas)
 	resultados := m.ProveAll(regla_inyectada)
@@ -20,6 +20,7 @@ func Comprobar_aprobacion(reglas string, regla_inyectada string) string {
 
 }
 
+//GetBoolean ... 
 func GetBoolean(reglas string, regla_inyectada string, variable_a_obtener string) bool {
 	m := NewMachine().Consult(reglas)
 	resultados := m.ProveAll(regla_inyectada)

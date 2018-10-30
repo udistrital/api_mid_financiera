@@ -6,6 +6,7 @@ import (
 
 	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/models"
+	"github.com/udistrital/utils_oas/request"
 )
 
 // HomologacionController operations for homologation fo liquidation of titan
@@ -54,7 +55,7 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 		}
 
 		// get data titan
-		if err := getJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+strconv.FormatFloat(idPreliquidacion, 'f', 0, 64)+"&sortby=Concepto&order=desc&limit=-1", &DetallePreliquidacion); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("titanService")+"detalle_preliquidacion?query=Preliquidacion:"+strconv.FormatFloat(idPreliquidacion, 'f', 0, 64)+"&sortby=Concepto&order=desc&limit=-1", &DetallePreliquidacion); err == nil {
 		} else {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_3"
@@ -80,7 +81,7 @@ func (c *HomologacionController) MidHomologacionLiquidacion() {
 		}
 		sendData2Kronos := Send{DetalleLiquidacion: DetallePreliquidacion, RegistroPresupuestal: registroPresupuestal}
 		//Envia data to kronos
-		if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto/HomolgacionConceptosTitan/", "POST", &outputData, &sendData2Kronos); err == nil {
+		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto/HomolgacionConceptosTitan/", "POST", &outputData, &sendData2Kronos); err == nil {
 		} else {
 			alerta.Type = "error"
 			alerta.Code = "E_OPN_01_5"

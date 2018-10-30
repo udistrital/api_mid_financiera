@@ -5,16 +5,18 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/api_mid_financiera/utilidades"
+
+	"github.com/udistrital/utils_oas/optimize"
+	"github.com/udistrital/utils_oas/request"
 )
 
-// Orden_pago_hcController operations for Orden_pago_hc
-type Orden_pago_hcController struct {
+// OrdenPagoHCController  operations for OrdenPagoHC
+type OrdenPagoHCController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *Orden_pago_hcController) URLMapping() {
+func (c *OrdenPagoHCController) URLMapping() {
 
 }
 func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (res interface{}) {
@@ -51,8 +53,8 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 		var homologacion []interface{}
 		//aqui va la consulta sobre facultad y proyecto para HC (modificar para hacerla de forma genral)
 		var infoVinculacion []interface{}
-		//fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
-		if err := getJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
+		fmt.Println("http://" + beego.AppConfig.String("argoService") + "vinculacion_docente?query=NumeroContrato:" + numContrato + ",Vigencia:" + strconv.FormatFloat(vigContrato, 'f', -1, 64))
+		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"vinculacion_docente?query=NumeroContrato:"+numContrato+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &infoVinculacion); err == nil {
 			if infoVinculacion != nil {
 				//fmt.Println("Facultad: ", infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"], "Proyecto: ", infoVinculacion[0].(map[string]interface{})["IdProyectoCurricular"])
 				idFacultad, e := infoVinculacion[0].(map[string]interface{})["IdResolucion"].(map[string]interface{})["IdFacultad"].(float64)
@@ -65,9 +67,9 @@ func homologacionConceptosHC(dataConcepto interface{}, params ...interface{}) (r
 					fmt.Println("err idPro")
 					return nil
 				}
-				//fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
-				if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:"+strconv.Itoa(int(idProyecto))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
-					//fmt.Println("Hom ", homologacion)
+				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/homologacion_concepto?query=ConceptoTitan:" + strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64))) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:" + strconv.Itoa(int(idFacultad)) + ",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:" + strconv.Itoa(int(idProyecto)))
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/homologacion_concepto?query=ConceptoTitan:"+strconv.Itoa(int(dataConceptoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.Facultad:"+strconv.Itoa(int(idFacultad))+",ConceptoKronos.ConceptoTesoralFacultadProyecto.ProyectoCurricular:"+strconv.Itoa(int(idProyecto))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
+					fmt.Println("Hom ", homologacion)
 					if homologacion != nil {
 						//cuando hay homologacion de un concepto para concepto kronos.
 						for _, conceptoKronos := range homologacion {
@@ -126,7 +128,7 @@ func homologacionDescuentosHC(dataDescuento interface{}, params ...interface{}) 
 				fmt.Println("e3")
 				return nil
 			}
-			if err := getJson("http://"+beego.AppConfig.String("kronosService")+"homologacion_descuento?query=ConceptoTitan:"+strconv.Itoa(int(dataDescuentoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
+			if err := request.GetJson("http://"+beego.AppConfig.String("kronosService")+"homologacion_descuento?query=ConceptoTitan:"+strconv.Itoa(int(dataDescuentoAhomologar["Concepto"].(map[string]interface{})["Id"].(float64)))+",Vigencia:"+strconv.FormatFloat(vigContrato, 'f', -1, 64), &homologacion); err == nil {
 				if homologacion != nil {
 					for _, descuentoKronos := range homologacion {
 						row, e := descuentoKronos.(map[string]interface{})
@@ -186,7 +188,8 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 		idPreliquidacion = devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 		done := make(chan interface{})
 		defer close(done)
-		resch := utilidades.GenChanInterface(devengosNomina...)
+		resch := optimize.GenChanInterface(devengosNomina...)
+		fmt.Println("DevengosNomina:", devengosNomina)
 		f := homologacionFunctionDispatcher(devengosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Nomina"].(map[string]interface{})["TipoNomina"].(map[string]interface{})["Nombre"].(string))
 		if f != nil {
 			infoContrato = formatoListaLiquidacion(dataLiquidacion, nil)
@@ -199,7 +202,9 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			}
 			params = append(params, nContrato)
 			params = append(params, vigenciaContrato)
-			chConcHomologados := utilidades.Digest(done, f, resch, params)
+			fmt.Println("Parametros:", params)
+
+			chConcHomologados := optimize.Digest(done, f, resch, params)
 			for conceptoHomologadoint := range chConcHomologados {
 				conceptoHomologado, e := conceptoHomologadoint.(map[string]interface{})
 				if e {
@@ -237,8 +242,8 @@ func formatoRegistroOpHC(dataLiquidacion interface{}, params ...interface{}) (re
 			idPreliquidacion = descuentosNomina[0].(map[string]interface{})["Preliquidacion"].(map[string]interface{})["Id"].(float64)
 			done = make(chan interface{})
 			defer close(done)
-			resch = utilidades.GenChanInterface(descuentosNomina...)
-			chDescHomologados := utilidades.Digest(done, homologacionDescuentosHC, resch, params)
+			resch = optimize.GenChanInterface(descuentosNomina...)
+			chDescHomologados := optimize.Digest(done, homologacionDescuentosHC, resch, params)
 			for descuentoHomologado := range chDescHomologados {
 				//beego.Info(descuentoHomologado)
 				homologado, e := descuentoHomologado.(map[string]interface{})
@@ -336,14 +341,15 @@ func formatoPreViewCargueMasivoOpHc(liquidacion interface{}, params ...interface
 	if e {
 		if liquidacion.(map[string]interface{})["Contratos_por_preliq"] != nil {
 			listaLiquidacion := liquidacion.(map[string]interface{})["Contratos_por_preliq"].([]interface{})
-			resch := utilidades.GenChanInterface(listaLiquidacion...)
+			resch := optimize.GenChanInterface(listaLiquidacion...)
 			var params []interface{}
 			params = append(params, liquidacion.(map[string]interface{})["Id_Preliq"].(interface{}))
+			//dav01
 			f := formatoRegistroOpFunctionDispatcher(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
-			//beego.Info(liquidacion.(map[string]interface{})["Nombre_tipo_nomina"].(string))
+			beego.Info(f)
 			if f != nil {
 
-				chlistaLiquidacion := utilidades.Digest(done, f, resch, params)
+				chlistaLiquidacion := optimize.Digest(done, f, resch, params)
 				for dataLiquidacion := range chlistaLiquidacion {
 					if dataLiquidacion != nil {
 						respuesta = append(respuesta, dataLiquidacion)

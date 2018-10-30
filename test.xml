@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+	<testsuite tests="1" failures="0" time="0.001" name="github.com/udistrital/api_mid_financiera/tests">
+		<properties>
+			<property name="go.version" value="go1.6.3"></property>
+		</properties>
+		<testcase classname="tests" name="TestGet" time="0.000"></testcase>
+	</testsuite>
+</testsuites>

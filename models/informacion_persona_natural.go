@@ -1,8 +1,9 @@
 package models
 
+// InformacionPersonaNatural ...
 type InformacionPersonaNatural struct {
 	TipoDocumento          *ParametroEstandar `orm:"column(tipo_documento);rel(fk)"`
-	Id                     int                `orm:"column(num_documento_persona);pk"`
+	Id                     string             `orm:"column(num_documento_persona);pk"`
 	DigitoVerificacion     float64            `orm:"column(digito_verificacion)"`
 	PrimerApellido         string             `orm:"column(primer_apellido)"`
 	SegundoApellido        string             `orm:"column(segundo_apellido);null"`

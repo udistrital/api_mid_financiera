@@ -5,18 +5,19 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/astaxie/beego"
 	"github.com/udistrital/api_mid_financiera/golog"
 	"github.com/udistrital/api_mid_financiera/models"
-	"github.com/udistrital/api_mid_financiera/tools"
-	"github.com/udistrital/api_mid_financiera/utilidades"
-
-	"github.com/astaxie/beego"
+	"github.com/udistrital/utils_oas/formatdata"
+	"github.com/udistrital/utils_oas/request"
+	"github.com/udistrital/utils_oas/ruler"
 )
 
+// AprobacionController operations for AprobacionController
 type AprobacionController struct {
 	beego.Controller
 }
-
+// URLMapping ...
 func (c *AprobacionController) URLMapping() {
 	c.Mapping("Aprobar", c.Aprobar)
 }
@@ -28,7 +29,7 @@ func (c *AprobacionController) URLMapping() {
 // @Success 201 {int} models.InfoSolDisp
 // @Failure 403 body is empty
 // @router Aprobar/ [post]
-func (this *AprobacionController) Aprobar() {
+func (c *AprobacionController) Aprobar() {
 
 	var predicados []models.Predicado
 	//var predicados_apropiacion []models.Predicado
@@ -36,22 +37,22 @@ func (this *AprobacionController) Aprobar() {
 	alertas = append(alertas, "success")
 	var postdominio string = ""
 
-	if tdominio := this.GetString("tdominio"); tdominio != "" {
+	if tdominio := c.GetString("tdominio"); tdominio != "" {
 		postdominio = postdominio + "&query=Dominio.Id:" + tdominio
 	} else {
-		this.Data["json"] = "no se especifico el domino del ruler"
-		this.ServeJSON()
+		c.Data["json"] = "no se especifico el domino del ruler"
+		c.ServeJSON()
 	}
 	var apropiacion []models.Apropiacion
 	//var respuesta interface{}
-	if err := json.Unmarshal(this.Ctx.Input.RequestBody, &apropiacion); err == nil {
-		if err := getJson("http://"+beego.AppConfig.String("Urlruler")+":"+beego.AppConfig.String("Portruler")+"/"+beego.AppConfig.String("Nsruler")+"/predicado?limit=0"+postdominio, &predicados); err == nil {
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &apropiacion); err == nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlruler")+":"+beego.AppConfig.String("Portruler")+"/"+beego.AppConfig.String("Nsruler")+"/predicado?limit=0"+postdominio, &predicados); err == nil {
 			//var reglas string = ""
 			var reglasbase string = ""
 			//var reglasinyectadas string = ""
 			var arregloReglas = make([]string, len(predicados))
 			var comprobacion string
-			var estado_ap int
+			var estadoAp int
 			//var respuesta []models.FormatoPreliqu
 			for i := 0; i < len(predicados); i++ {
 				arregloReglas[i] = predicados[i].Nombre
@@ -62,16 +63,16 @@ func (this *AprobacionController) Aprobar() {
 			}
 			for i := len(apropiacion) - 1; i >= 0; i-- {
 
-				comprobacion = comprobar_apropiacion(apropiacion[i])
+				comprobacion = comprobarApropiacion(apropiacion[i])
 				if comprobacion == "" {
 					alertas = append(alertas, "Apropiacion del rubro "+apropiacion[i].Rubro.Codigo+" No aprobada, algunas apropiaciones hijo no se encuentran aprobadas")
 				} else {
-					estado_ap, _ = strconv.Atoi(golog.Comprobar_aprobacion(reglasbase, comprobacion))
-					estado := models.EstadoApropiacion{Id: estado_ap}
+					estadoAp, _ = strconv.Atoi(golog.ComprobarAprobacion(reglasbase, comprobacion))
+					estado := models.EstadoApropiacion{Id: estadoAp}
 					apropiacion[i].Estado = &estado
 					var respuesta interface{}
-					if err := sendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/"+strconv.Itoa(apropiacion[i].Id), "PUT", &respuesta, &apropiacion[i]); err == nil {
-						if estado_ap == 1 {
+					if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/"+strconv.Itoa(apropiacion[i].Id), "PUT", &respuesta, &apropiacion[i]); err == nil {
+						if estadoAp == 1 {
 							alertas[0] = "error"
 							alertas = append(alertas, "Apropiacion del rubro "+apropiacion[i].Rubro.Codigo+" No aprobada, la suma de las apropiaciones hijo no corresponde al valor de esta apropiacion")
 						} else {
@@ -80,47 +81,47 @@ func (this *AprobacionController) Aprobar() {
 					} else {
 						alertas[0] = "error"
 						alertas = append(alertas, "no se pudo cambiar el estado de la apropiacion")
-						this.Data["json"] = alertas
-						this.ServeJSON()
+						c.Data["json"] = alertas
+						c.ServeJSON()
 					}
 				}
 			}
-			this.Data["json"] = alertas
-			this.ServeJSON()
+			c.Data["json"] = alertas
+			c.ServeJSON()
 		} else {
 			fmt.Println("err: ", err)
 			alertas[0] = "error"
 			alertas = append(alertas, "no se pudo cargar la informacion de la base de datos")
-			this.Data["json"] = alertas
-			this.ServeJSON()
+			c.Data["json"] = alertas
+			c.ServeJSON()
 		}
 	} else {
 		fmt.Println("err: ", err)
 		alertas[0] = "error"
 		alertas = append(alertas, "no se resivieron los datos correctamente")
-		this.Data["json"] = alertas
-		this.ServeJSON()
+		c.Data["json"] = alertas
+		c.ServeJSON()
 	}
 
 }
 
-func comprobar_apropiacion(padre models.Apropiacion) string {
-	var rubro_hijo []models.RubroRubro
-	var lista_valores []string
+func comprobarApropiacion(padre models.Apropiacion) string {
+	var rubroHijo []models.RubroRubro
+	var listaValores []string
 	var regla string
-	var apropiacion_hijo []models.Apropiacion
+	var apropiacionHijo []models.Apropiacion
 	var hoja int
-	getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.Itoa(padre.Rubro.Id)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubro_hijo)
-	if rubro_hijo != nil {
-		for i := 0; i < len(rubro_hijo); i++ {
+	err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro_rubro?limit=0&query=RubroPadre.Id:"+strconv.Itoa(padre.Rubro.Id)+",RubroPadre.Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64), &rubroHijo)
+	if (rubroHijo != nil && err == nil) {
+		for i := 0; i < len(rubroHijo); i++ {
 
-			getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.Itoa(rubro_hijo[i].RubroHijo.Id)+"", &apropiacion_hijo)
-			if apropiacion_hijo != nil {
+			err:= request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion?limit=0&query=Vigencia:"+strconv.FormatFloat(padre.Vigencia, 'f', -1, 64)+",Rubro.Id:"+strconv.Itoa(rubroHijo[i].RubroHijo.Id)+"", &apropiacionHijo)
+			if apropiacionHijo != nil  && err == nil{
 				hoja = 0
-				for i := 0; i < len(apropiacion_hijo); i++ {
-					if apropiacion_hijo[i].Estado.Id == 2 {
-						lista_valores = append(lista_valores, strconv.FormatFloat(apropiacion_hijo[i].Valor, 'f', -1, 64))
-						fmt.Println("apro: ", lista_valores)
+				for i := 0; i < len(apropiacionHijo); i++ {
+					if apropiacionHijo[i].Estado.Id == 2 {
+						listaValores = append(listaValores, strconv.FormatFloat(apropiacionHijo[i].Valor, 'f', -1, 64))
+						fmt.Println("apro: ", listaValores)
 					}
 
 				}
@@ -128,37 +129,37 @@ func comprobar_apropiacion(padre models.Apropiacion) string {
 			}
 		}
 	} else {
-		lista_valores = append(lista_valores, strconv.FormatFloat(padre.Valor, 'f', -1, 64))
+		listaValores = append(listaValores, strconv.FormatFloat(padre.Valor, 'f', -1, 64))
 		hoja = 1
 	}
-	fmt.Println("hijo: ", len(apropiacion_hijo))
-	fmt.Println("valor: ", len(lista_valores))
-	if lista_valores != nil && len(apropiacion_hijo) > 0 {
-		for i := 0; i < len(lista_valores); i++ {
-			if len(lista_valores) == 1 {
-				regla = "verifica_hijos([" + lista_valores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
-			} else if len(lista_valores) > 1 {
+	fmt.Println("hijo: ", len(apropiacionHijo))
+	fmt.Println("valor: ", len(listaValores))
+	if listaValores != nil && len(apropiacionHijo) > 0 {
+		for i := 0; i < len(listaValores); i++ {
+			if len(listaValores) == 1 {
+				regla = "verifica_hijos([" + listaValores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
+			} else if len(listaValores) > 1 {
 				if i == 0 {
-					regla = "verifica_hijos([" + lista_valores[i]
-				} else if i == (len(lista_valores) - 1) {
-					regla = regla + "," + lista_valores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
+					regla = "verifica_hijos([" + listaValores[i]
+				} else if i == (len(listaValores) - 1) {
+					regla = regla + "," + listaValores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
 				} else {
-					regla = regla + "," + lista_valores[i]
+					regla = regla + "," + listaValores[i]
 				}
 			}
 		}
 	}
 	if hoja == 1 {
-		for i := 0; i < len(lista_valores); i++ {
-			if len(lista_valores) == 1 {
-				regla = "verifica_hijos([" + lista_valores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
-			} else if len(lista_valores) > 1 {
+		for i := 0; i < len(listaValores); i++ {
+			if len(listaValores) == 1 {
+				regla = "verifica_hijos([" + listaValores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
+			} else if len(listaValores) > 1 {
 				if i == 0 {
-					regla = "verifica_hijos([" + lista_valores[i]
-				} else if i == (len(lista_valores) - 1) {
-					regla = regla + "," + lista_valores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
+					regla = "verifica_hijos([" + listaValores[i]
+				} else if i == (len(listaValores) - 1) {
+					regla = regla + "," + listaValores[i] + "],[" + strconv.FormatFloat(padre.Valor, 'f', -1, 64) + ", 3],Y)."
 				} else {
-					regla = regla + "," + lista_valores[i]
+					regla = regla + "," + listaValores[i]
 				}
 			}
 		}
@@ -182,27 +183,28 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 		if err == nil {
 			fmt.Println(vigencia)
 			fmt.Println(unidadejecutora)
-			tool := new(tools.EntornoReglas)
+			tool := new(ruler.EntornoReglas)
 			tool.Agregar_dominio("Presupuesto")
 			var res []string
 			var infoSaldoInicial []map[string]interface{}
-			saldo := make(map[string]interface{})
-			utilidades.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res)
+			//saldo := make(map[string]interface{})
+			if errorFill := formatdata.FillStruct(tool.Ejecutar_all_result("codigo_rubro_comprobacion_inicial(Y).", "Y"), &res); errorFill == nil{
 			for _, rpadre := range res {
-				var rubro []models.Rubro
-				fmt.Println("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/rubro?query=Rubro.Codigo:" + rpadre)
-				if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro?query=Codigo:"+rpadre, &rubro); err == nil {
-					if rubro != nil {
+				var rubro []map[string]interface{}
+				urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "arbol_rubro_apropiaciones/ArbolApropiacion/" + rpadre + "/" + strconv.Itoa(unidadejecutora) + "/" + strconv.Itoa(vigencia)
+				//if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro?query=Codigo:"+rpadre, &rubro); err == nil {
+				if err = request.GetJson(urlmongo, &rubro); err == nil {
+					beego.Info("Rubro ", rubro[0])
+					if rubro[0]["Id"] != nil {
+						infoSaldoInicial = append(infoSaldoInicial, rubro[0])
 
-						if err = getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.Itoa(rubro[0].Id)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
+						/*if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/SaldoApropiacionPadre/"+strconv.Itoa(rubro[0].Id)+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &saldo); err == nil {
 							if saldo != nil {
-								infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": rubro[0].Id, "Codigo": rpadre, "Nombre": rubro[0].Nombre, "SaldoInicial": saldo["original"]})
+								//infoSaldoInicial = append(infoSaldoInicial, map[string]interface{}{"Id": rubro[0].Id, "Codigo": rpadre, "Nombre": rubro[0].Nombre, "SaldoInicial": saldo["original"]})
 							}
 						} else {
 							fmt.Println(err)
-						}
-					} else {
-
+						}*/
 					}
 
 				} else {
@@ -210,13 +212,15 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 				}
 
 			}
+		}
+			//c.Data["json"] = map[string]interface{}{"Aprobado": "0", "Data": infoSaldoInicial}
 			for _, apr := range infoSaldoInicial {
-				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
+				tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["ApropiacionInicial"]) + ").")
 			}
 			if infoSaldoInicial != nil {
-				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["SaldoInicial"])+",Y).", "Y")
+				res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", infoSaldoInicial[0]["ApropiacionInicial"])+",Y).", "Y")
 				var comp string
-				err = utilidades.FillStruct(res, &comp)
+				err = formatdata.FillStruct(res, &comp)
 				if err == nil {
 					c.Data["json"] = map[string]interface{}{"Aprobado": res, "Data": infoSaldoInicial}
 				} else {
@@ -224,8 +228,6 @@ func (c *AprobacionController) InformacionAsignacionInicial() {
 
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
-			} else {
-
 			}
 
 		} else {
@@ -254,7 +256,7 @@ func (c *AprobacionController) AprobacionAsignacionInicial() {
 		unidadejecutora, err := c.GetInt("UnidadEjecutora")
 		if err == nil {
 			if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-				tool := new(tools.EntornoReglas)
+				tool := new(ruler.EntornoReglas)
 				tool.Agregar_dominio("Presupuesto")
 				for _, apr := range v {
 					tool.Agregar_predicado("valor_inicial_rubro(" + fmt.Sprintf("%v", apr["Codigo"]) + "," + fmt.Sprintf("%v", apr["SaldoInicial"]) + ").")
@@ -262,11 +264,11 @@ func (c *AprobacionController) AprobacionAsignacionInicial() {
 				if v != nil {
 					res := tool.Ejecutar_result("comprobacion_inicial_apropiacion("+fmt.Sprintf("%v", v[0]["SaldoInicial"])+",Y).", "Y")
 					var aprobado string
-					err = utilidades.FillStruct(res, &aprobado)
+					err = formatdata.FillStruct(res, &aprobado)
 					if err == nil {
 						if aprobado == "1" {
 							var res interface{}
-							if err := getJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/AprobacionAsignacionInicial"+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &res); err == nil {
+							if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/apropiacion/AprobacionAsignacionInicial"+"?Vigencia="+strconv.Itoa(vigencia)+"&UnidadEjecutora="+strconv.Itoa(unidadejecutora), &res); err == nil {
 								c.Data["json"] = res
 
 							} else {

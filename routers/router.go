@@ -30,6 +30,11 @@ func init() {
 				&controllers.RegistroPresupuestalController{},
 			),
 		),
+		beego.NSNamespace("/giro",
+			beego.NSInclude(
+				&controllers.GiroController{},
+			),
+		),
 		beego.NSNamespace("/partida_doble",
 			beego.NSInclude(
 				&controllers.PartidadobleController{},
@@ -58,6 +63,71 @@ func init() {
 		beego.NSNamespace("/homologacion",
 			beego.NSInclude(
 				&controllers.HomologacionController{},
+			),
+		),
+		beego.NSNamespace("/aprobacion_fuente",
+			beego.NSInclude(
+				&controllers.AprobacionFuenteController{},
+			),
+		),
+		beego.NSNamespace("/apropiacion",
+			beego.NSInclude(
+				&controllers.ApropiacionController{},
+			),
+		),
+		beego.NSNamespace("/devoluciones",
+			beego.NSInclude(
+				&controllers.DevolucionesController{},
+			),
+		),
+		beego.NSNamespace("/ingreso_sin_situacion_fondos",
+			beego.NSInclude(
+				&controllers.IngresoSinSituacionFondosController{},
+			),
+		),
+		beego.NSNamespace("/organizaciones_core_new",
+			beego.NSInclude(
+				&controllers.OrganizacionesCoreNewController{},
+			),
+		),
+		beego.NSNamespace("/rubro_homologado",
+			beego.NSInclude(
+				&controllers.HomologacionRubroController{},
+			),
+		),
+		beego.NSNamespace("/gestion_sucursales",
+			beego.NSInclude(
+				&controllers.GestionSucursalesController{},
+			),
+		),
+		beego.NSNamespace("/inversion",
+			beego.NSInclude(
+				&controllers.InversionController{},
+			),
+		),
+		beego.NSNamespace("/reintegro",
+			beego.NSInclude(
+				&controllers.ReintegroController{},
+			),
+		),
+		beego.NSNamespace("/movimiento_apropiacion",
+			beego.NSInclude(
+				&controllers.MovimientoApropiacionController{},
+			),
+		),
+		beego.NSNamespace("/gestion_cheques",
+			beego.NSInclude(
+				&controllers.GestionChequesController{},
+			),
+		),
+		beego.NSNamespace("/legalizacion_avance",
+			beego.NSInclude(
+				&controllers.LegalizacionAvanceController{},
+			),
+		),
+		beego.NSNamespace("/administrativa_personas",
+			beego.NSInclude(
+				&controllers.AdministrativaPersonasController{},
 			),
 		),
 	)

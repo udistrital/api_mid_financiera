@@ -1,11 +1,11 @@
 package main
 
 import (
-	_ "github.com/udistrital/api_mid_financiera/docs"
-	_ "github.com/udistrital/api_mid_financiera/routers"
-
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/plugins/cors"
+	_ "github.com/udistrital/api_mid_financiera/docs"
+	"github.com/udistrital/api_mid_financiera/mongoProcess"
+	_ "github.com/udistrital/api_mid_financiera/routers"
 )
 
 func main() {
@@ -26,6 +26,7 @@ func main() {
 		beego.BConfig.WebConfig.DirectoryIndex = true
 		beego.BConfig.WebConfig.StaticDir["/swagger"] = "swagger"
 	}
-
+	mongoProcess.PresupuestoMongoJobInit()
+	//mongoProcess.RpMongoJobInit()
 	beego.Run()
 }
