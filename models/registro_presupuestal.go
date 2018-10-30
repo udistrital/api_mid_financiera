@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// RegistroPresupuestal ...
 type RegistroPresupuestal struct {
 	Id                                            int                                              `orm:"column(id);pk;auto"`
 	Vigencia                                      float64                                          `orm:"column(vigencia)"`
@@ -18,6 +19,8 @@ type RegistroPresupuestal struct {
 	RegistroPresupuestalDisponibilidadApropiacion []*RegistroPresupuestalDisponibilidadApropiacion `orm:"reverse(many)"`
 	DatosSolicitud                                *SolicitudRp
 }
+
+// DatosRubroRegistroPresupuestal ...
 type DatosRubroRegistroPresupuestal struct {
 	Id                 int
 	Disponibilidad     *Disponibilidad
@@ -27,12 +30,15 @@ type DatosRubroRegistroPresupuestal struct {
 	ValorAsignado      float64
 	Saldo              float64
 }
+
+// DatosRegistroPresupuestal ...
 type DatosRegistroPresupuestal struct {
 	Rp     *RegistroPresupuestal
 	Rubros []DatosRubroRegistroPresupuestal
 }
 
+// InfoSolRp ...
 type InfoSolRp struct {
 	Solicitud *SolicitudRp
-	Rubros    []DisponibilidadApropiacionSolicitud_rp
+	Rubros    []DisponibilidadApropiacionSolicitudRp
 }

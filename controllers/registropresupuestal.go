@@ -24,7 +24,7 @@ type RegistroPresupuestalController struct {
 func (c *RegistroPresupuestalController) URLMapping() {
 	c.Mapping("Post", c.Post)
 	c.Mapping("GetSolicitudesRp", c.GetSolicitudesRp)
-	c.Mapping("GetSolicitudesRpById", c.GetSolicitudesRpById)
+	c.Mapping("GetSolicitudesRpByID", c.GetSolicitudesRpByID)
 }
 
 func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
@@ -33,16 +33,16 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	solicitud := models.SolicitudRp{}
 	err := formatdata.FillStruct(solicitudintfc, &solicitud)
 	fmt.Println(err)
-	var afectacion_solicitud []map[string]interface{}
-	if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=-1&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacion_solicitud); err == nil {
+	var afectacionSolicitud []map[string]interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=-1&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacionSolicitud); err == nil {
 		//consulta de la afectacion presupuestal objetivo.
 		fmt.Println(solicitud.Id)
-		for _, afect := range afectacion_solicitud {
+		for _, afect := range afectacionSolicitud {
 
-			var disp_apr_sol []map[string]interface{}
-			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
+			var dispAprSol []map[string]interface{}
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &dispAprSol); err == nil {
 
-				for _, disp_apro := range disp_apr_sol {
+				for _, disp_apro := range dispAprSol {
 					solicitud.Cdp = int(disp_apro["Disponibilidad"].(map[string]interface{})["Id"].(float64))
 					beego.Info("CDP ", solicitud.Cdp)
 					disp_apro["ValorAsignado"] = afect["Monto"]
@@ -62,22 +62,22 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		return
 	}
 
-	var cdp_objtvo []models.Disponibilidad
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdp_objtvo); err == nil {
-		if cdp_objtvo != nil {
-			solicitud.DatosDisponibilidad = &cdp_objtvo[0]
-			var necesidad_cdp []models.SolicitudDisponibilidad
-			if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DisponibilidadProcesoExterno[0].ProcesoExterno), &necesidad_cdp); err == nil {
-				if necesidad_cdp != nil {
-					solicitud.DatosDisponibilidad.DatosNecesidad = necesidad_cdp[0].Necesidad
+	var cdpObjtvo []models.Disponibilidad
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdpObjtvo); err == nil {
+		if cdpObjtvo != nil {
+			solicitud.DatosDisponibilidad = &cdpObjtvo[0]
+			var necesidadCdp []models.SolicitudDisponibilidad
+			if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DisponibilidadProcesoExterno[0].ProcesoExterno), &necesidadCdp); err == nil {
+				if necesidadCdp != nil {
+					solicitud.DatosDisponibilidad.DatosNecesidad = necesidadCdp[0].Necesidad
 					var depNes []models.DependenciaNecesidad
 					if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DatosNecesidad.Id), &depNes); err == nil {
 						if depNes != nil {
 							var depSol []models.Dependencia
-							var jefe_dep_sol []models.JefeDependencia
-							if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-								if jefe_dep_sol != nil {
-									if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+							var jefeDepSol []models.JefeDependencia
+							if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefeDepSol); err == nil {
+								if jefeDepSol != nil {
+									if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefeDepSol[0].DependenciaId), &depSol); err == nil {
 										if depSol != nil {
 											solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
 										} else {
@@ -114,7 +114,7 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 		fmt.Println("error cdp: ", err)
 	}
 	//obtener informacion del contrato del rp
-	//var info_contrato []models.ContratoGeneral
+	//var infoContrato []models.ContratoGeneral
 	/*var contratista []models.InformacionProveedor
 	fmt.Println("prov ", solicitud.Proveedor)
 	if solicitud.Proveedor != 0 {
@@ -132,10 +132,10 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 	}*/
 
 	//cargar datos del compromiso de la solicitud de rp
-	var compromiso_rp []interface{}
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.TipoCompromiso), &compromiso_rp); err == nil {
-		if compromiso_rp != nil {
-			solicitud.DatosCompromiso = compromiso_rp[0]
+	var compromisoRp []interface{}
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.TipoCompromiso), &compromisoRp); err == nil {
+		if compromisoRp != nil {
+			solicitud.DatosCompromiso = compromisoRp[0]
 		} else {
 			//si no encuentra los datos del compromiso
 
@@ -148,11 +148,11 @@ func formatoSolicitudRP(solicitudintfc interface{}, params ...interface{}) (res 
 }
 
 //funcion para recopilar datos externos de los rp a listar
-func FormatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
+func formatoListaRP(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	rp := rpintfc.(map[string]interface{})
 	try.This(func() {
 		idSolicitudDisponibilidad := int(rp["RegistroPresupuestalDisponibilidadApropiacion"].([]interface{})[0].(map[string]interface{})["DisponibilidadApropiacion"].(map[string]interface{})["Disponibilidad"].(map[string]interface{})["DisponibilidadProcesoExterno"].([]interface{})[0].(map[string]interface{})["ProcesoExterno"].(float64))
-		solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
+		solicituddisp, err := DetalleSolicitudDisponibilidadByID(strconv.Itoa(idSolicitudDisponibilidad))
 
 		if err == nil {
 			rp["InfoSolicitudDisponibilidad"] = solicituddisp
@@ -221,7 +221,7 @@ func (c *RegistroPresupuestalController) ListaRp() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := optimize.GenChanInterface(rpresupuestal...)
-				chrpresupuestal := optimize.Digest(done, FormatoListaRP, resch, nil)
+				chrpresupuestal := optimize.Digest(done, formatoListaRP, resch, nil)
 				for rp := range chrpresupuestal {
 					if rp != nil {
 						respuesta = append(respuesta, rp.(map[string]interface{}))
@@ -295,15 +295,15 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 	UnidadEjecutora, err2 := c.GetInt("UnidadEjecutora")
 	fmt.Println(UnidadEjecutora)
 	if err1 == nil && err2 == nil {
-		var solicitudes_rp []interface{}
+		var solicitudesRp []interface{}
 		var respuesta []models.SolicitudRp
-		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Masivo:false,Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudes_rp); err == nil {
-			if solicitudes_rp != nil {
+		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Masivo:false,Expedida:false"+query+",Vigencia:"+strconv.Itoa(vigencia)+"&sortby=Id&order=desc", &solicitudesRp); err == nil {
+			if solicitudesRp != nil {
 				//encontrar datos del CDP objetivo del RP Solicitado
 
 				done := make(chan interface{})
 				defer close(done)
-				resch := optimize.GenChanInterface(solicitudes_rp...)
+				resch := optimize.GenChanInterface(solicitudesRp...)
 				chsolicitud := optimize.Digest(done, formatoSolicitudRP, resch, nil)
 				for solicitud := range chsolicitud {
 					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
@@ -324,30 +324,30 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 	c.ServeJSON()
 }
 
-// GetSolicitudesRpById ...
-// @Title GetSolicitudesRpById
+// GetSolicitudesRpByID ...
+// @Title GetSolicitudesRpByID
 // @Description get GetSolicitudesRpById by id
 // @Param	id		path 	string	true		"The key for staticblock"
 // @Success 200 {object} models.SolicitudRp
 // @Failure 403 :id is empty
 // @router /GetSolicitudesRpById/:id [get]
-func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
-	var solicitudes_rp []models.SolicitudRp
+func (c *RegistroPresupuestalController) GetSolicitudesRpByID() {
+	var solicitudesRp []models.SolicitudRp
 	var respuesta []models.SolicitudRp
 	idStr := c.Ctx.Input.Param(":id")
-	if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=1&query=Id:"+idStr, &solicitudes_rp); err == nil {
-		if solicitudes_rp != nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_rp?limit=1&query=Id:"+idStr, &solicitudesRp); err == nil {
+		if solicitudesRp != nil {
 			//encontrar datos del CDP objetivo del RP Solicitado
-			for _, solicitud := range solicitudes_rp {
+			for _, solicitud := range solicitudesRp {
 				//recuperar datos del CDP objetivo de la solicitud
 
-				var afectacion_solicitud []map[string]interface{}
-				if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=0&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacion_solicitud); err == nil {
+				var afectacionSolicitud []map[string]interface{}
+				if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"disponibilidad_apropiacion_solicitud_rp?limit=0&query=SolicitudRp:"+strconv.Itoa(solicitud.Id), &afectacionSolicitud); err == nil {
 					//consulta de la afectacion presupuestal objetivo.
-					for _, afect := range afectacion_solicitud {
-						var disp_apr_sol []map[string]interface{}
-						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &disp_apr_sol); err == nil {
-							for _, disp_apro := range disp_apr_sol {
+					for _, afect := range afectacionSolicitud {
+						var dispAprSol []map[string]interface{}
+						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad_apropiacion?limit=1&query=Id:"+fmt.Sprintf("%v", afect["DisponibilidadApropiacion"]), &dispAprSol); err == nil {
+							for _, disp_apro := range dispAprSol {
 								disp_apro["ValorAsignado"] = afect["Monto"]
 								disp_apro["FuenteFinanciacion"] = disp_apro["FuenteFinanciamiento"]
 							}
@@ -360,22 +360,22 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 					//si sale mal la consulta de la afectacion de la solicitud.
 				}
 
-				var cdp_objtvo []models.Disponibilidad
-				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdp_objtvo); err == nil {
-					if cdp_objtvo != nil {
-						solicitud.DatosDisponibilidad = &cdp_objtvo[0]
-						var necesidad_cdp []models.SolicitudDisponibilidad
-						if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.Solicitud), &necesidad_cdp); err == nil {
-							if necesidad_cdp != nil {
-								solicitud.DatosDisponibilidad.DatosNecesidad = necesidad_cdp[0].Necesidad
+				var cdpObjtvo []models.Disponibilidad
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.Cdp), &cdpObjtvo); err == nil {
+					if cdpObjtvo != nil {
+						solicitud.DatosDisponibilidad = &cdpObjtvo[0]
+						var necesidadCdp []models.SolicitudDisponibilidad
+						if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.Solicitud), &necesidadCdp); err == nil {
+							if necesidadCdp != nil {
+								solicitud.DatosDisponibilidad.DatosNecesidad = necesidadCdp[0].Necesidad
 								var depNes []models.DependenciaNecesidad
 								if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"dependencia_necesidad?limit=0&query=Necesidad.Id:"+strconv.Itoa(solicitud.DatosDisponibilidad.DatosNecesidad.Id), &depNes); err == nil {
 									if depNes != nil {
 										var depSol []models.Dependencia
-										var jefe_dep_sol []models.JefeDependencia
-										if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefe_dep_sol); err == nil {
-											if jefe_dep_sol != nil {
-												if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefe_dep_sol[0].DependenciaId), &depSol); err == nil {
+										var jefeDepSol []models.JefeDependencia
+										if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"jefe_dependencia?limit=1&query=Id:"+strconv.Itoa(depNes[0].JefeDependenciaSolicitante), &jefeDepSol); err == nil {
+											if jefeDepSol != nil {
+												if err := request.GetJson("http://"+beego.AppConfig.String("oikosService")+"dependencia?limit=1&query=Id:"+strconv.Itoa(jefeDepSol[0].DependenciaId), &depSol); err == nil {
 													if depSol != nil {
 														solicitud.DatosDisponibilidad.DatosNecesidad.DatosDependenciaSolicitante = &depSol[0]
 													} else {
@@ -412,11 +412,11 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 					fmt.Println("error cdp: ", err)
 				}
 				//obtener informacion del contrato del rp
-				var info_contrato []models.ContratoGeneral
+				var infoContrato []models.ContratoGeneral
 				var contratista []models.InformacionProveedor
-				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &info_contrato); err == nil {
-					if info_contrato != nil {
-						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(info_contrato[0].Contratista), &contratista); err == nil {
+				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"contrato_general?limit=1&query=Id:"+solicitud.NumeroContrato, &infoContrato); err == nil {
+					if infoContrato != nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=1&query=Id:"+strconv.Itoa(infoContrato[0].Contratista), &contratista); err == nil {
 							solicitud.DatosProveedor = &contratista[0]
 						} else {
 							//error consulta proveedor
@@ -430,10 +430,10 @@ func (c *RegistroPresupuestalController) GetSolicitudesRpById() {
 					//si ocurre error al obtener los datos del contrato
 				}
 				//cargar datos del compromiso de la solicitud de rp
-				var compromiso_rp []models.Compromiso
-				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.TipoCompromiso), &compromiso_rp); err == nil {
-					if compromiso_rp != nil {
-						solicitud.DatosCompromiso = &compromiso_rp[0]
+				var compromisoRp []models.Compromiso
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/compromiso?limit=1&query=Id:"+strconv.Itoa(solicitud.TipoCompromiso), &compromisoRp); err == nil {
+					if compromisoRp != nil {
+						solicitud.DatosCompromiso = &compromisoRp[0]
 					} else {
 						//si no encuentra los datos del compromiso
 					}
@@ -548,7 +548,7 @@ func (c *RegistroPresupuestalController) CargueMasivoPr() {
 
 }
 
-func ListaNecesidadesByRp(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
+func listaNecesidadesByRp(solicitudintfc interface{}, params ...interface{}) (res interface{}) {
 	solicitud, e := solicitudintfc.(map[string]interface{})
 	var rp []map[string]interface{}
 	if e {
@@ -624,7 +624,7 @@ func (c *RegistroPresupuestalController) ListaNecesidadesByRp() {
 				done := make(chan interface{})
 				defer close(done)
 				resch := optimize.GenChanInterface(solicitudNecesidad...)
-				chsolicitud := optimize.Digest(done, ListaNecesidadesByRp, resch, nil)
+				chsolicitud := optimize.Digest(done, listaNecesidadesByRp, resch, nil)
 				for solicitud := range chsolicitud {
 					if solicitud != nil {
 						respuesta = append(respuesta, solicitud.(map[string]interface{}))
@@ -846,6 +846,7 @@ func (c *RegistroPresupuestalController) AprobarAnulacion() {
 	c.ServeJSON()
 }
 
+// AddRpMongo ...
 func AddRpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
@@ -883,13 +884,18 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
-		request.SendJson(Urlcrud, "DELETE", &resC, nil)
-		beego.Info("Data ", resC)
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil{
+			beego.Info("Data ", resC)
+		}else{
+			beego.Info("Error ", errorDelete)
+		}
+
 		err = e
 	})
 	return
 }
 
+//AddAnulacionRpMongo ...
 func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 	infoAnulacion := models.AnulacionRegistroPresupuestal{}
 	try.This(func() {
@@ -929,8 +935,12 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
-		request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion)
-		beego.Info("Data ", resC)
+		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); errorPut == nil {
+				beego.Info("Data ", resC)
+		}else{
+				beego.Info("Error ", errorPut)
+		}
+
 	})
 	return
 }
@@ -947,19 +957,19 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 func (c *RegistroPresupuestalController) SaldoRp() {
 	try.This(func() {
 		var (
-			cdpId     int
+			cdpID     int
 			err       error
 			infoSaldo map[string]float64
 		)
 
-		cdpId, err = c.GetInt(":idPsql") // id psql del cdp
+		cdpID, err = c.GetInt(":idPsql") // id psql del cdp
 		if err != nil {
 			panic(err.Error())
 		}
 		rubro := c.GetString(":rubro")
 		fuente := c.GetString("fuente")
 		valoresSuman := map[string]bool{"Valor": true, "TotalAnuladoOp": true}
-		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpId, valoresSuman)
+		infoSaldo = CalcularSaldoMovimiento(rubro, fuente, "Rp", cdpID, valoresSuman)
 		c.Data["json"] = infoSaldo
 
 	}).Catch(func(e try.E) {

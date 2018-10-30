@@ -35,8 +35,8 @@ func (c *InversionController) Post() {
 
 }
 
-// CreacionInversion ...
-// @Title Creacion Inversion
+// CreateInversion ...
+// @Title CreateInversion
 // @Description create Inversion
 // @Param	body		body 	interface{}	true		"body for Inversion content"
 // @Success 201 {object} interface{}

@@ -54,7 +54,7 @@ func pagoSsPorPersona(idPeriodoPago float64) (dataOutp interface{}, outputError 
 			}
 			for _, pagoAgrupago := range pagosVigenciaContrato {
 				if rowPagoAgrupado, e := pagoAgrupago.(map[string]interface{}); e {
-					if detallePagos, e := ListaDetalleDePagoSsPorPersona(int(idPeriodoPago), int(rowPagoAgrupado["DetalleLiquidacion"].(float64))); e == nil {
+					if detallePagos, e := listaDetalleDePagoSsPorPersona(int(idPeriodoPago), int(rowPagoAgrupado["DetalleLiquidacion"].(float64))); e == nil {
 						rowPagoAgrupado["DetallePagos"] = detallePagos
 					} else {
 						rowPagoAgrupado["DetallePagos"] = e
@@ -101,7 +101,7 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 	}
 }
 
-func ListaDetalleDePagoSsPorPersona(idPeriodoPago, idDetalleLiquidacion int) (DetallePagos []interface{}, outputError map[string]interface{}) {
+func listaDetalleDePagoSsPorPersona(idPeriodoPago, idDetalleLiquidacion int) (DetallePagos []interface{}, outputError map[string]interface{}) {
 	if idPeriodoPago != 0 && idDetalleLiquidacion != 0 {
 		var listaPagos []interface{}
 		var allData []interface{}
@@ -157,11 +157,11 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	if err1 == nil && err2 == nil && err3 == nil {
 		var homologacionConceptos []map[string]interface{}
 		var idLiquidacion float64
-		if rpCorrespondiente, e := GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
+		if rpCorrespondiente, e := getRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			//if idLiquidacion, outputError := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 			if liquidacionTipoNomina, outputError := getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion); outputError == nil {
 				idLiquidacion = liquidacionTipoNomina["Id_Preliq"].(float64)
-				if idPeriodoPago, outputError := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
+				if idPeriodoPago, outputError := getIDPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); outputError == nil {
 					allPago := getPagosConDetalleLiquidacion(int(idPeriodoPago))
 					if allPago != nil {
 						done := make(chan interface{})
@@ -274,12 +274,12 @@ func (c *OrdenPagoSsController) GetConceptosMovimeintosContablesSs() {
 	c.ServeJSON()
 }
 
-func GetRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion int) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
+func getRpDesdeNecesidadProcesoExterno(idNomina, mesLiquidacion, anioLiquidacion int) (rpDisponibilidadApropiacion []map[string]interface{}, outputError map[string]interface{}) {
 	//var outputError []map[string]interface{}
 	if idNomina != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		if idLiquidacion, e := getIdliquidacionForSs(idNomina, mesLiquidacion, anioLiquidacion); e == nil {
 			fmt.Println("Liquidacion: ", idLiquidacion)
-			if idPeriodoPago, e := getIdPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); e == nil {
+			if idPeriodoPago, e := getIDPeriodoPagoForSs(int(idLiquidacion), mesLiquidacion, anioLiquidacion); e == nil {
 				fmt.Println("periodo pago ", idPeriodoPago)
 				if idNecesidad, e := getNecesidadByProcesoExternoSS(int(idPeriodoPago)); e == nil {
 					fmt.Println("Nececidad id", idNecesidad)
@@ -358,7 +358,7 @@ func getIdliquidacionTipoNominaForSs(idNomina, mesLiquidacion, anioLiquidacion i
 }
 
 // se consulta servicio de periodo_pago en un mes, año y con id liquidacion
-func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64, outputError map[string]interface{}) {
+func getIDPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (idPeriodoPago float64, outputError map[string]interface{}) {
 	var periodoPago []interface{}
 	if idLiquidacion != 0 && mesLiquidacion != 0 && anioLiquidacion != 0 {
 		if err := request.GetJson("http://"+beego.AppConfig.String("SsService")+"periodo_pago/?query=Mes:"+strconv.Itoa(mesLiquidacion)+"&Anio:"+strconv.Itoa(anioLiquidacion)+"&Liquidacion:"+strconv.Itoa(idLiquidacion)+"&limit:1", &periodoPago); err == nil {
@@ -374,7 +374,7 @@ func getIdPeriodoPagoForSs(idLiquidacion, mesLiquidacion, anioLiquidacion int) (
 			return 0, outputError
 		}
 	} else {
-		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIdPeriodoPagoForSs", "Type": "error"}
+		outputError = map[string]interface{}{"Code": "E_0458", "Body": "Not enough parameter in getIDPeriodoPagoForSs", "Type": "error"}
 		return 0, outputError
 	}
 }

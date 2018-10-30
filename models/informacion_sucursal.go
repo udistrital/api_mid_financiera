@@ -1,5 +1,6 @@
 package models
 
+// InformacionSucursal ...
 type InformacionSucursal struct {
 	Organizacion   Organizacion
 	Direccion     interface{}

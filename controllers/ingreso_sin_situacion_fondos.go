@@ -8,7 +8,7 @@ import (
 	"github.com/astaxie/beego"
 )
 
-// Ingreso_sin_situacion_fondosController operations for Ingreso_sin_situacion_fondos
+// IngresoSinSituacionFondosController operations for IngresoSinSituacionFondos
 type IngresoSinSituacionFondosController struct {
 	beego.Controller
 }
@@ -78,8 +78,8 @@ func (c *IngresoSinSituacionFondosController) Post() {
 }
 
 
-// changeState ...
-// @Title Change State
+// ChangeState ...
+// @Title  ChangeState
 // @Description Change State from a income without finance situation
 // @Param	body	body 	interface{}	"body for Ingreso_sin_situacion_fondos content"
 // @Success 201 {object}

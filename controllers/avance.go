@@ -83,8 +83,8 @@ func (c *AvanceController) Delete() {
 
 }
 
-// GetOne ...
-// @Title GetAvanceById
+// GetAvanceByID ...
+// @Title GetAvanceByID
 // @Description get All information of an advance payment by id
 // @Param	idAvance	query	string	false	"Fields returned. e.g. col1,col2 ..."
 // @Param	idAvceLeg	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."

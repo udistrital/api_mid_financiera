@@ -86,7 +86,7 @@ func (c *GestionChequesController) Delete() {
 
 }
 
-// Post ...
+// CreateChequera ...
 // @Title CreateChequera
 // @Description create homologate category for an organization
 // @Param	body		body 	interface	true		"body for Homologacion_rubro content"
@@ -116,7 +116,7 @@ func (c *GestionChequesController) CreateChequera() {
 	}
 }
 
-// Post ...
+// CreateCheque ...
 // @Title CreateCheque
 // @Description create cheque asociated to first state
 // @Param	body		body 	interface	true		"body for Homologacion_rubro content"
@@ -190,10 +190,10 @@ func (c *GestionChequesController) GetAllCheque() {
 func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var resEstado []map[string]interface{}
 	var resBeneficiario []map[string]interface{}
-	chequeId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	chequeID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	chequera := rpintfc.(map[string]interface{})["Chequera"]
-	chequeraId := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraId, &chequera); err == nil {
+	chequeraID := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraID, &chequera); err == nil {
 		if chequera != nil {
 			rpintfc.(map[string]interface{})["Chequera"] = getValuesChequera(chequera)
 		}
@@ -201,8 +201,8 @@ func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface
 		beego.Error("Error ", err)
 	}
 	ordenPago := rpintfc.(map[string]interface{})["OrdenPago"]
-	ordenPagoId := strconv.FormatFloat(ordenPago.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/"+ordenPagoId, &ordenPago); err == nil {
+	ordenPagoID := strconv.FormatFloat(ordenPago.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago/"+ordenPagoID, &ordenPago); err == nil {
 		if ordenPago != nil {
 			rpintfc.(map[string]interface{})["OrdenPago"] = ordenPago
 		}
@@ -210,7 +210,7 @@ func getValuesCheques(rpintfc interface{}, params ...interface{}) (res interface
 		beego.Error("Error ", err)
 	}
 
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque_estado_cheque/?query=Activo:true"+",cheque.Id:"+chequeId, &resEstado); err == nil {
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cheque_estado_cheque/?query=Activo:true"+",cheque.Id:"+chequeID, &resEstado); err == nil {
 		if resEstado[0] != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
@@ -297,8 +297,8 @@ func chequeraInfoDistpacher(rpintfc interface{}, params ...interface{}) (res int
 		buscarDisponibles := params[0].(bool)
 		if buscarDisponibles {
 			chequera := rpintfc.(map[string]interface{})["Chequera"]
-			chequeraId := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraId, &chequera); err == nil {
+			chequeraID := strconv.FormatFloat(chequera.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera/"+chequeraID, &chequera); err == nil {
 				if chequera != nil {
 					rpintfc.(map[string]interface{})["Chequera"] = getValuesChequera(chequera)
 					res = rpintfc
@@ -319,8 +319,8 @@ func getValuesChequera(rpintfc interface{}) (res interface{}) {
 	var responsableResp []map[string]interface{}
 	var resSucursal []map[string]interface{}
 
-	chequeraId := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera_estado_chequera/?query=Activo:true"+",chequera.Id:"+chequeraId, &resEstado); err == nil {
+	chequeraID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/chequera_estado_chequera/?query=Activo:true"+",chequera.Id:"+chequeraID, &resEstado); err == nil {
 		if resEstado[0] != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
@@ -335,15 +335,15 @@ func getValuesChequera(rpintfc interface{}) (res interface{}) {
 	} else {
 		beego.Error("Error", err.Error())
 	}
-	sucursalId := strconv.FormatFloat(rpintfc.(map[string]interface{})["CuentaBancaria"].(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
-	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalId, &resSucursal); err == nil {
+	sucursalID := strconv.FormatFloat(rpintfc.(map[string]interface{})["CuentaBancaria"].(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
+	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=Id:"+sucursalID, &resSucursal); err == nil {
 		if resSucursal[0] != nil {
 			rpintfc.(map[string]interface{})["Sucursal"] = resSucursal[0]
 		}
 	} else {
 		beego.Error("Error", err.Error())
 	}
-	resBanco, err := GetBancoSucursal(sucursalId)
+	resBanco, err := GetBancoSucursal(sucursalID)
 	if err == nil {
 		rpintfc.(map[string]interface{})["Banco"] = resBanco.([]interface{})[0].(map[string]interface{})
 	} else {

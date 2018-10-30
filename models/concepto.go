@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+//Concepto ...
 type Concepto struct {
 	Id              int       `orm:"column(id);pk;auto"`
 	Codigo          string    `orm:"column(codigo)"`

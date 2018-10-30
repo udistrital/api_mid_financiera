@@ -1,5 +1,6 @@
 package models
 
+// DisponibilidadApropiacion ...
 type DisponibilidadApropiacion struct {
 	Id                   int                 `orm:"auto;column(id);pk"`
 	Disponibilidad       *Disponibilidad     `orm:"column(disponibilidad);rel(fk)"`

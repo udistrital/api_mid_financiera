@@ -1,7 +1,7 @@
 package models
 
 
-
+// ParametroEstandar ... 
 type ParametroEstandar struct {
 	Id                   int    `orm:"column(id_parametro);pk"`
 	ClaseParametro       string `orm:"column(clase_parametro);null"`

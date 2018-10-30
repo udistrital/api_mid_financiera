@@ -11,7 +11,7 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-//  ApropiacionController operations for Apropiacion
+// ApropiacionController operations for  Apropiacion
 type ApropiacionController struct {
 	beego.Controller
 }
@@ -54,16 +54,26 @@ func (c *ApropiacionController) Post() {
 						} else {
 							resul := res["Body"].(map[string]interface{})
 							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-							request.SendJson(urlcrud, "DELETE", &resM, nil)
-							beego.Info("Data ", resM)
-							panic("Mongo API error")
+							if err := request.SendJson(urlcrud, "DELETE", &resM, nil); err == nil {
+								fmt.Println("borrado correctamente")
+								beego.Info("Data ", resM)
+								panic("Mongo API error")
+							}else{
+								fmt.Println("Error al borrar")
+							}
+
 						}
 					} else {
 						resul := res["Body"].(map[string]interface{})
 						urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-						request.SendJson(urlcrud, "DELETE", &resM, nil)
-						beego.Info("Data ", resM)
-						panic("Mongo API not Found")
+						if err := request.SendJson(urlcrud, "DELETE", &resM, nil); err == nil {
+							fmt.Println("borrado correctamente")
+							beego.Info("Data ", resM)
+							panic("Mongo API not Found")
+						}else{
+							fmt.Println("Error al borrar")
+						}
+
 					}
 				} else {
 					beego.Error(res)
@@ -114,15 +124,25 @@ func (c *ApropiacionController) Put() {
 						} else {
 							resul := res["Body"].(map[string]interface{})
 							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-							request.SendJson(urlcrud, "DELETE", &resM, nil)
-							beego.Info("Data ", resM)
-							panic("Mongo API error")
+							if err := request.SendJson(urlcrud, "DELETE", &resM, nil);  err == nil {
+								fmt.Println("borrado correctamente")
+								beego.Info("Data ", resM)
+								panic("Mongo API error")
+							}else{
+								fmt.Println("Error al borrar")
+							}
+
 						}
 					} else {
 						urlcrud = "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/apropiacion/" + "/UpdateApropiacionValue/" + idStr + "/" + valorAntStr
-						request.SendJson(urlcrud, "PUT", &resM, nil)
-						beego.Info("Data ", resM)
-						panic("Mongo API not Found")
+						if err := request.SendJson(urlcrud, "PUT", &resM, nil);  err == nil {
+							fmt.Println("actualizado correctamente")
+							beego.Info("Data ", resM)
+							panic("Mongo API not Found")
+						}else{
+							fmt.Println("Error al actualizar")
+						}
+
 					}
 				} else {
 					beego.Error(res)
@@ -209,6 +229,7 @@ func (c *ApropiacionController) SaldoApropiacion() {
 	c.ServeJSON()
 }
 
+//CalcularSaldoApropiacion ....
 func CalcularSaldoApropiacion(rubroParam string, unidadEParam, vigenciaParam int) (res map[string]float64) {
 	var saldo float64
 	urlmongo := ""

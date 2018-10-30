@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+//AnulacionRegistroPresupuestal ...
 type AnulacionRegistroPresupuestal struct {
 	Id                   int                        `orm:"auto;column(id);pk"`
 	Consecutivo          int                        `orm:"column(consecutivo)"`
