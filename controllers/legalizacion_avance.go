@@ -63,18 +63,6 @@ func (c *LegalizacionAvanceController) GetAll() {
 
 }
 
-// Put ...
-// @Title Put
-// @Description update the Legalizacion_avance
-// @Param	id		path 	string	true		"The id you want to update"
-// @Param	body		body 	models.Legalizacion_avance	true		"body for Legalizacion_avance content"
-// @Success 200 {object} models.Legalizacion_avance
-// @Failure 403 :id is not int
-// @router /:id [put]
-func (c *LegalizacionAvanceController) Put() {
-
-}
-
 // Delete ...
 // @Title Delete
 // @Description delete the Legalizacion_avance
@@ -158,38 +146,40 @@ func formatoLegalizacionDispatcher(tipo int) (f func(data map[string]interface{}
 
 }
 func getLegalizacionCompra(data map[string]interface{}, params ...interface{}) (res interface{}) {
-	var resProveedor []interface{}
+	var resProveedor interface{}
 	var resPersonaNat interface{}
 	var tipoDocumento interface{}
 
 	tercero := data["Tercero"].(string)
-	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor?limit=-1&query=NumDocumento:"+tercero, &resProveedor); err == nil {
-			if resProveedor != nil {
-
-				numberIDStr := resProveedor[0].(map[string]interface{})["NumDocumento"].(string)
-				resProveedor[0].(map[string]interface{})["numero_documento"] = resProveedor[0].(map[string]interface{})["NumDocumento"].(string)
-				if resProveedor[0].(map[string]interface{})["Tipopersona"].(string) == "NATURAL" {
-					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+numberIDStr, &resPersonaNat); err == nil {
-						idTipoDoc := strconv.FormatFloat(resPersonaNat.(map[string]interface{})["TipoDocumento"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-						if resPersonaNat != nil {
-							if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/"+idTipoDoc, &tipoDocumento); err == nil {
-								resProveedor[0].(map[string]interface{})["tipo_documento"] = tipoDocumento.(map[string]interface{})["ValorParametro"];
-							}
+	if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_proveedor/"+tercero, &resProveedor); err == nil {
+		if resProveedor != nil {
+			beego.Error(resProveedor)
+			numberIdStr := resProveedor.(map[string]interface{})["NumDocumento"].(string)
+			resProveedor.(map[string]interface{})["numero_documento"] = resProveedor.(map[string]interface{})["NumDocumento"].(string)
+			if resProveedor.(map[string]interface{})["Tipopersona"].(string) == "NATURAL" {
+				if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"informacion_persona_natural/"+numberIdStr, &resPersonaNat); err == nil {
+					idTipoDoc := strconv.FormatFloat(resPersonaNat.(map[string]interface{})["TipoDocumento"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+					if resPersonaNat != nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/"+idTipoDoc, &tipoDocumento); err == nil {
+							resProveedor.(map[string]interface{})["tipoDocTercero"] = tipoDocumento
+							resProveedor.(map[string]interface{})["tipo_documento"] = tipoDocumento.(map[string]interface{})["ValorParametro"]
 						}
+					}
+				} else {
+					beego.Error("Error" + err.Error())
+				}
+			} else {
+				if resProveedor.(map[string]interface{})["Tipopersona"].(string) == "JURIDICA" {
+					if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/11", &tipoDocumento); err == nil {
+						resProveedor.(map[string]interface{})["tipoDocTercero"] = tipoDocumento
+						resProveedor.(map[string]interface{})["tipo_documento"] = tipoDocumento.(map[string]interface{})["ValorParametro"]
 					} else {
 						beego.Error("Error" + err.Error())
 					}
-				} else {
-					if resProveedor[0].(map[string]interface{})["Tipopersona"].(string) == "JURIDICA" {
-						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"parametro_estandar/11", &tipoDocumento); err == nil {
-							resProveedor[0].(map[string]interface{})["tipo_documento"] = tipoDocumento;
-						} else {
-							beego.Error("Error" + err.Error())
-						}
-					}
 				}
+			}
 		}
-		data["InformacionProveedor"] = resProveedor[0]
+		data["InformacionProveedor"] = resProveedor
 	} else {
 		beego.Error("Error", err.Error())
 	}
