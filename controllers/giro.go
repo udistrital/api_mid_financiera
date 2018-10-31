@@ -306,15 +306,17 @@ func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{})
 			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoRegistroPresupuestal"].([]interface{})[0].(map[string]interface{})["RegistroPresupuestal"].(map[string]interface{})["Beneficiario"].(float64), 'f', -1, 64), &resProveedor); err == nil {
 				giroDetalle["InfoProveedor"] = resProveedor
 				giroDetalle["ValorBasePago"] = giroDetalle["OrdenPago"].(map[string]interface{})["ValorBase"].(float64)
+				giroDetalle["TipoMov"] = giroDetalle["OrdenPago"].(map[string]interface{})["SubTipoOrdenPago"].(map[string]interface{})["TipoOrdenPago"].(map[string]interface{})["CodigoAbreviacion"].(string)
 			}
 		} else {
 			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["CuentaEspecial"].(map[string]interface{})["InformacionPersonaJuridica"].(float64), 'f', -1, 64), &resProveedor); err == nil {
 
-				giroDetalle["InfoProveedorDescuento"] = resProveedor
-				giroDetalle["ValorBasePagoDescuento"] = giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
+				giroDetalle["InfoProveedor"] = resProveedor
+				//giroDetalle["ValorBasePagoDescuento"] = giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
 				for _, element := range giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoCuentaEspecial"].([]interface{}) {
 					if giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64) == element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
-						giroDetalle["ValorBasePagoDescuento"] = element.(map[string]interface{})["ValorBase"].(float64)
+						giroDetalle["ValorBasePago"] = element.(map[string]interface{})["ValorBase"].(float64)
+						giroDetalle["TipoMov"] = element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["TipoCuentaEspecial"].(map[string]interface{})["Nombre"].(string)
 					}
 				}
 			}
