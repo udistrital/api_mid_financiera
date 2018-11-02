@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/manucorporat/try"
@@ -18,6 +19,8 @@ type MovimientoApropiacionController struct {
 func (c *MovimientoApropiacionController) URLMapping() {
 
 }
+
+const separator = "-"
 
 // AprobarMovimietnoApropiacion ...
 // @Title AprobarMovimietnoApropiacion
@@ -54,6 +57,90 @@ func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
 	})
 	c.ServeJSON()
 }
+
+// ComprobarMovimientoApropiacion ...
+// @Title Comprobar Movimiento Apropiacion
+// @Description Comprueba si se puede generar un Movimiento en las apropiaciones.
+// @Param	body		body 	map[string]string	true		"body for MovimientoApropiacion content"
+// @Success 200 {object} map[string]string
+// @Failure 403
+// @router /ComprobarMovimientoApropiacion [post]
+func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
+
+	try.This(func() {
+		var v map[string]interface{}
+		var res interface{}
+
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			//res = CalcularAfectacionMovimientoApropiacion("3-3-001-12-01-02-4150-00", "", 1, 2018, 1000)
+			c.Data["json"] = res
+		} else {
+			panic(err.Error())
+		}
+	}).Catch(func(e try.E) {
+		beego.Error("catch error registrar valores: ", e)
+		var alert []models.Alert
+		alt := models.Alert{}
+		alt.Code = "E_0458"
+		alt.Body = e
+		alt.Type = "error"
+		alert = append(alert, alt)
+		c.Data["json"] = alert
+	})
+	c.ServeJSON()
+}
+
+// CalcularAfectacionMovimientoApropiacion ... Calcula la afectacion de un movimiento en el arbol
+// Antes de realizar la operacion de registro en la db.
+func CalcularAfectacionMovimientoApropiacion(afectacion map[string]interface{}, res map[string]float64) {
+
+	var tipo map[string]interface{}
+	var idTipo int
+	var cuentaCredito map[string]interface{}
+	var cuentaContraCredito map[string]interface{}
+	var multiplicador float64
+	formatdata.FillStructP(afectacion["TipoMovimientoApropiacion"], &tipo)
+	formatdata.FillStructP(tipo["Id"], &idTipo)
+
+	formatdata.FillStructP(afectacion["CuentaCredito"], &cuentaCredito)
+	formatdata.FillStructP(afectacion["CuentaContraCredito"], &cuentaContraCredito)
+	UnidadEjecutora, err := strconv.Atoi(cuentaCredito["UnidadEjecutora"].(string))
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	switch cond := idTipo; cond {
+	case 3: // Adicion
+		multiplicador = 1
+	default:
+		multiplicador = -1
+	}
+
+	sumValorMovimientoAPropiacion(false, cuentaCredito["Codigo"].(string), UnidadEjecutora, 2018, cuentaCredito["Valor"].(float64)*multiplicador, res)
+	if cuentaContraCredito != nil {
+		sumValorMovimientoAPropiacion(false, cuentaContraCredito["Codigo"].(string), UnidadEjecutora, 2018, cuentaContraCredito["Valor"].(float64), res)
+	}
+
+}
+
+func sumValorMovimientoAPropiacion(final bool, codigoRubro string, unidadEjecutora, vigencia int, valorMov float64, res map[string]float64) {
+	var valorFinal float64
+	var saldoObj map[string]float64
+	var valorInicial float64
+	codigoPadre := strings.Split(codigoRubro, separator)
+	if final {
+		saldoObj = CalcularSaldoApropiacion(codigoPadre[0], unidadEjecutora, vigencia)
+		valorInicial = saldoObj["valor_inicial"]
+	} else {
+		valorInicial = 0
+	}
+	valorFinal = valorInicial + valorMov
+	res[codigoPadre[0]] = res[codigoPadre[0]] + valorFinal
+	return
+}
+
+// Mongo function's
 
 func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 	idMov := 0.0
