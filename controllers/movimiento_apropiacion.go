@@ -69,16 +69,27 @@ func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
 
 	try.This(func() {
 		var v map[string]interface{}
-		var res interface{}
-
+		var afectacion []map[string]interface{}
+		res := make(map[string]float64)
+		var unidadEjecutora int
+		unidadEjecutora = 1
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-			//res = CalcularAfectacionMovimientoApropiacion("3-3-001-12-01-02-4150-00", "", 1, 2018, 1000)
-			c.Data["json"] = res
+			formatdata.FillStructP(v["MovimientoApropiacionDisponibilidadApropiacion"], &afectacion)
+			for _, element := range afectacion {
+				CalcularAfectacionMovimientoApropiacion(element, res)
+			}
+			sumValorMovimientoAPropiacion(true, "3", unidadEjecutora, 2018, 0, res)
+			sumValorMovimientoAPropiacion(true, "2", unidadEjecutora, 2018, 0, res)
+			if res["2"] != res["3"] {
+				c.Data["json"] = map[string]bool{"res": false}
+			} else {
+				c.Data["json"] = map[string]bool{"res": true}
+			}
 		} else {
 			panic(err.Error())
 		}
 	}).Catch(func(e try.E) {
-		beego.Error("catch error registrar valores: ", e)
+		beego.Error("catch error Comprobar Movimientos: ", e)
 		var alert []models.Alert
 		alt := models.Alert{}
 		alt.Code = "E_0458"
@@ -117,9 +128,9 @@ func CalcularAfectacionMovimientoApropiacion(afectacion map[string]interface{}, 
 		multiplicador = -1
 	}
 
-	sumValorMovimientoAPropiacion(false, cuentaCredito["Codigo"].(string), UnidadEjecutora, 2018, cuentaCredito["Valor"].(float64)*multiplicador, res)
+	sumValorMovimientoAPropiacion(false, cuentaCredito["Codigo"].(string), UnidadEjecutora, 2018, afectacion["Valor"].(float64)*multiplicador, res)
 	if cuentaContraCredito != nil {
-		sumValorMovimientoAPropiacion(false, cuentaContraCredito["Codigo"].(string), UnidadEjecutora, 2018, cuentaContraCredito["Valor"].(float64), res)
+		sumValorMovimientoAPropiacion(false, cuentaContraCredito["Codigo"].(string), UnidadEjecutora, 2018, afectacion["Valor"].(float64), res)
 	}
 
 }
