@@ -227,8 +227,8 @@ func (c *GiroController) ListarGiros() {
 // @Failure 403
 // @router GetGirosById/:Id [get]
 func (c *GiroController) GetGirosById() {
-	vigenciaStr := c.Ctx.Input.Param(":Id")
-	vigencia, err1 := strconv.Atoi(vigenciaStr)
+	giroIdStr := c.Ctx.Input.Param(":Id")
+	giroId, err1 := strconv.Atoi(giroIdStr)
 	var giro []interface{}
 	var respuesta []map[string]interface{}
 	var limit int64 = 10
@@ -266,11 +266,11 @@ func (c *GiroController) GetGirosById() {
 	}
 	if err1 == nil {
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
-		if err := request.GetJson(urlcrud+"/giro?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Id:"+strconv.Itoa(vigencia)+query, &giro); err == nil {
+		if err := request.GetJson(urlcrud+"/giro_detalle?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Giro:"+strconv.Itoa(giroId)+query, &giro); err == nil {
 			if giro != nil {
 				done := make(chan interface{})
 				defer close(done)
-				resch := optimize.GenChanInterface(giro[0].(map[string]interface{})["GiroDetalle"].([]interface{})...)
+				resch := optimize.GenChanInterface(giro...)
 				chrgiroDetalle := optimize.Digest(done, FormatoGiro, resch, nil)
 				for gd := range chrgiroDetalle {
 					if gd != nil {
@@ -278,8 +278,8 @@ func (c *GiroController) GetGirosById() {
 					}
 
 				}
-				giro[0].(map[string]interface{})["GiroDetalle"] = respuesta
-				c.Data["json"] = giro
+				//giro[0].(map[string]interface{})["GiroDetalle"] = respuesta
+				c.Data["json"] = respuesta
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
@@ -299,7 +299,7 @@ func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{})
 	var resProveedor []map[string]interface{}
 	try.This(func() {
 		idCuentaEspecial := giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
-		// beego.Info("idCuentaEspecial:",idCuentaEspecial)
+		   //beego.Info("idCuentaEspecial:",idCuentaEspecial)
 		//solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 		urladministrativa := "http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor/?query=Id:"
 		if idCuentaEspecial == 0 {
@@ -310,9 +310,7 @@ func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{})
 			}
 		} else {
 			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["CuentaEspecial"].(map[string]interface{})["InformacionPersonaJuridica"].(float64), 'f', -1, 64), &resProveedor); err == nil {
-
 				giroDetalle["InfoProveedor"] = resProveedor
-				//giroDetalle["ValorBasePagoDescuento"] = giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
 				for _, element := range giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoCuentaEspecial"].([]interface{}) {
 					if giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64) == element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
 						giroDetalle["ValorBasePago"] = element.(map[string]interface{})["ValorBase"].(float64)
