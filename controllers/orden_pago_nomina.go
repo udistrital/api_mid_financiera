@@ -25,9 +25,8 @@ func formatoListaLiquidacion(dataLiquidacion interface{}, params ...interface{})
 	row, e := dataLiquidacion.(map[string]interface{})
 	var infoPersona interface{}
 	if e {
-		if err := request.GetJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/administrativaProxy/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
+		if err := request.GetJsonWSO2(beego.AppConfig.String("Wso2Service")+"administrativaProxy/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
 			row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]
-
 			if e {
 				return row
 			} else {
