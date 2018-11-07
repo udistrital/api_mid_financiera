@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"strconv"
-
+	"encoding/json"
+	
+	"time"
 	"github.com/astaxie/beego"
-	"github.com/udistrital/ss_crud_api/models"
+		"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -17,6 +19,42 @@ type OrdenPagoController struct {
 // URLMapping ...
 func (c *OrdenPagoController) URLMapping() {
 	c.Mapping("GetOrdenPagoByFuenteFinanciamiento", c.GetOrdenPagoByFuenteFinanciamiento)
+	c.Mapping("AnularOrdenPago", c.AnularOrdenPago)
+}
+
+
+// AnularOrdenPago ...
+// @Title AnularOrdenPago
+// @Description Cambia el estado y registra el histórico de la Orden de Pago
+// @Param	body		body 	var v models.OrdenPago	true		"body for OrdenPago content"
+// @Success 201 {object}  models.Alert
+// @Failure 403 body is empty
+// @router /anulacion_orden_pago/ [post]
+func (c *OrdenPagoController) AnularOrdenPago() {
+
+	var v models.OrdenPago
+	var res map[string]interface{}
+	if errUnmarshal := json.Unmarshal(c.Ctx.Input.RequestBody, &v); errUnmarshal == nil {
+		var NuevoOPEOP models.OrdenPagoEstadoOrdenPago
+		NuevoOPEOP.OrdenPago  = &models.OrdenPago {Id: v.Id}
+		NuevoOPEOP.FechaRegistro = time.Now()
+		NuevoOPEOP.EstadoOrdenPago = &models.EstadoOrdenPago {Id: 11}
+		NuevoOPEOP.Usuario = 1;
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago_estado_orden_pago/"
+
+		if errPost := request.SendJson(urlcrud, "POST", &res, &NuevoOPEOP); errPost == nil {
+			c.Data["json"] = map[string]interface{}{"Code": "E_1", "Body": res, "Type": "success"}
+		}else{
+				fmt.Println(errPost)
+				c.Data["json"] = map[string]interface{}{"Code": "E_2", "Body": errPost, "Type": "error"}
+		}
+
+	}else{
+		c.Data["json"] = map[string]interface{}{"Code": "E_3", "Body": errUnmarshal, "Type": "error"}
+
+	}
+
+		c.ServeJSON()
 }
 
 // GetOrdenPagoByFuenteFinanciamiento ...
