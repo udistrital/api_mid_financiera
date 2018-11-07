@@ -58,7 +58,6 @@ func (c *CuentasBancariasController) GetOne() {
 // @Failure 403
 // @router / [get]
 func (c *CuentasBancariasController) GetAll() {
-	defer c.ServeJSON()
 	var cuentasBancarias []interface{}
 	var limit int64 = 10
 	var offset int64
@@ -74,15 +73,19 @@ func (c *CuentasBancariasController) GetAll() {
 	if r := c.GetString("query"); r != "" {
 		query = r
 	}
+	beego.Info("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cuentasBancarias); err == nil {
 		if cuentasBancarias != nil {
 			respuesta := optimize.ProccDigest(cuentasBancarias, getValuesCuentas, nil, 3)
 			c.Data["json"] = respuesta
+		}else{
+			beego.Error("RESPUESTA VACIA")
 		}
 	} else {
 		beego.Error("Error ", err)
 		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
+	c.ServeJSON()
 }
 
 func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface{}) {
