@@ -189,7 +189,7 @@ func getLegalizacionCompra(data map[string]interface{}, params ...interface{}) (
 func getLegalizacionPracticaAcadem(data map[string]interface{}, params ...interface{}) (res interface{}) {
 	var infoEstudiante map[string]interface{}
 	tercero := data["Tercero"].(string)
-	if err := request.GetJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/bienestarProxy/info_basica/"+tercero, &infoEstudiante); err == nil {
+	if err := request.GetJsonWSO2(beego.AppConfig.String("Wso2Service")+"bienestarProxy/info_basica/"+tercero, &infoEstudiante); err == nil {
 		data["Estudiante"] = infoEstudiante["datosCollection"].(map[string]interface{})["datos"].([]interface{})[0]
 	} else {
 		beego.Error("Error", err.Error())
