@@ -12,6 +12,7 @@ import (
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/manucorporat/try"
 )
 
 type GestionSucursalesController struct {
@@ -367,36 +368,40 @@ func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int) (p, c, d, dir 
 	var direccion interface{}
 	var objeto_lugar []models.Lugar
 	var valAtribUbic []map[string]interface{}
-	if ubicaciones != nil {
-		for _, ubi := range ubicaciones {
-			if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
-				if objeto_lugar != nil && objeto_lugar[0].Id != 0 {
-					if objeto_lugar[0].TipoLugar.NumeroOrden == 3 {
-						if err = mapstructure.Decode(objeto_lugar[0], &ciudad); err != nil {
-							beego.Error(err.Error)
+	try.This(func() {
+		if ubicaciones != nil {
+			for _, ubi := range ubicaciones {
+				if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
+					if objeto_lugar != nil && objeto_lugar[0].Id != 0 {
+						if objeto_lugar[0].TipoLugar.NumeroOrden == 3 {
+							if err = mapstructure.Decode(objeto_lugar[0], &ciudad); err != nil {
+								beego.Error(err.Error)
+							}
+							ciudad["UbicacionEnte"] = ubi
 						}
-						ciudad["UbicacionEnte"] = ubi
-					}
-					if objeto_lugar[0].TipoLugar.NumeroOrden == 2 {
-						if err = mapstructure.Decode(objeto_lugar[0], &departamento); err != nil {
-							beego.Error(err.Error)
+						if objeto_lugar[0].TipoLugar.NumeroOrden == 2 {
+							if err = mapstructure.Decode(objeto_lugar[0], &departamento); err != nil {
+								beego.Error(err.Error)
+							}
+							departamento["UbicacionEnte"] = ubi
 						}
-						departamento["UbicacionEnte"] = ubi
-					}
-					if objeto_lugar[0].TipoLugar.NumeroOrden == 0 {
-						if err = mapstructure.Decode(objeto_lugar[0], &pais); err != nil {
-							beego.Error(err.Error)
-						}
-						pais["UbicacionEnte"] = ubi
+						if objeto_lugar[0].TipoLugar.NumeroOrden == 0 {
+							if err = mapstructure.Decode(objeto_lugar[0], &pais); err != nil {
+								beego.Error(err.Error)
+							}
+							pais["UbicacionEnte"] = ubi
 
-					}
-					if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/?query=AtributoUbicacion.NumeroOrden:1,UbicacionEnte:"+strconv.Itoa(ubi.Id), &valAtribUbic); err == nil {
-						direccion = valAtribUbic[0]
+						}
+						if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/?query=AtributoUbicacion.NumeroOrden:1,UbicacionEnte:"+strconv.Itoa(ubi.Id), &valAtribUbic); err == nil {
+							direccion = valAtribUbic[0]
+						}
 					}
 				}
 			}
 		}
-	}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+	})
 	return pais, departamento, ciudad, direccion
 }
 

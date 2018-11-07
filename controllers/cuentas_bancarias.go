@@ -7,6 +7,7 @@ import (
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
+	"github.com/manucorporat/try"
 )
 
 // CuentasBancariasController operations for Cuentas_bancarias
@@ -73,15 +74,10 @@ func (c *CuentasBancariasController) GetAll() {
 	if r := c.GetString("query"); r != "" {
 		query = r
 	}
-	beego.Info("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query)
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cuentasBancarias); err == nil {
+if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cuentasBancarias); err == nil {
 		if cuentasBancarias != nil {
-			beego.Info("Cuentas Bancarias",cuentasBancarias)
 			respuesta := optimize.ProccDigest(cuentasBancarias, getValuesCuentas, nil, 3)
-			beego.Info("respuesta ",respuesta)
 			c.Data["json"] = respuesta
-		}else{
-			beego.Error("RESPUESTA VACIA")
 		}
 	} else {
 		beego.Error("Error ", err)
@@ -93,10 +89,7 @@ func (c *CuentasBancariasController) GetAll() {
 func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface{}) {
 
 	var sucursal []interface{}
-	beego.Info("rpintfc inicio ",rpintfc)
 	idSucursalStr := strconv.FormatFloat(rpintfc.(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
-	beego.Info("IdSucursal ",idSucursalStr)
-
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU,Id:"+idSucursalStr, &sucursal); err == nil {
 		rpintfc.(map[string]interface{})["Sucursal"] = sucursal[0]
 	}else{
@@ -104,11 +97,14 @@ func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface
 	}
 	resBanco, err := GetBancoSucursal(idSucursalStr)
 	if err == nil {
+		try.This(func() {
 		rpintfc.(map[string]interface{})["Banco"] = resBanco.([]interface{})[0].(map[string]interface{})
+		}).Catch(func(e try.E) {
+			beego.Error("expc ", e)
+		})
 	} else {
 		beego.Error("Error", err.Error())
 	}
-		beego.Info("rpintfc fin ",rpintfc)
 	return rpintfc
 }
 
