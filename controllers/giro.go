@@ -216,7 +216,7 @@ func (c *GiroController) ListarGiros() {
 
 // GetGirosById ...
 // @Title GetGirosById
-// @Description get RP by vigencia
+// @Description get Giro by Id
 // @Param	Id	query	string	false	"vigencia de la lista"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
@@ -293,13 +293,62 @@ func (c *GiroController) GetGirosById() {
 	c.ServeJSON()
 }
 
+// GetSumGiro ...
+// @Title GetSumGiro
+// @Description get sum values by Id
+// @Param	Id	query	string	false	"vigencia de la lista"
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
+// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
+// @Param	query	query	string	false	"query de filtrado "
+// @Success 200 {object} models.Giro
+// @Failure 403
+// @router GetSumGiro/:Id [get]
+func (c *GiroController) GetSumGiro() {
+	giroIdStr := c.Ctx.Input.Param(":Id")
+	giroId, err1 := strconv.Atoi(giroIdStr)
+	var giro []interface{}
+	// var respuesta []map[string]interface{}
+
+	if err1 == nil {
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+		beego.Info(urlcrud + "/giro/GetSumGiro/?IdGiro=" + strconv.Itoa(giroId))
+		if err := request.GetJson(urlcrud+"/giro/GetSumGiro/?IdGiro="+strconv.Itoa(giroId), &giro); err == nil {
+			if giro != nil {
+				beego.Info(giro)
+				// done := make(chan interface{})
+				// defer close(done)
+				// resch := optimize.GenChanInterface(giro...)
+				// chrgiroDetalle := optimize.Digest(done, FormatoGiro, resch, nil)
+				// for gd := range chrgiroDetalle {
+				// 	if gd != nil {
+				// 		respuesta = append(respuesta, gd.(map[string]interface{}))
+				// 	}
+				//
+				// }
+				//giro[0].(map[string]interface{})["GiroDetalle"] = respuesta
+				c.Data["json"] = giro
+			} else {
+				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
+			}
+		} else {
+			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+		}
+	} else {
+		c.Data["json"] = models.Alert{Code: "E_0458", Body: "Not enough parameter", Type: "error"}
+	}
+
+	c.ServeJSON()
+}
+
 //funcion para recopilar datos detallados del giro
 func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{}) {
 	giroDetalle := girointfc.(map[string]interface{})
 	var resProveedor []map[string]interface{}
 	try.This(func() {
 		idCuentaEspecial := giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
-		   //beego.Info("idCuentaEspecial:",idCuentaEspecial)
+		//beego.Info("idCuentaEspecial:",idCuentaEspecial)
 		//solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 		urladministrativa := "http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor/?query=Id:"
 		if idCuentaEspecial == 0 {
