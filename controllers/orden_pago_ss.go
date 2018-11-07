@@ -81,7 +81,7 @@ func getContratoVigenciaDetalleLiquidacion(idsLiquidacionDesdePagos interface{},
 			if data, e1 := infoDetallePreliquidacion[0].(map[string]interface{}); e1 {
 				row["NumeroContrato"] = data["NumeroContrato"]
 				row["VigenciaContrato"] = data["VigenciaContrato"]
-				if err := request.GetJsonWSO2("http://jbpm.udistritaloas.edu.co:8280/services/contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
+				if err := request.GetJsonWSO2(beego.AppConfig.String("Wso2Service")+"contrato_suscrito_DataService.HTTPEndpoint/informacion_contrato_elaborado_contratista/"+row["NumeroContrato"].(string)+"/"+strconv.Itoa(int(row["VigenciaContrato"].(float64))), &infoPersona); err == nil {
 					if row["infoPersona"], e = infoPersona.(map[string]interface{})["informacion_contratista"]; e {
 						return row
 					} else {

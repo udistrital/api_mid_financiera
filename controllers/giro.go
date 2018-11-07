@@ -104,7 +104,6 @@ func (c *GiroController) CreateGiro() {
 	var responseDescuentos map[string]interface{}
 	giroDescuentos := make(map[string]interface{})
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &giro); err == nil {
-		//beego.Error("valor giro ", giro)
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
 		if err = request.SendJson(urlcrud+"/giro/RegistrarGiro", "POST", &response, giro); err == nil {
 			if strings.Compare(response["Type"].(string), "success") == 0 {
@@ -139,7 +138,7 @@ func (c *GiroController) CreateGiro() {
 
 // ListarGiros ...
 // @Title ListarGiros
-// @Description get RP by vigencia
+// @Description Listar todos los giros por vigencia
 // @Param	vigencia	query	string	false	"vigencia de la lista"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
@@ -190,16 +189,6 @@ func (c *GiroController) ListarGiros() {
 	if err1 == nil {
 		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/giro?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query=Vigencia:"+strconv.Itoa(vigencia)+query, &giro); err == nil {
 			if giro != nil {
-				// done := make(chan interface{})
-				// defer close(done)
-				// resch := optimize.GenChanInterface(rpresupuestal...)
-				// chrpresupuestal := optimize.Digest(done, FormatoListaRP, resch, nil)
-				// for rp := range chrpresupuestal {
-				// 	if rp != nil {
-				// 		respuesta = append(respuesta, rp.(map[string]interface{}))
-				// 	}
-
-				// }
 				c.Data["json"] = giro
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
@@ -217,7 +206,7 @@ func (c *GiroController) ListarGiros() {
 // GetGirosById ...
 // @Title GetGirosById
 // @Description get Giro by Id
-// @Param	Id	query	string	false	"vigencia de la lista"
+// @Param	Id	query	string	false	"Id del giro"
 // @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
 // @Param	offset	query	string	false	"Start position of result set. Must be an integer"
 // @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
@@ -278,7 +267,6 @@ func (c *GiroController) GetGirosById() {
 					}
 
 				}
-				//giro[0].(map[string]interface{})["GiroDetalle"] = respuesta
 				c.Data["json"] = respuesta
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
@@ -295,40 +283,30 @@ func (c *GiroController) GetGirosById() {
 
 // GetSumGiro ...
 // @Title GetSumGiro
-// @Description get sum values by Id
+// @Description get sum values by Id for models.GiroGiro
 // @Param	Id	query	string	false	"vigencia de la lista"
-// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
-// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
-// @Param	rangoinicio	query	string	false	"rango inicial del periodo a consultar"
-// @Param	rangofin	query	string	false	"rango final del periodo a consultar"
-// @Param	query	query	string	false	"query de filtrado "
 // @Success 200 {object} models.Giro
 // @Failure 403
 // @router GetSumGiro/:Id [get]
 func (c *GiroController) GetSumGiro() {
 	giroIdStr := c.Ctx.Input.Param(":Id")
 	giroId, err1 := strconv.Atoi(giroIdStr)
-	var giro []interface{}
+	var totalGiro []interface{}
+	var infoGiro interface{}
 	// var respuesta []map[string]interface{}
 
 	if err1 == nil {
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
 		beego.Info(urlcrud + "/giro/GetSumGiro/?IdGiro=" + strconv.Itoa(giroId))
-		if err := request.GetJson(urlcrud+"/giro/GetSumGiro/?IdGiro="+strconv.Itoa(giroId), &giro); err == nil {
-			if giro != nil {
-				beego.Info(giro)
-				// done := make(chan interface{})
-				// defer close(done)
-				// resch := optimize.GenChanInterface(giro...)
-				// chrgiroDetalle := optimize.Digest(done, FormatoGiro, resch, nil)
-				// for gd := range chrgiroDetalle {
-				// 	if gd != nil {
-				// 		respuesta = append(respuesta, gd.(map[string]interface{}))
-				// 	}
-				//
-				// }
-				//giro[0].(map[string]interface{})["GiroDetalle"] = respuesta
-				c.Data["json"] = giro
+		if err := request.GetJson(urlcrud+"/giro/GetSumGiro/?IdGiro="+strconv.Itoa(giroId), &totalGiro); err == nil {
+			if totalGiro != nil {
+				if err := request.GetJson(urlcrud + "/giro/"+strconv.Itoa(giroId), &infoGiro); err == nil {
+					totalGiro[0].(map[string]interface{})["total_op"] = strconv.FormatFloat(infoGiro.(map[string]interface{})["ValorTotal"].(float64),'f', -1, 64)
+				} else {
+					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+				}
+			
+				c.Data["json"] = totalGiro
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
 			}
@@ -348,8 +326,6 @@ func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{})
 	var resProveedor []map[string]interface{}
 	try.This(func() {
 		idCuentaEspecial := giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64)
-		//beego.Info("idCuentaEspecial:",idCuentaEspecial)
-		//solicituddisp, err := DetalleSolicitudDisponibilidadById(strconv.Itoa(idSolicitudDisponibilidad))
 		urladministrativa := "http://" + beego.AppConfig.String("AdministrativaAmazonService") + "informacion_proveedor/?query=Id:"
 		if idCuentaEspecial == 0 {
 			if err := request.GetJson(urladministrativa+strconv.FormatFloat(giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoRegistroPresupuestal"].([]interface{})[0].(map[string]interface{})["RegistroPresupuestal"].(map[string]interface{})["Beneficiario"].(float64), 'f', -1, 64), &resProveedor); err == nil {

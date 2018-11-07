@@ -58,7 +58,6 @@ func (c *CuentasBancariasController) GetOne() {
 // @Failure 403
 // @router / [get]
 func (c *CuentasBancariasController) GetAll() {
-	defer c.ServeJSON()
 	var cuentasBancarias []interface{}
 	var limit int64 = 10
 	var offset int64
@@ -74,25 +73,34 @@ func (c *CuentasBancariasController) GetAll() {
 	if r := c.GetString("query"); r != "" {
 		query = r
 	}
+	beego.Info("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/cuenta_bancaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &cuentasBancarias); err == nil {
 		if cuentasBancarias != nil {
+			beego.Info("Cuentas Bancarias",cuentasBancarias)
 			respuesta := optimize.ProccDigest(cuentasBancarias, getValuesCuentas, nil, 3)
+			beego.Info("respuesta ",respuesta)
 			c.Data["json"] = respuesta
+		}else{
+			beego.Error("RESPUESTA VACIA")
 		}
 	} else {
 		beego.Error("Error ", err)
 		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
 	}
+	c.ServeJSON()
 }
 
 func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface{}) {
 
 	var sucursal []interface{}
-
+	beego.Info("rpintfc inicio ",rpintfc)
 	idSucursalStr := strconv.FormatFloat(rpintfc.(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
+	beego.Info("IdSucursal ",idSucursalStr)
 
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU,Id:"+idSucursalStr, &sucursal); err == nil {
 		rpintfc.(map[string]interface{})["Sucursal"] = sucursal[0]
+	}else{
+		beego.Error("Error",err.Error())
 	}
 	resBanco, err := GetBancoSucursal(idSucursalStr)
 	if err == nil {
@@ -100,6 +108,7 @@ func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface
 	} else {
 		beego.Error("Error", err.Error())
 	}
+		beego.Info("rpintfc fin ",rpintfc)
 	return rpintfc
 }
 
