@@ -78,6 +78,7 @@ func (c *CuentasBancariasController) GetAll() {
 		if cuentasBancarias != nil {
 			beego.Info("Cuentas Bancarias",cuentasBancarias)
 			respuesta := optimize.ProccDigest(cuentasBancarias, getValuesCuentas, nil, 3)
+			beego.Info("respuesta ",respuesta)
 			c.Data["json"] = respuesta
 		}else{
 			beego.Error("RESPUESTA VACIA")
