@@ -92,9 +92,9 @@ func (c *CuentasBancariasController) GetAll() {
 func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface{}) {
 
 	var sucursal []interface{}
-
+	beego.Info("rpintfc inicio ",rpintfc)
 	idSucursalStr := strconv.FormatFloat(rpintfc.(map[string]interface{})["Sucursal"].(float64), 'f', -1, 64)
-	beego.Error("IdSucursal ",idSucursalStr)
+	beego.Info("IdSucursal ",idSucursalStr)
 
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU,Id:"+idSucursalStr, &sucursal); err == nil {
 		rpintfc.(map[string]interface{})["Sucursal"] = sucursal[0]
@@ -107,6 +107,7 @@ func getValuesCuentas(rpintfc interface{}, params ...interface{}) (res interface
 	} else {
 		beego.Error("Error", err.Error())
 	}
+		beego.Info("rpintfc fin ",rpintfc)
 	return rpintfc
 }
 
