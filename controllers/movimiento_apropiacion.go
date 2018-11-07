@@ -64,22 +64,29 @@ func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
 // @Param	body		body 	map[string]string	true		"body for MovimientoApropiacion content"
 // @Success 200 {object} map[string]string
 // @Failure 403
-// @router /ComprobarMovimientoApropiacion [post]
+// @router /ComprobarMovimientoApropiacion/:unidadEjecutora/:vigencia [post]
 func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
-
 	try.This(func() {
 		var v map[string]interface{}
 		var afectacion []map[string]interface{}
 		res := make(map[string]float64)
-		var unidadEjecutora int
-		unidadEjecutora = 1
+		UEStr := c.Ctx.Input.Param(":unidadEjecutora")
+		UE, comp := strconv.Atoi(UEStr)
+		if comp != nil {
+			panic(comp.Error())
+		}
+		VigStr := c.Ctx.Input.Param(":vigencia")
+		vigencia, comp := strconv.Atoi(VigStr)
+		if comp != nil {
+			panic(comp.Error())
+		}
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 			formatdata.FillStructP(v["MovimientoApropiacionDisponibilidadApropiacion"], &afectacion)
 			for _, element := range afectacion {
 				CalcularAfectacionMovimientoApropiacion(element, res)
 			}
-			sumValorMovimientoAPropiacion(true, "3", unidadEjecutora, 2018, 0, res)
-			sumValorMovimientoAPropiacion(true, "2", unidadEjecutora, 2018, 0, res)
+			sumValorMovimientoAPropiacion(true, "3", UE, vigencia, 0, res)
+			sumValorMovimientoAPropiacion(true, "2", UE, vigencia, 0, res)
 			if res["2"] != res["3"] {
 				c.Data["json"] = map[string]bool{"res": false}
 			} else {
