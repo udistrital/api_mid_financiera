@@ -7,12 +7,12 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/mitchellh/mapstructure"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/formatdata"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
-	"github.com/manucorporat/try"
 )
 
 type GestionSucursalesController struct {
@@ -38,42 +38,45 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 	var tipo_ente []models.TipoEnte
 	var respuesta interface{}
 	var ente models.Ente
+	try.This(func() {
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
+			ciudad := int(info_sucursal.Ciudad.(map[string]interface{})["Id"].(float64))
+			departamento := int(info_sucursal.Departamento.(map[string]interface{})["Id"].(float64))
+			pais := int(info_sucursal.Pais.(map[string]interface{})["Id"].(float64))
+			//Primero, se busca el código del tipo ente correspondiente al código de abreviación
+			if err = request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_ente?query=CodigoAbreviacion:TE_3", &tipo_ente); err == nil {
 
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &info_sucursal); err == nil {
+				//Se inserta en ente y se devuelve el id registrado
 
-		ciudad := int(info_sucursal.Ciudad.(map[string]interface{})["Id"].(float64))
-		departamento := int(info_sucursal.Departamento.(map[string]interface{})["Id"].(float64))
-		pais := int(info_sucursal.Pais.(map[string]interface{})["Id"].(float64))
-		//Primero, se busca el código del tipo ente correspondiente al código de abreviación
-		if err = request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_ente?query=CodigoAbreviacion:TE_3", &tipo_ente); err == nil {
+				respuesta, err = InsertarSucursal(info_sucursal.Organizacion.Nombre)
+				beego.Error("respuesta ", respuesta)
+				ente.Id = int(respuesta.(map[string]interface{})["Ente"].(float64))
+				ente.TipoEnte = tipo_ente[0]
+				beego.Error("ente  ", ente)
+				idEnteStr := strconv.Itoa(ente.Id)
+				if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"ente/"+idEnteStr, "PUT", &respuesta, ente); err != nil {
+					beego.Error("Error", err.Error())
+					return
+				}
+				respuesta, err = InsertarContacto(info_sucursal.Telefono.(map[string]interface{})["Valor"].(string), ente.Id)
+				respuesta, err = InsertarUbicacion(info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, ente.Id)
+				beego.Error("Ubicacion ", info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, tipo_ente)
+				c.Data["json"] = respuesta
+			} else {
 
-			//Se inserta en ente y se devuelve el id registrado
-
-			respuesta, err = InsertarSucursal(info_sucursal.Organizacion.Nombre)
-			beego.Error("respuesta ", respuesta)
-			ente.Id = int(respuesta.(map[string]interface{})["Ente"].(float64))
-			ente.TipoEnte = tipo_ente[0]
-			beego.Error("ente  ", ente)
-			idEnteStr := strconv.Itoa(ente.Id)
-			if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"ente/"+idEnteStr, "PUT", &respuesta, ente); err != nil {
-				beego.Error("Error", err.Error())
-				return
+				fmt.Println("error al consultar tipo ente: ", err)
+				c.Data["json"] = "Error al insertar ente"
 			}
-			respuesta, err = InsertarContacto(info_sucursal.Telefono.(map[string]interface{})["Valor"].(string), ente.Id)
-			respuesta, err = InsertarUbicacion(info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, ente.Id)
-			beego.Error("Ubicacion ", info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, tipo_ente)
+
 			c.Data["json"] = respuesta
 		} else {
-
-			fmt.Println("error al consultar tipo ente: ", err)
+			fmt.Println("err: ", err)
 			c.Data["json"] = "Error al insertar ente"
 		}
-
-		c.Data["json"] = respuesta
-	} else {
-		fmt.Println("err: ", err)
-		c.Data["json"] = "Error al insertar ente"
-	}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
+	})
 
 	c.ServeJSON()
 }
@@ -97,9 +100,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 			informacion_sucursal[i].Telefono = BuscarTelefono(suc.Ente)
 			ubicaciones := BuscarUbicaciones(suc.Ente)
 			informacion_sucursal[i].Pais, informacion_sucursal[i].Departamento, informacion_sucursal[i].Ciudad, informacion_sucursal[i].Direccion = BuscarLugar(ubicaciones, suc.Ente)
-
 		}
-
 		c.Data["json"] = informacion_sucursal
 	} else {
 		beego.Error(err)
@@ -118,6 +119,7 @@ func (c *GestionSucursalesController) ListarSucursal() {
 func (c *GestionSucursalesController) ListarSucursales() {
 
 	var sucursales []models.Organizacion
+	beego.Info(beego.AppConfig.String("coreOrganizacionService") + "organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU&limit=-1")
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU&limit=-1", &sucursales); err == nil {
 
 		var informacion_sucursal = make([]models.InformacionSucursal, len(sucursales))
@@ -131,6 +133,7 @@ func (c *GestionSucursalesController) ListarSucursales() {
 
 		c.Data["json"] = informacion_sucursal
 	} else {
+		beego.Error("Error ", err)
 		c.Data["json"] = err
 	}
 
@@ -368,40 +371,39 @@ func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int) (p, c, d, dir 
 	var direccion interface{}
 	var objeto_lugar []models.Lugar
 	var valAtribUbic []map[string]interface{}
-	try.This(func() {
-		if ubicaciones != nil {
-			for _, ubi := range ubicaciones {
-				if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
-					if objeto_lugar != nil && objeto_lugar[0].Id != 0 {
-						if objeto_lugar[0].TipoLugar.NumeroOrden == 3 {
-							if err = mapstructure.Decode(objeto_lugar[0], &ciudad); err != nil {
-								beego.Error(err.Error)
-							}
-							ciudad["UbicacionEnte"] = ubi
-						}
-						if objeto_lugar[0].TipoLugar.NumeroOrden == 2 {
-							if err = mapstructure.Decode(objeto_lugar[0], &departamento); err != nil {
-								beego.Error(err.Error)
-							}
-							departamento["UbicacionEnte"] = ubi
-						}
-						if objeto_lugar[0].TipoLugar.NumeroOrden == 0 {
-							if err = mapstructure.Decode(objeto_lugar[0], &pais); err != nil {
-								beego.Error(err.Error)
-							}
-							pais["UbicacionEnte"] = ubi
 
+	if ubicaciones != nil {
+		for _, ubi := range ubicaciones {
+			if err := request.GetJson(beego.AppConfig.String("coreUbicacionService")+"lugar?query=Id:"+strconv.Itoa(ubi.Lugar), &objeto_lugar); err == nil {
+				if objeto_lugar != nil && objeto_lugar[0].Id != 0 {
+					if objeto_lugar[0].TipoLugar.NumeroOrden == 3 {
+						if err = mapstructure.Decode(objeto_lugar[0], &ciudad); err != nil {
+							beego.Error(err.Error)
 						}
-						if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/?query=AtributoUbicacion.NumeroOrden:1,UbicacionEnte:"+strconv.Itoa(ubi.Id), &valAtribUbic); err == nil {
+						ciudad["UbicacionEnte"] = ubi
+					}
+					if objeto_lugar[0].TipoLugar.NumeroOrden == 2 {
+						if err = mapstructure.Decode(objeto_lugar[0], &departamento); err != nil {
+							beego.Error(err.Error)
+						}
+						departamento["UbicacionEnte"] = ubi
+					}
+					if objeto_lugar[0].TipoLugar.NumeroOrden == 1 {
+						if err = mapstructure.Decode(objeto_lugar[0], &pais); err != nil {
+							beego.Error(err.Error)
+						}
+						pais["UbicacionEnte"] = ubi
+					}
+					if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/?query=AtributoUbicacion.NumeroOrden:1,UbicacionEnte:"+strconv.Itoa(ubi.Id), &valAtribUbic); err == nil {
+						if valAtribUbic != nil {
 							direccion = valAtribUbic[0]
 						}
 					}
 				}
 			}
 		}
-	}).Catch(func(e try.E) {
-		beego.Error("expc ", e)
-	})
+	}
+
 	return pais, departamento, ciudad, direccion
 }
 
@@ -415,7 +417,6 @@ func BuscarLugar(ubicaciones []models.UbicacionEnte, id_ente int) (p, c, d, dir 
 // @router /EditarSucursal/:idEnte [put]
 func (c *GestionSucursalesController) EditarSucursal() {
 	defer c.ServeJSON()
-	defer beego.Error("data salida ", c.Data["json"])
 	var v map[string]interface{}
 	var idEnte int
 	var telefono interface{}
@@ -423,78 +424,84 @@ func (c *GestionSucursalesController) EditarSucursal() {
 	idEnte, _ = strconv.Atoi(idEnteStr)
 	var respuesta interface{}
 	var ubicacionEnteCiudad models.UbicacionEnte
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		telefono = v["Telefono"]
-		if telefono.(map[string]interface{})["Id"] != nil {
-			telStr := strconv.FormatFloat(telefono.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-			if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/"+telStr, "PUT", &respuesta, telefono); err != nil {
-				c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
-				return
-			} else {
-				if _, err := InsertarContacto(telefono.(map[string]interface{})["Valor"].(string), idEnte); err != nil {
-					beego.Error(err.Error())
+	try.This(func() {
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			telefono = v["Telefono"]
+			if telefono.(map[string]interface{})["Id"] != nil {
+				telStr := strconv.FormatFloat(telefono.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+				if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/"+telStr, "PUT", &respuesta, telefono); err != nil {
 					c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
 					return
-				}
-			}
-		}
-
-		if _, err = updateLugarUbicacion(v["Pais"], idEnte); err != nil {
-			beego.Error(err.Error())
-			c.Data["json"] = models.Alert{Type: "error", Code: "E_GS002", Body: err.Error()}
-			return
-		}
-
-		if _, err = updateLugarUbicacion(v["Departamento"], idEnte); err != nil {
-			beego.Error(err.Error())
-			c.Data["json"] = models.Alert{Type: "error", Code: "E_GS006", Body: err.Error()}
-			return
-		}
-
-		if respuesta, err = updateLugarUbicacion(v["Ciudad"], idEnte); err != nil {
-			c.Data["json"] = models.Alert{Type: "error", Code: "E_GS001", Body: err.Error()}
-			return
-		} else {
-			if err = formatdata.FillStruct(respuesta.(map[string]interface{})["Body"], &ubicacionEnteCiudad); err != nil {
-				beego.Error(err.Error())
-			} else {
-				beego.Error("respuesta ", respuesta, " ubicacion ente ciudad ", ubicacionEnteCiudad)
-				direccion := v["Direccion"]
-				if direccion != nil {
-					if direccion.(map[string]interface{})["Id"] != nil {
-						dirStr := strconv.FormatFloat(direccion.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-						if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/"+dirStr, "PUT", &respuesta, direccion); err != nil {
-							beego.Error("Error", err.Error())
-							c.Data["json"] = models.Alert{Type: "error", Code: "E_GS003", Body: err.Error()}
-							return
-						}
-					} else {
-						if err = InsertarDireccion(direccion.(map[string]interface{})["Valor"].(string), ubicacionEnteCiudad); err != nil {
-							beego.Error("Error", err.Error())
-							c.Data["json"] = models.Alert{Type: "error", Code: "E_GS003", Body: err.Error()}
-							return
-						}
+				} else {
+					if _, err := InsertarContacto(telefono.(map[string]interface{})["Valor"].(string), idEnte); err != nil {
+						beego.Error(err.Error())
+						c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
+						return
 					}
 				}
+			}
 
+			if _, err = updateLugarUbicacion(v["Pais"], idEnte); err != nil {
+				beego.Error(err.Error())
+				c.Data["json"] = models.Alert{Type: "error", Code: "E_GS002", Body: err.Error()}
+				return
 			}
-		}
-		organizacion := v["Organizacion"]
-		if organizacion != nil {
-			idOrgStr := strconv.FormatFloat(organizacion.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-			if err := request.SendJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/"+idOrgStr, "PUT", &respuesta, organizacion); err != nil {
-				beego.Error("Error", err.Error())
-				c.Data["json"] = models.Alert{Type: "error", Code: "E_GS004", Body: err.Error()}
+
+			if _, err = updateLugarUbicacion(v["Departamento"], idEnte); err != nil {
+				beego.Error(err.Error())
+				c.Data["json"] = models.Alert{Type: "error", Code: "E_GS006", Body: err.Error()}
+				return
 			}
+
+			if respuesta, err = updateLugarUbicacion(v["Ciudad"], idEnte); err != nil {
+				c.Data["json"] = models.Alert{Type: "error", Code: "E_GS001", Body: err.Error()}
+				return
+			} else {
+				if err = formatdata.FillStruct(respuesta.(map[string]interface{})["Body"], &ubicacionEnteCiudad); err != nil {
+					beego.Error(err.Error())
+				} else {
+					beego.Error("respuesta ", respuesta, " ubicacion ente ciudad ", ubicacionEnteCiudad)
+					direccion := v["Direccion"]
+					if direccion != nil {
+						if direccion.(map[string]interface{})["Id"] != nil {
+							dirStr := strconv.FormatFloat(direccion.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+							if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"valor_atributo_ubicacion/"+dirStr, "PUT", &respuesta, direccion); err != nil {
+								beego.Error("Error", err.Error())
+								c.Data["json"] = models.Alert{Type: "error", Code: "E_GS003", Body: err.Error()}
+								return
+							}
+						} else {
+							if err = InsertarDireccion(direccion.(map[string]interface{})["Valor"].(string), ubicacionEnteCiudad); err != nil {
+								beego.Error("Error", err.Error())
+								c.Data["json"] = models.Alert{Type: "error", Code: "E_GS003", Body: err.Error()}
+								return
+							}
+						}
+					}
+
+				}
+			}
+			organizacion := v["Organizacion"]
+			if organizacion != nil {
+				idOrgStr := strconv.FormatFloat(organizacion.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
+				if err := request.SendJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/"+idOrgStr, "PUT", &respuesta, organizacion); err != nil {
+					beego.Error("Error", err.Error())
+					c.Data["json"] = models.Alert{Type: "error", Code: "E_GS004", Body: err.Error()}
+				}
+			}
+			c.Data["json"] = models.Alert{Type: "success", Code: "S_542", Body: respuesta}
+		} else {
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_GS004", Body: err.Error()}
 		}
-		c.Data["json"] = models.Alert{Type: "success", Code: "S_542", Body: respuesta}
-	} else {
-		c.Data["json"] = models.Alert{Type: "error", Code: "E_GS004", Body: err.Error()}
-	}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+		c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": e, "Type": "error"}
+	})
 }
 
 func updateLugarUbicacion(lugar interface{}, idEnte int) (respuesta interface{}, err error) {
 	if lugar != nil {
+		beego.Error("gets here")
 		if lugar.(map[string]interface{})["Id"] != nil {
 			idLugarStr := strconv.FormatFloat(lugar.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 			if err = request.SendJson(beego.AppConfig.String("coreEnteService")+"ubicacion_ente/"+idLugarStr, "PUT", &respuesta, lugar); err == nil {
@@ -505,7 +512,6 @@ func updateLugarUbicacion(lugar interface{}, idEnte int) (respuesta interface{},
 		} else {
 			idLugar := int(lugar.(map[string]interface{})["Lugar"].(float64))
 			if respuesta, err = InsertarLugar(idLugar, idEnte); err != nil {
-
 				err = errors.New("error al insertar lugar ubicacion ente")
 				beego.Error(err.Error())
 			}
@@ -592,7 +598,7 @@ func (c *GestionSucursalesController) ListarBancos() {
 	defer c.ServeJSON()
 	var bancos []interface{}
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:EB&limit=-1", &bancos); err == nil {
-		if bancos != nil{
+		if bancos != nil {
 			informacion_bancos := optimize.ProccDigest(bancos, getInfoAdicionalBanco, nil, 3)
 			c.Data["json"] = informacion_bancos
 		}
@@ -602,7 +608,6 @@ func (c *GestionSucursalesController) ListarBancos() {
 
 }
 
-
 func getInfoAdicionalBanco(rpintfc interface{}, params ...interface{}) (res interface{}) {
 	var infoAdicional []map[string]interface{}
 	var infoIden []interface{}
@@ -610,25 +615,25 @@ func getInfoAdicionalBanco(rpintfc interface{}, params ...interface{}) (res inte
 	idEnteBanco := strconv.Itoa(int(rpintfc.(map[string]interface{})["Ente"].(float64)))
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/informacion_adicional_banco/?limit=-1&query=Banco:"+idBanco, &infoAdicional); err == nil {
 		if infoAdicional != nil {
-			rpintfc.(map[string]interface{})["CodigoAch"]= infoAdicional[0]["CodigoAch"]
-			rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= infoAdicional[0]["CodigoAch"]
-			rpintfc.(map[string]interface{})["IdInformacionAdicional"]= infoAdicional[0]["CodigoAch"]
-			}else {
-				rpintfc.(map[string]interface{})["CodigoAch"]= 0
-				rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= 0
-				rpintfc.(map[string]interface{})["IdInformacionAdicional"]= 0
-			}
-		}else {
-			rpintfc.(map[string]interface{})["CodigoAch"]= 0
-			rpintfc.(map[string]interface{})["CodigoSuperintendencia"]= 0
-			rpintfc.(map[string]interface{})["IdInformacionAdicional"]= 0
+			rpintfc.(map[string]interface{})["CodigoAch"] = infoAdicional[0]["CodigoAch"]
+			rpintfc.(map[string]interface{})["CodigoSuperintendencia"] = infoAdicional[0]["CodigoAch"]
+			rpintfc.(map[string]interface{})["IdInformacionAdicional"] = infoAdicional[0]["CodigoAch"]
+		} else {
+			rpintfc.(map[string]interface{})["CodigoAch"] = 0
+			rpintfc.(map[string]interface{})["CodigoSuperintendencia"] = 0
+			rpintfc.(map[string]interface{})["IdInformacionAdicional"] = 0
 		}
+	} else {
+		rpintfc.(map[string]interface{})["CodigoAch"] = 0
+		rpintfc.(map[string]interface{})["CodigoSuperintendencia"] = 0
+		rpintfc.(map[string]interface{})["IdInformacionAdicional"] = 0
+	}
 
 	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"identificacion/?query=Ente:"+idEnteBanco, &infoIden); err == nil {
 		if infoIden != nil {
 			rpintfc.(map[string]interface{})["Identificacion"] = infoIden
 		}
-	}else{
+	} else {
 		beego.Error(err.Error())
 	}
 	return rpintfc
