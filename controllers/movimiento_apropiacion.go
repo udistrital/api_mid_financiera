@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"math"
 	"strconv"
 	"strings"
 
@@ -28,48 +29,13 @@ const separator = "-"
 // @Param	body		body 	models.MovimientoApropiacion	true		"body for MovimientoApropiacion content"
 // @Success 201 {int} models.MovimientoApropiacion
 // @Failure 403 body is empty
-// @router /AprobarMovimietnoApropiacion [post]
+// @router /AprobarMovimietnoApropiacion/:unidadEjecutora/:vigencia [post]
 func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
+	var v map[string]interface{}
 	try.This(func() {
-		var v map[string]interface{}
-		var res interface{}
-		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-			beego.Info("Data Recibed ", v)
-			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/movimiento_apropiacion/AprobarMovimietnoApropiacion"
-			if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
-				beego.Info("Data to Send ", res)
-				c.Data["json"] = res
-			} else {
-				panic(err.Error())
-			}
-		} else {
-			panic(err.Error())
-		}
-	}).Catch(func(e try.E) {
-		beego.Error("catch error registrar valores: ", e)
-		var alert []models.Alert
-		alt := models.Alert{}
-		alt.Code = "E_0458"
-		alt.Body = e
-		alt.Type = "error"
-		alert = append(alert, alt)
-		c.Data["json"] = alert
-	})
-	c.ServeJSON()
-}
 
-// ComprobarMovimientoApropiacion ...
-// @Title Comprobar Movimiento Apropiacion
-// @Description Comprueba si se puede generar un Movimiento en las apropiaciones.
-// @Param	body		body 	map[string]string	true		"body for MovimientoApropiacion content"
-// @Success 200 {object} map[string]string
-// @Failure 403
-// @router /ComprobarMovimientoApropiacion/:unidadEjecutora/:vigencia [post]
-func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
-	try.This(func() {
-		var v map[string]interface{}
+		var res interface{}
 		var afectacion []map[string]interface{}
-		res := make(map[string]float64)
 		UEStr := c.Ctx.Input.Param(":unidadEjecutora")
 		UE, comp := strconv.Atoi(UEStr)
 		if comp != nil {
@@ -82,28 +48,102 @@ func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
 		}
 		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 			formatdata.FillStructP(v["MovimientoApropiacionDisponibilidadApropiacion"], &afectacion)
-			for _, element := range afectacion {
-				CalcularAfectacionMovimientoApropiacion(element, res)
+			for index := 0; index < len(afectacion); index++ {
+				afectacion[index]["CuentaCredito"].(map[string]interface{})["Codigo"] = afectacion[index]["CuentaCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["Codigo"]
+				afectacion[index]["CuentaCredito"].(map[string]interface{})["UnidadEjecutora"] = strconv.Itoa(int(afectacion[index]["CuentaCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)))
+				if afectacion[index]["CuentaContraCredito"] != nil {
+					afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Codigo"] = afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["Codigo"]
+					afectacion[index]["CuentaContraCredito"].(map[string]interface{})["UnidadEjecutora"] = strconv.Itoa(int(afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)))
+				}
 			}
-			sumValorMovimientoAPropiacion(true, "3", UE, vigencia, 0, res)
-			sumValorMovimientoAPropiacion(true, "2", UE, vigencia, 0, res)
-			if res["2"] != res["3"] {
-				c.Data["json"] = map[string]bool{"res": false}
+			_, _, compr := ComprobacionMovimiento(afectacion, UE, vigencia)
+			if compr {
+				Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/movimiento_apropiacion/AprobarMovimietnoApropiacion"
+				if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
+					beego.Info("Data to Send ", res)
+					c.Data["json"] = res
+				} else {
+					panic(err.Error())
+				}
 			} else {
-				c.Data["json"] = map[string]bool{"res": true}
+				var alert []models.Alert
+				alt := models.Alert{}
+				alt.Code = "E_MODP008"
+				alt.Body = map[string]interface{}{"Movimiento": v}
+				alt.Type = "error"
+				alert = append(alert, alt)
+				c.Data["json"] = alert
 			}
+
+		} else {
+			panic(err.Error())
+		}
+	}).Catch(func(e try.E) {
+		beego.Error("catch error registrar valores: ", e)
+		var alert []models.Alert
+		alt := models.Alert{}
+		alt.Code = "E_0458"
+		alt.Body = v
+		alt.Type = "error"
+		alert = append(alert, alt)
+		c.Data["json"] = alert
+	})
+	c.ServeJSON()
+}
+
+// ComprobarMovimientoApropiacion ...
+// @Title Comprobar Movimiento Apropiacion
+// @Description Comprueba si se puede generar un Movimiento en las apropiaciones.
+// @Param	body		body 	map[string]string	true		"body for MovimientoApropiacion content"
+// @Param	format		query 	string	false		"rama a consultar"
+// @Success 200 {object} map[string]string
+// @Failure 403
+// @router /ComprobarMovimientoApropiacion/:unidadEjecutora/:vigencia [post]
+func (c *MovimientoApropiacionController) ComprobarMovimientoApropiacion() {
+	try.This(func() {
+		var v map[string]interface{}
+		var afectacion []map[string]interface{}
+		dataSend := make(map[string]interface{})
+		UEStr := c.Ctx.Input.Param(":unidadEjecutora")
+		UE, comp := strconv.Atoi(UEStr)
+		if comp != nil {
+			panic(comp.Error())
+		}
+		format, _ := c.GetInt("format")
+
+		VigStr := c.Ctx.Input.Param(":vigencia")
+		vigencia, comp := strconv.Atoi(VigStr)
+		if comp != nil {
+			panic(comp.Error())
+		}
+		if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+			formatdata.FillStructP(v["MovimientoApropiacionDisponibilidadApropiacion"], &afectacion)
+			if format == 1 {
+				for index := 0; index < len(afectacion); index++ {
+					afectacion[index]["CuentaCredito"].(map[string]interface{})["Codigo"] = afectacion[index]["CuentaCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["Codigo"]
+					afectacion[index]["CuentaCredito"].(map[string]interface{})["UnidadEjecutora"] = strconv.Itoa(int(afectacion[index]["CuentaCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)))
+					if afectacion[index]["CuentaContraCredito"] != nil {
+						afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Codigo"] = afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["Codigo"]
+						afectacion[index]["CuentaContraCredito"].(map[string]interface{})["UnidadEjecutora"] = strconv.Itoa(int(afectacion[index]["CuentaContraCredito"].(map[string]interface{})["Rubro"].(map[string]interface{})["UnidadEjecutora"].(float64)))
+					}
+				}
+			}
+			dataSend["Saldo"], dataSend["Diff"], dataSend["Comp"] = ComprobacionMovimiento(afectacion, UE, vigencia)
+			alt := models.Alert{}
+			alt.Code = "S_CMA001"
+			alt.Body = dataSend
+			alt.Type = "success"
+			c.Data["json"] = alt
 		} else {
 			panic(err.Error())
 		}
 	}).Catch(func(e try.E) {
 		beego.Error("catch error Comprobar Movimientos: ", e)
-		var alert []models.Alert
 		alt := models.Alert{}
 		alt.Code = "E_0458"
 		alt.Body = e
 		alt.Type = "error"
-		alert = append(alert, alt)
-		c.Data["json"] = alert
+		c.Data["json"] = alt
 	})
 	c.ServeJSON()
 }
@@ -131,6 +171,8 @@ func CalcularAfectacionMovimientoApropiacion(afectacion map[string]interface{}, 
 	switch cond := idTipo; cond {
 	case 3: // Adicion
 		multiplicador = 1
+	case 4:
+		multiplicador = 0
 	default:
 		multiplicador = -1
 	}
@@ -239,4 +281,18 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		beego.Error("error job ", e)
 	})
 	return
+}
+
+func ComprobacionMovimiento(afectacion []map[string]interface{}, UE, vigencia int) (map[string]float64, float64, bool) {
+	res := make(map[string]float64)
+	for _, element := range afectacion {
+		CalcularAfectacionMovimientoApropiacion(element, res)
+	}
+	sumValorMovimientoAPropiacion(true, "3", UE, vigencia, 0, res)
+	sumValorMovimientoAPropiacion(true, "2", UE, vigencia, 0, res)
+	diff := math.Abs(res["2"] - res["3"])
+	if res["2"] != res["3"] {
+		return res, diff, false
+	}
+	return res, diff, true
 }
