@@ -46,32 +46,34 @@ func (c *GestionSucursalesController) InsertarSucursales() {
 			//Primero, se busca el código del tipo ente correspondiente al código de abreviación
 			if err = request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_ente?query=CodigoAbreviacion:TE_3", &tipo_ente); err == nil {
 
-				//Se inserta en ente y se devuelve el id registrado
-
 				respuesta, err = InsertarSucursal(info_sucursal.Organizacion.Nombre)
-				beego.Error("respuesta ", respuesta)
 				ente.Id = int(respuesta.(map[string]interface{})["Ente"].(float64))
 				ente.TipoEnte = tipo_ente[0]
-				beego.Error("ente  ", ente)
 				idEnteStr := strconv.Itoa(ente.Id)
-				if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"ente/"+idEnteStr, "PUT", &respuesta, ente); err != nil {
+				respuesta.(map[string]interface{})["Ente"] = &ente
+
+				if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"ente/"+idEnteStr, "PUT", respuesta.(map[string]interface{})["Ente"], ente); err != nil {
 					beego.Error("Error", err.Error())
+					c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err.Error(), "Type": "error"}
 					return
 				}
-				respuesta, err = InsertarContacto(info_sucursal.Telefono.(map[string]interface{})["Valor"].(string), ente.Id)
-				respuesta, err = InsertarUbicacion(info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, ente.Id)
-				beego.Error("Ubicacion ", info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, tipo_ente)
-				c.Data["json"] = respuesta
+				if _, err = InsertarContacto(info_sucursal.Telefono.(map[string]interface{})["Valor"].(string), ente.Id); err != nil {
+					c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err.Error(), "Type": "error"}
+					return
+				}
+
+				if _, err = InsertarUbicacion(info_sucursal.Direccion.(map[string]interface{})["Valor"].(string), pais, departamento, ciudad, ente.Id); err != nil {
+					c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err.Error(), "Type": "error"}
+					return
+				}
+
+				c.Data["json"] = map[string]interface{}{"Code": "S_543", "Body": respuesta, "Type": "success"}
+
 			} else {
-
-				fmt.Println("error al consultar tipo ente: ", err)
-				c.Data["json"] = "Error al insertar ente"
+				c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err.Error(), "Type": "error"}
 			}
-
-			c.Data["json"] = respuesta
 		} else {
-			fmt.Println("err: ", err)
-			c.Data["json"] = "Error al insertar ente"
+			c.Data["json"] = map[string]interface{}{"Code": "E_0458", "Body": err.Error(), "Type": "error"}
 		}
 	}).Catch(func(e try.E) {
 		beego.Error("expc ", e)
@@ -119,7 +121,6 @@ func (c *GestionSucursalesController) ListarSucursal() {
 func (c *GestionSucursalesController) ListarSucursales() {
 
 	var sucursales []models.Organizacion
-	beego.Info(beego.AppConfig.String("coreOrganizacionService") + "organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU&limit=-1")
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/?query=TipoOrganizacion.CodigoAbreviacion:SU&limit=-1", &sucursales); err == nil {
 
 		var informacion_sucursal = make([]models.InformacionSucursal, len(sucursales))
@@ -244,16 +245,13 @@ func InsertarSucursal(nombre string) (res interface{}, err error) {
 	var tipo_organizacion []models.TipoOrganizacion
 	var respuesta interface{}
 	if err := request.GetJson(beego.AppConfig.String("coreOrganizacionService")+"tipo_organizacion?query=CodigoAbreviacion:SU", &tipo_organizacion); err == nil {
-
 		objeto_organizacion := &models.Organizacion{Nombre: nombre, TipoOrganizacion: &models.TipoOrganizacion{Id: tipo_organizacion[0].Id}}
 		if err := request.SendJson(beego.AppConfig.String("coreOrganizacionService")+"organizacion/", "POST", &respuesta, &objeto_organizacion); err != nil {
 			fmt.Println("error al insertar sucursal")
 		}
-
 	} else {
 		fmt.Println("error al consultar tipo_organizacion")
 	}
-
 	return respuesta, err
 }
 
@@ -264,15 +262,11 @@ func InsertarContacto(telefono string, id_ente int) (res interface{}, err error)
 	if err := request.GetJson(beego.AppConfig.String("coreEnteService")+"tipo_contacto?query=CodigoAbreviacion:TEL", &tipo_contacto); err == nil {
 
 		objeto_contacto := &models.ContactoEnte{Valor: telefono, Ente: &models.Ente{Id: id_ente}, TipoContacto: &models.TipoContacto{Id: tipo_contacto[0].Id}}
-		beego.Error("Objeto contacto", objeto_contacto, "ente ", objeto_contacto.Ente)
-		if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/", "POST", &respuesta, &objeto_contacto); err == nil {
-
-		} else {
-			fmt.Println("error al insertar contacto")
+		if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/", "POST", &respuesta, &objeto_contacto); err != nil {
+			beego.Error("error al insertar contacto")
 		}
-
 	} else {
-		fmt.Println("error al consultar tipo_contacto")
+		beego.Error("error al consultar tipo_contacto")
 	}
 
 	return respuesta, err
@@ -430,14 +424,15 @@ func (c *GestionSucursalesController) EditarSucursal() {
 			if telefono.(map[string]interface{})["Id"] != nil {
 				telStr := strconv.FormatFloat(telefono.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 				if err := request.SendJson(beego.AppConfig.String("coreEnteService")+"contacto_ente/"+telStr, "PUT", &respuesta, telefono); err != nil {
+					beego.Error(err.Error())
 					c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
 					return
-				} else {
-					if _, err := InsertarContacto(telefono.(map[string]interface{})["Valor"].(string), idEnte); err != nil {
-						beego.Error(err.Error())
-						c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
-						return
-					}
+				}
+			} else {
+				if _, err := InsertarContacto(telefono.(map[string]interface{})["Valor"].(string), idEnte); err != nil {
+					beego.Error(err.Error())
+					c.Data["json"] = models.Alert{Type: "error", Code: "E_GS005", Body: err.Error()}
+					return
 				}
 			}
 
@@ -460,7 +455,6 @@ func (c *GestionSucursalesController) EditarSucursal() {
 				if err = formatdata.FillStruct(respuesta.(map[string]interface{})["Body"], &ubicacionEnteCiudad); err != nil {
 					beego.Error(err.Error())
 				} else {
-					beego.Error("respuesta ", respuesta, " ubicacion ente ciudad ", ubicacionEnteCiudad)
 					direccion := v["Direccion"]
 					if direccion != nil {
 						if direccion.(map[string]interface{})["Id"] != nil {
@@ -501,12 +495,9 @@ func (c *GestionSucursalesController) EditarSucursal() {
 
 func updateLugarUbicacion(lugar interface{}, idEnte int) (respuesta interface{}, err error) {
 	if lugar != nil {
-		beego.Error("gets here")
 		if lugar.(map[string]interface{})["Id"] != nil {
 			idLugarStr := strconv.FormatFloat(lugar.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-			if err = request.SendJson(beego.AppConfig.String("coreEnteService")+"ubicacion_ente/"+idLugarStr, "PUT", &respuesta, lugar); err == nil {
-				beego.Error("lugar  ente  ", respuesta)
-			} else {
+			if err = request.SendJson(beego.AppConfig.String("coreEnteService")+"ubicacion_ente/"+idLugarStr, "PUT", &respuesta, lugar); err != nil {
 				beego.Error("Error", err.Error())
 			}
 		} else {
