@@ -60,7 +60,7 @@ func (c *MovimientoApropiacionController) AprobarMovimietnoApropiacion() {
 			if compr {
 				Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/movimiento_apropiacion/AprobarMovimietnoApropiacion"
 				if err := request.SendJson(Urlcrud, "POST", &res, &v); err == nil {
-					beego.Info("Data to Send ", res)
+					//beego.Info("Data to Send ", res)
 					c.Data["json"] = res
 				} else {
 					panic(err.Error())
@@ -234,6 +234,12 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 			}
 			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
 				Disponibilidad = dispo["Id"].(float64)
+				var disponibilidadParameter []interface{}
+				disponibilidadParameter = append(disponibilidadParameter, dispo)
+				beego.Info("Jon Info ", disponibilidadParameter)
+				if err := AddDisponibilidadMongo(disponibilidadParameter...); err != nil {
+					panic("Mongo api error")
+				}
 			}
 
 			Valor := data["Valor"]
