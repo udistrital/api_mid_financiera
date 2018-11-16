@@ -306,7 +306,9 @@ func (c *RegistroPresupuestalController) GetSolicitudesRp() {
 				resch := optimize.GenChanInterface(solicitudes_rp...)
 				chsolicitud := optimize.Digest(done, formatoSolicitudRP, resch, nil)
 				for solicitud := range chsolicitud {
-					respuesta = append(respuesta, solicitud.(models.SolicitudRp))
+					if data, e := solicitud.(models.SolicitudRp); e {
+						respuesta = append(respuesta, data)
+					}
 				}
 				c.Data["json"] = respuesta
 			} else {
