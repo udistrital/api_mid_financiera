@@ -297,15 +297,14 @@ func (c *GiroController) GetSumGiro() {
 
 	if err1 == nil {
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
-		beego.Info(urlcrud + "/giro/GetSumGiro/?IdGiro=" + strconv.Itoa(giroId))
 		if err := request.GetJson(urlcrud+"/giro/GetSumGiro/?IdGiro="+strconv.Itoa(giroId), &totalGiro); err == nil {
 			if totalGiro != nil {
-				if err := request.GetJson(urlcrud + "/giro/"+strconv.Itoa(giroId), &infoGiro); err == nil {
-					totalGiro[0].(map[string]interface{})["total_op"] = strconv.FormatFloat(infoGiro.(map[string]interface{})["ValorTotal"].(float64),'f', -1, 64)
+				if err := request.GetJson(urlcrud+"/giro/"+strconv.Itoa(giroId), &infoGiro); err == nil {
+					totalGiro[0].(map[string]interface{})["total_op"] = strconv.FormatFloat(infoGiro.(map[string]interface{})["ValorTotal"].(float64), 'f', -1, 64)
 				} else {
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
-			
+
 				c.Data["json"] = totalGiro
 			} else {
 				c.Data["json"] = models.Alert{Code: "E_0458", Body: nil, Type: "error"}
@@ -318,6 +317,20 @@ func (c *GiroController) GetSumGiro() {
 	}
 
 	c.ServeJSON()
+}
+
+//funcion para recopilar valores de la cuenta especial
+func getValueGiroCuentaEspecial(element interface{}) (res interface{}) {
+
+	if element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["TipoCuentaEspecial"].(map[string]interface{})["Nombre"] == "Endoso" {
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+		if err := request.GetJson(urlcrud+"/giro/GetValueEndoso/?IdOrdenPago="+strconv.FormatFloat(element.(map[string]interface{})["OrdenPago"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)+"&IdCuentaEspecial="+strconv.FormatFloat(element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64), 'f', -1, 64), &res); err == nil {
+			res = res.([]interface{})[0].(map[string]interface{})["valor_endoso"]
+		}
+	} else {
+		res = element.(map[string]interface{})["ValorBase"].(float64) * element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Porcentaje"].(float64)
+	}
+	return
 }
 
 //funcion para recopilar datos detallados del giro
@@ -338,7 +351,7 @@ func FormatoGiro(girointfc interface{}, params ...interface{}) (res interface{})
 				giroDetalle["InfoProveedor"] = resProveedor
 				for _, element := range giroDetalle["OrdenPago"].(map[string]interface{})["OrdenPagoCuentaEspecial"].([]interface{}) {
 					if giroDetalle["CuentaEspecial"].(map[string]interface{})["Id"].(float64) == element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64) {
-						giroDetalle["ValorBasePago"] = element.(map[string]interface{})["ValorBase"].(float64)
+						giroDetalle["ValorBasePago"] = getValueGiroCuentaEspecial(element)
 						giroDetalle["TipoMov"] = element.(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["TipoCuentaEspecial"].(map[string]interface{})["Nombre"].(string)
 					}
 				}
