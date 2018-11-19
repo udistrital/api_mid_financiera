@@ -120,6 +120,11 @@ func init() {
 				&controllers.GestionChequesController{},
 			),
 		),
+		beego.NSNamespace("/fuente_financiamiento",
+			beego.NSInclude(
+				&controllers.FuenteFinanciamientoController{},
+			),
+		),
 		beego.NSNamespace("/legalizacion_avance",
 			beego.NSInclude(
 				&controllers.LegalizacionAvanceController{},

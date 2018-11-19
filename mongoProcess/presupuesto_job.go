@@ -114,8 +114,55 @@ func sendMovimientoInfoToMongo(ctx *context.Context) {
 		beego.Info("Exepc ", e)
 	})
 }
+func sendFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
+	try.This(func() {
+		var serviceResponse models.Alert
+		err := formatdata.FillStruct(ctx.Input.Data()["json"], &serviceResponse)
+		if err != nil || serviceResponse.Body == nil {
+			panic(err.Error())
+		}
+		beego.Info("Job Fuente start!! ", ctx.Input.Data()["json"])
+		var params []interface{}
+		if serviceResponse.Type == "success" {
+			info := serviceResponse.Body
+			params = append(params, info)
+			work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddFuenteFinanciamientoMongo)}
+			// Push the work onto the queue.
+			optimize.WorkQueue <- work
+			beego.Info("Job Queued!")
+		}
 
-// PresupuestoMongoJobInit ... 
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+	})
+
+}
+
+func sendModificacionFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
+	try.This(func() {
+		var serviceResponse models.Alert
+		err := formatdata.FillStruct(ctx.Input.Data()["json"], &serviceResponse)
+		if err != nil || serviceResponse.Body == nil {
+			panic(err.Error())
+		}
+		beego.Info("Job Fuente start!! ", ctx.Input.Data()["json"])
+		var params []interface{}
+		if serviceResponse.Type == "success" {
+			info := serviceResponse.Body
+			params = append(params, info)
+			work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddModificacionFuenteFinanciamientoMongo)}
+			// Push the work onto the queue.
+			optimize.WorkQueue <- work
+			beego.Info("Job Queued!")
+		}
+
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+	})
+
+}
+
+// PresupuestoMongoJobInit ...
 func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que deben guardarse simultaneamente en postgres y mongo
 	optimize.StartDispatcher(1, 200)
 
@@ -123,5 +170,7 @@ func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que d
 	beego.InsertFilter("/v1/registro_presupuestal/CargueMasivoPr", beego.AfterExec, sendRpInfoToMongo, false)
 	beego.InsertFilter("/v1/registro_presupuestal/AprobarAnulacion", beego.AfterExec, sendAnulacionRpInfoToMongo, false)
 	beego.InsertFilter("/v1/disponibilidad/AprobarAnulacion", beego.AfterExec, sendAnulacionCdpInfoToMongo, false)
-	beego.InsertFilter("/v1/movimiento_apropiacion/AprobarMovimietnoApropiacion", beego.AfterExec, sendMovimientoInfoToMongo, false)
+	beego.InsertFilter("/v1/movimiento_apropiacion/AprobarMovimietnoApropiacion/*", beego.AfterExec, sendMovimientoInfoToMongo, false)
+	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarFuente", beego.AfterExec, sendFuenteFinanciamientoInfoToMongo, false)
+	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarModificacionFuente", beego.AfterExec, sendModificacionFuenteFinanciamientoInfoToMongo, false)
 }

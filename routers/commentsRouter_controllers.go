@@ -383,6 +383,22 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"],
+		beego.ControllerComments{
+			Method: "Post",
+			Router: `/RegistrarFuente`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"],
+		beego.ControllerComments{
+			Method: "RegistrarModificacionFuente",
+			Router: `/RegistrarModificacionFuente`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionChequesController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:GestionChequesController"],
 		beego.ControllerComments{
 			Method: "Post",
@@ -874,7 +890,15 @@ func init() {
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"],
 		beego.ControllerComments{
 			Method: "AprobarMovimietnoApropiacion",
-			Router: `/AprobarMovimietnoApropiacion`,
+			Router: `/AprobarMovimietnoApropiacion/:unidadEjecutora/:vigencia`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoApropiacionController"],
+		beego.ControllerComments{
+			Method: "ComprobarMovimientoApropiacion",
+			Router: `/ComprobarMovimientoApropiacion/:unidadEjecutora/:vigencia`,
 			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
