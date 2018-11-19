@@ -1,4 +1,4 @@
- package mongoProcess
+package mongoProcess
 
 // import (
 // 	"github.com/astaxie/beego"
