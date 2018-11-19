@@ -114,7 +114,6 @@ func sendMovimientoInfoToMongo(ctx *context.Context) {
 		beego.Info("Exepc ", e)
 	})
 }
-
 func sendFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
 	try.This(func() {
 		var serviceResponse models.Alert

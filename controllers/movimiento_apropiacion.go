@@ -203,7 +203,6 @@ func sumValorMovimientoAPropiacion(final bool, codigoRubro string, unidadEjecuto
 }
 
 // Mongo function's
-
 // AddMovimientoApropiacionMongo ...
 func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 	idMov := 0.0
@@ -277,6 +276,7 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		estadoMov := infoMovimiento["EstadoMovimientoApropiacion"].(map[string]interface{})
 		estadoMov["Id"] = 1
 		infoMovimiento["EstadoMovimientoApropiacion"] = estadoMov
+
 		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento); errorPut == nil {
 			for _, data := range movimientos {
 				if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
@@ -292,7 +292,6 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 
 			}
 			beego.Error("error job ", e)
-
 		} else {
 			beego.Error("error en put ", errorPut)
 		}

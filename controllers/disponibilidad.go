@@ -880,6 +880,7 @@ func expedirDisponibilidadConNecesidad(infoSolicitudes []map[string]interface{},
 					if err := request.SendJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad/"+strconv.Itoa(int(solicitud["SolicitudDisponibilidad"].(map[string]interface{})["Id"].(float64))), "PUT", &respuestaMod, &modsol); err == nil {
 						fmt.Println("solicitud de disponibilidad actualizada correctamente")
 					} else {
+
 						fmt.Println("error al actualizar solicitud de disponiblidad")
 					}
 					alertas = append(alertas, respuesta)
@@ -1149,7 +1150,6 @@ func AddDisponibilidadMongo(parameter ...interface{}) (err interface{}) {
 		} else {
 			fmt.Println("registro borrado correctamente")
 		}
-
 	})
 	return
 }
