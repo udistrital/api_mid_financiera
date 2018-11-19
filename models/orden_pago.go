@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// OrdenPago ... 
 type OrdenPago struct {
 	Id                   int                   `orm:"column(id);pk;auto"`
 	Vigencia             float64               `orm:"column(vigencia)"`

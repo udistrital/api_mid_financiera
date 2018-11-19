@@ -1,6 +1,6 @@
 package models
 
-
+//Departamento ...
 type Departamento struct {
 	Id                  int    `orm:"column(id_departamento);pk"`
 	IdPais              *Pais  `orm:"column(id_pais);rel(fk)"`

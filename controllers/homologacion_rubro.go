@@ -13,7 +13,7 @@ import (
 
 )
 
-// Homologacion_rubroController operations for Homologacion_rubro
+// HomologacionRubroController operations for HomologacionRubroController
 type HomologacionRubroController struct {
 	beego.Controller
 }
@@ -38,7 +38,7 @@ func (c *HomologacionRubroController) Post() {
 
 }
 
-// Post ...
+// CreateRubroHomologado ...
 // @Title CreateRubroHomologado
 // @Description create homologate category for an organization
 // @Param	body		body 	interface	true		"body for Homologacion_rubro content"
@@ -70,7 +70,7 @@ func (c *HomologacionRubroController) CreateRubroHomologado() {
 
 }
 
-// Post ...
+// CreateHomologacion ...
 // @Title CreateHomologacion
 // @Description create homologate category for an organization
 // @Param	body		body 	interface	true		"body for Homologacion_rubro content"
@@ -185,8 +185,8 @@ func (c *HomologacionRubroController) Delete() {
 }
 
 
-// GetOne ...
-// @Title GetOne
+// GetAllRubrosHomologado ...
+// @Title GetAllRubrosHomologado
 // @Description get rubro_Homologacion_rubro by id
 // @Param	id		path 	string	true		"The key for staticblock"
 // @Success 200 {object} interface{}
@@ -239,7 +239,7 @@ func (c *HomologacionRubroController)  GetHomologationNumberRubro(){
 	}
 }
 
-// GetArbolRubrosHomologado...
+// GetArbolRubrosHomologado ...
 // @Title Get Arbol Rubros Homologado
 // @Description get tree from homologated items
 // @Param	idEntidad	path 	string	true		"Id entidad para la cual se quieren consultar rubros"

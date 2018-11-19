@@ -30,6 +30,11 @@ func init() {
 				&controllers.RegistroPresupuestalController{},
 			),
 		),
+		beego.NSNamespace("/giro",
+			beego.NSInclude(
+				&controllers.GiroController{},
+			),
+		),
 		beego.NSNamespace("/partida_doble",
 			beego.NSInclude(
 				&controllers.PartidadobleController{},
@@ -118,6 +123,26 @@ func init() {
 		beego.NSNamespace("/fuente_financiamiento",
 			beego.NSInclude(
 				&controllers.FuenteFinanciamientoController{},
+			),
+		),
+		beego.NSNamespace("/legalizacion_avance",
+			beego.NSInclude(
+				&controllers.LegalizacionAvanceController{},
+			),
+		),
+		beego.NSNamespace("/administrativa_personas",
+			beego.NSInclude(
+				&controllers.AdministrativaPersonasController{},
+			),
+		),
+		beego.NSNamespace("/avance",
+			beego.NSInclude(
+				&controllers.AvanceController{},
+			),
+		),
+		beego.NSNamespace("/cuentas_bancarias",
+			beego.NSInclude(
+				&controllers.CuentasBancariasController{},
 			),
 		),
 	)

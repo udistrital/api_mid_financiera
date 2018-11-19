@@ -11,13 +11,13 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
-// Orden_pago_plantaController operations for Orden_pago_planta
-type Orden_pago_plantaController struct {
+// OrdenPagoPlantaController operations for OrdenPagoPlanta
+type OrdenPagoPlantaController struct {
 	beego.Controller
 }
 
 // URLMapping ...
-func (c *Orden_pago_plantaController) URLMapping() {
+func (c *OrdenPagoPlantaController) URLMapping() {
 
 }
 
@@ -445,6 +445,7 @@ func formatoRegistroOpPlanta(detalleOP []interface{}, rpForm []map[string]interf
 	return map[string]interface{}{"ConceptoOrdenPago": conceptoOp, "MovimientoContable": MovOp, "OrdenPago": op, "Aprobado": comp, "Code": code, "ValorBase": valorBase}
 }
 
+// RegistroOpPlanta ... 
 func RegistroOpPlanta(datain map[string]interface{}, params ...interface{}) (res interface{}) {
 	//"http://"+beego.AppConfig.String("kronosService")+
 	data, _ := datain["OrdenPagoaRegistrar"].(interface{})

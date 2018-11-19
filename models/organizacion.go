@@ -1,5 +1,6 @@
 package models
 
+// Organizacion ...
 type Organizacion struct {
 	Id               int               `orm:"column(id);pk;auto"`
 	Nombre           string            `orm:"column(nombre)"`

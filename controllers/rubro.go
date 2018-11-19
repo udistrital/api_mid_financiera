@@ -18,9 +18,12 @@ import (
 	"github.com/udistrital/utils_oas/ruler"
 )
 
+// RubroController operations for Rubro
+
 type RubroController struct {
 	beego.Controller
 }
+
 type rowPac struct {
 	Codigo      interface{}
 	Descripcion interface{}
@@ -60,10 +63,10 @@ type valoresPac struct {
 	Variacion  interface{}
 }
 type cuerpoPac struct {
-	Ingresos []*rowPac
-	Egresos  []*rowPac
-	TotalesIngresos  []*rowTotales
-	TotalesEgresos   []*rowTotales
+	Ingresos        []*rowPac
+	Egresos         []*rowPac
+	TotalesIngresos []*rowTotales
+	TotalesEgresos  []*rowTotales
 }
 type cuerpoCierre struct {
 	Ingresos []*rowCierre
@@ -99,8 +102,6 @@ func (c *RubroController) GenerarPac() {
 				go c.calcularEgresos(&reporteData, finicio, &alert)
 				go c.agregarSumaFuenteEgresos(&reporteData, finicio, &alert)
 				go c.agregarSumaFuenteIngresos(&reporteData, finicio, &alert)
-				//go c.calcularProyeccionIngresos(&reporteData, finicio, ffin, periodos, &alert)
-				//go c.calcularProyeccionEgresos(&reporteData, finicio, ffin, periodos, &alert)
 				wg.Wait()
 				if alert.Body == nil {
 					fmt.Println("no alert")
@@ -152,11 +153,25 @@ func (c *RubroController) calcularIngresos(reporteData *cuerpoPac, finicio time.
 						err := formatdata.FillStruct(valorIngresos, &dataIngresos)
 						if err == nil {
 
-							formatdata.FillStruct(dataIngresos["ejecutado"], &ejecutado)
-							formatdata.FillStruct(dataIngresos["proyectado"], &proyectado)
-							formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor)
-							formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion)
-							formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion)
+							if errorEjecutado := formatdata.FillStruct(dataIngresos["ejecutado"], &ejecutado); errorEjecutado != nil {
+								beego.Info("error llenando estructura ejecutado")
+							}
+
+							if errorProyectado := formatdata.FillStruct(dataIngresos["proyectado"], &proyectado); errorProyectado != nil {
+								beego.Info("error llenando estructura proyectado")
+							}
+
+							if errorReporteValor := formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor); errorReporteValor != nil {
+								beego.Info("error llenando estructura reporte valor")
+							}
+
+							if errorReporteProyeccion := formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion); errorReporteProyeccion != nil {
+								beego.Info("error llenando estructura reporte proyeccion")
+							}
+
+							if errorVariacion := formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion); errorVariacion != nil {
+								beego.Info("error llenando estructura variacion")
+							}
 						}
 
 					} else {
@@ -204,11 +219,21 @@ func (c *RubroController) calcularEgresos(reporteData *cuerpoPac, finicio time.T
 						var dataEgresos map[string]interface{}
 						err := formatdata.FillStruct(valorEgresos, &dataEgresos)
 						if err == nil {
-							formatdata.FillStruct(dataEgresos["ejecutado"], &ejecutado)
-							formatdata.FillStruct(dataEgresos["proyectado"], &proyectado)
-							formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion)
-							formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor)
-							formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion)
+							if errorEjecutado := formatdata.FillStruct(dataEgresos["ejecutado"], &ejecutado); errorEjecutado != nil {
+								beego.Error("error llenando estructura ejecutado")
+							}
+							if errorProyectado := formatdata.FillStruct(dataEgresos["proyectado"], &proyectado); errorProyectado != nil {
+								beego.Error("error llenando estructura proyectado")
+							}
+							if errorReporteValor := formatdata.FillStruct(ejecutado, &reporteRow.Valores.Valor); errorReporteValor != nil {
+								beego.Error("error llenando estructura reporte valor")
+							}
+							if errorReporteProyeccion := formatdata.FillStruct(proyectado, &reporteRow.Valores.Proyeccion); errorReporteProyeccion != nil {
+								beego.Error("error llenando estructura reporte proyeccion")
+							}
+							if errorVariacion := formatdata.FillStruct(math.Abs(ejecutado-proyectado), &reporteRow.Valores.Variacion); errorVariacion != nil {
+								beego.Error("error llenando estructura variacion")
+							}
 						}
 
 					} else {
@@ -231,271 +256,6 @@ func (c *RubroController) calcularEgresos(reporteData *cuerpoPac, finicio time.T
 	return
 }
 
-func (c *RubroController) calcularEjecutadoEngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, alert *models.Alert) {
-
-	for _, ingresosRow := range reporteData.Egresos { //recorrer los datos del reporte de ingresos para el rango actual
-
-		for _, reporteRow := range ingresosRow.Reporte {
-			var valor string
-			var mes int
-			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
-			if err == nil {
-				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
-				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
-
-				if fechaFin.After(ffin) {
-					fechaFin = ffin
-				}
-				var rubro string
-				var idFuente string
-				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
-
-				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
-
-				if err == nil {
-					var valorEngresos interface{}
-					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"), &valorEngresos); err == nil {
-						var dataEngresos []map[string]interface{}
-						err := formatdata.FillStruct(valorEngresos, &dataEngresos)
-						if err != nil {
-
-						} else {
-							for _, valorData := range dataEngresos {
-								//fmt.Println("rubroProyData(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-								formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
-							}
-
-						}
-
-					} else {
-						fmt.Println("err v", err.Error())
-						alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-					}
-				} else {
-					fmt.Println("err ", err.Error())
-					alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-				}
-
-			} else {
-				fmt.Println("err 2 ", err.Error())
-				alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-			}
-		}
-
-	}
-	wg.Done()
-	return
-}
-
-func (c *RubroController) calcularProyeccionIngresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, nperiodos int, alert *models.Alert) {
-	tool := new(ruler.EntornoReglas)
-	tool.Agregar_dominio("Presupuesto")
-	for _, ingresosRow := range reporteData.Ingresos { //recorrer los datos del reporte de ingresos para el rango actual
-
-		for _, reporteRow := range ingresosRow.Reporte {
-			var valor string
-			var mes int
-			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
-			if err == nil {
-				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
-				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
-
-				if fechaFin.After(ffin) {
-					fechaFin = ffin
-				}
-				var rubro string
-				var idFuente string
-				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
-
-				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
-
-				if err == nil {
-
-					/*if rubro == "35488" {
-						fmt.Println("rubro: ", rubro)
-						fmt.Println("Fuente: ", idFuente)
-						fmt.Println("finicio: ", fechaInicio)
-						fmt.Println("ffin: ", fechaFin)
-						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
-
-					}*/
-					var valorIngresos interface{}
-					for i := 1; i <= nperiodos; i++ {
-						Inicio := time.Date(fechaInicio.Year()-i, fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, time.Local)
-						Fin := time.Date(fechaFin.Year()-i, fechaFin.Month(), fechaFin.Day(), 0, 0, 0, 0, time.Local)
-						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
-						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
-							var dataIngresos []map[string]interface{}
-							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
-							if err != nil {
-
-							} else {
-								for _, valorData := range dataIngresos {
-									fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", i) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									//formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
-								}
-
-							}
-
-						} else {
-							fmt.Println("err v", err.Error())
-							alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-						}
-					}
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",1, 2014, 1, 345667).")
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",2,2015,1,345668).")
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",3,2016,1,345000).")
-					reporteRow.Valores.Proyeccion = tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", ingresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R")
-
-					var ej float64
-					var proystr string
-
-					err := formatdata.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
-					err1 := formatdata.FillStruct(reporteRow.Valores.Valor, &ej)
-					if err == nil && err1 == nil {
-						var variacion float64
-						var pvar float64
-
-						proy, _ := strconv.ParseFloat(proystr, 64)
-						variacion = math.Abs(ej - proy)
-						if ej <= 0 {
-
-							pvar = (variacion / variacion)
-
-						} else {
-
-							pvar = (variacion / ej)
-						}
-
-						reporteRow.Valores.Pvariacion = pvar
-						reporteRow.Valores.Variacion = variacion
-					} else {
-						fmt.Println("err ", err)
-						fmt.Println("err1 ", err1)
-					}
-					tool.Quitar_predicados()
-				} else {
-					fmt.Println("err ", err.Error())
-					alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-				}
-
-			} else {
-				fmt.Println("err 2 ", err.Error())
-				alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-			}
-		}
-
-	}
-	wg.Done()
-	return
-}
-
-func (c *RubroController) calcularProyeccionEgresos(reporteData *cuerpoPac, finicio time.Time, ffin time.Time, nperiodos int, alert *models.Alert) {
-	tool := new(ruler.EntornoReglas)
-	tool.Agregar_dominio("Presupuesto")
-	for _, ingresosRow := range reporteData.Egresos { //recorrer los datos del reporte de ingresos para el rango actual
-
-		for _, reporteRow := range ingresosRow.Reporte {
-			var valor string
-			var mes int
-			err := formatdata.FillStruct(reporteRow.Valores.Valor, &valor)
-			err = formatdata.FillStruct(reporteRow.N_mes, &mes)
-			if err == nil {
-				fechaInicio := time.Date(finicio.Year(), time.Month(mes), finicio.Day(), 0, 0, 0, 0, time.Local)
-				fechaFin := time.Date(finicio.Year(), time.Month(mes+1), finicio.Day(), 0, 0, 0, 0, time.Local)
-
-				if fechaFin.After(ffin) {
-					fechaFin = ffin
-				}
-				var rubro string
-				var idFuente string
-				err := formatdata.FillStruct(ingresosRow.Idrubro, &rubro)
-
-				err = formatdata.FillStruct(ingresosRow.Idfuente, &idFuente)
-
-				if err == nil {
-
-					/*if rubro == "35488" {
-						fmt.Println("rubro: ", rubro)
-						fmt.Println("Fuente: ", idFuente)
-						fmt.Println("finicio: ", fechaInicio)
-						fmt.Println("ffin: ", fechaFin)
-						fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+fechaInicio.Format("2006-01-02")+"&ffin="+fechaFin.Format("2006-01-02"))
-
-					}*/
-					var valorIngresos interface{}
-					for i := 1; i <= nperiodos; i++ {
-						Inicio := time.Date(fechaInicio.Year()-i, fechaInicio.Month(), fechaInicio.Day(), 0, 0, 0, 0, time.Local)
-						Fin := time.Date(fechaFin.Year()-i, fechaFin.Month(), fechaFin.Day(), 0, 0, 0, 0, time.Local)
-						//fmt.Println("url ", "http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroIngreso?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"))
-						if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetRubroOrdenPago?rubro="+rubro+"&fuente="+idFuente+"&finicio="+Inicio.Format("2006-01-02")+"&ffin="+Fin.Format("2006-01-02"), &valorIngresos); err == nil {
-							var dataIngresos []map[string]interface{}
-							err := formatdata.FillStruct(valorIngresos, &dataIngresos)
-							if err != nil {
-
-							} else {
-								for _, valorData := range dataIngresos {
-									fmt.Println("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", i) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + "," + fmt.Sprintf("%v", fechaInicio.Year()) + "," + fmt.Sprintf("%v", int(fechaInicio.Month())) + "," + fmt.Sprintf("%v", valorData["valor"]) + ").")
-									//formatdata.FillStruct(valorData["valor"], &reporteRow.Valores.Valor)
-								}
-
-							}
-
-						} else {
-							fmt.Println("err v", err.Error())
-							alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-						}
-					}
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",1, 2014, 1, 345667).")
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",2,2015,1,345668).")
-					tool.Agregar_predicado("rubro_proy_data(" + fmt.Sprintf("%v", ingresosRow.Idrubro) + ",3,2016,1,345000).")
-					reporteRow.Valores.Proyeccion = tool.Ejecutar_result("minimos_cuadrados_rubr("+fmt.Sprintf("%v", ingresosRow.Idrubro)+","+strconv.Itoa(nperiodos)+",R).", "R")
-					var ej float64
-					var proystr string
-
-					err := formatdata.FillStruct(reporteRow.Valores.Proyeccion, &proystr)
-					err1 := formatdata.FillStruct(reporteRow.Valores.Valor, &ej)
-					if err == nil && err1 == nil {
-						var variacion float64
-						var pvar float64
-
-						proy, _ := strconv.ParseFloat(proystr, 64)
-						variacion = math.Abs(ej - proy)
-						if ej <= 0 {
-
-							pvar = (variacion / variacion)
-
-						} else {
-
-							pvar = (variacion / ej)
-						}
-
-						reporteRow.Valores.Pvariacion = pvar
-						reporteRow.Valores.Variacion = variacion
-					} else {
-						fmt.Println("err ", err)
-						fmt.Println("err1 ", err1)
-					}
-					tool.Quitar_predicados()
-				} else {
-					fmt.Println("err ", err.Error())
-					alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-				}
-
-			} else {
-				fmt.Println("err 2 ", err.Error())
-				alert = &models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-			}
-		}
-
-	}
-	wg.Done()
-	return
-}
 func (c *RubroController) agregarSumaFuenteEgresos(reporteData *cuerpoPac, finicio time.Time, alert *models.Alert) (err error) {
 	var idFuente string
 	var idFuenteAnt string
@@ -506,55 +266,52 @@ func (c *RubroController) agregarSumaFuenteEgresos(reporteData *cuerpoPac, finic
 
 	vigencia := finicio.Year()
 	if len(reporteData.Egresos) > 0 {
-	lastRow := reporteData.Egresos[len(reporteData.Egresos)-1]
-	for _, filaIngresos := range reporteData.Egresos {
-		err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
-		err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
-		if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
-			Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
-			nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
-				Reporte: Reporte}
+		lastRow := reporteData.Egresos[len(reporteData.Egresos)-1]
+		for _, filaIngresos := range reporteData.Egresos {
+			err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
+			err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
+			if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
+				Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
+				nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
+					Reporte: Reporte}
 				nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
-											Reporte: Reporte}
+					Reporte: Reporte}
 
+				reporteData.TotalesEgresos = append(reporteData.TotalesEgresos, nuevoTotal)
 
-				reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
-
-			reporteData.Egresos = append(reporteData.Egresos, nil)
-			copy(reporteData.Egresos[i+1:], reporteData.Egresos[i:])
-			reporteData.Egresos[i] = nuevaFila
+				reporteData.Egresos = append(reporteData.Egresos, nil)
+				copy(reporteData.Egresos[i+1:], reporteData.Egresos[i:])
+				reporteData.Egresos[i] = nuevaFila
+				i++
+			}
+			idFuenteAnt = idFuente
+			descripcionAnt = descripcionF
+			err = formatdata.FillStruct(filaIngresos.Codigo, &codrubro)
+			codrubro = codrubro[:1]
 			i++
 		}
-		idFuenteAnt = idFuente
-		descripcionAnt = descripcionF
-		err = formatdata.FillStruct(filaIngresos.Codigo, &codrubro)
-		codrubro = codrubro[:1]
-		i++
+		Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
+		nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
+			Reporte: Reporte}
+
+		nuevoTotal := &rowTotales{Descripcion: "Total Rubro" + descripcionAnt,
+			Reporte: Reporte}
+
+		reporteData.TotalesEgresos = append(reporteData.TotalesEgresos, nuevoTotal)
+
+		reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
+
+		Reporte = getSumTotal(lastRow.Reporte, "3", vigencia)
+		nuevaFila = &rowPac{Fdescrip: "Total Egresos ",
+			Reporte: Reporte}
+
+		nuevoTotal = &rowTotales{Descripcion: "Total Egresos ",
+			Reporte: Reporte}
+
+		reporteData.TotalesEgresos = append(reporteData.TotalesEgresos, nuevoTotal)
+
+		reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
 	}
-	Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
-	nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
-		Reporte: Reporte}
-
-	nuevoTotal := &rowTotales{Descripcion: "Total Rubro" + descripcionAnt,
-				Reporte: Reporte}
-
-
-	reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
-
-	reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
-
-	Reporte = getSumTotal(lastRow.Reporte, "3", vigencia)
-	nuevaFila = &rowPac{Fdescrip: "Total Egresos ",
-		Reporte: Reporte}
-
-	nuevoTotal = &rowTotales{Descripcion: "Total Egresos ",
-									Reporte: Reporte}
-
-
-	reporteData.TotalesEgresos = append(reporteData.TotalesEgresos,nuevoTotal)
-
-	reporteData.Egresos = append(reporteData.Egresos, nuevaFila)
-}
 	wg.Done()
 	return
 }
@@ -568,58 +325,58 @@ func (c *RubroController) agregarSumaFuenteIngresos(reporteData *cuerpoPac, fini
 
 	vigencia := finicio.Year()
 	if len(reporteData.Ingresos) > 0 {
-	lastRow := reporteData.Ingresos[len(reporteData.Ingresos)-1]
-	for _, filaIngresos := range reporteData.Ingresos {
-		err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
-		err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
-		if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
-			Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
-			nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
-				Reporte: Reporte}
-			nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
+		lastRow := reporteData.Ingresos[len(reporteData.Ingresos)-1]
+		for _, filaIngresos := range reporteData.Ingresos {
+			err = formatdata.FillStruct(filaIngresos.Idfuente, &idFuente)
+			err = formatdata.FillStruct(filaIngresos.Fdescrip, &descripcionF)
+			if val := strings.Compare(idFuente, idFuenteAnt); val != 0 && len(idFuenteAnt) > 0 {
+				Reporte := getNewRow(filaIngresos.Reporte, idFuenteAnt, codrubro, vigencia)
+				nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
+					Reporte: Reporte}
+				nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
 					Reporte: Reporte}
 
-			reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
+				reporteData.TotalesIngresos = append(reporteData.TotalesIngresos, nuevoTotal)
 
-			reporteData.Ingresos = append(reporteData.Ingresos, nil)
-			copy(reporteData.Ingresos[i+1:], reporteData.Ingresos[i:])
-			reporteData.Ingresos[i] = nuevaFila
+				reporteData.Ingresos = append(reporteData.Ingresos, nil)
+				copy(reporteData.Ingresos[i+1:], reporteData.Ingresos[i:])
+				reporteData.Ingresos[i] = nuevaFila
+				i++
+			}
+			idFuenteAnt = idFuente
+			descripcionAnt = descripcionF
+			err = formatdata.FillStruct(filaIngresos.Codigo, &codrubro)
+			codrubro = codrubro[:1]
 			i++
 		}
-		idFuenteAnt = idFuente
-		descripcionAnt = descripcionF
-		err = formatdata.FillStruct(filaIngresos.Codigo, &codrubro)
-		codrubro = codrubro[:1]
-		i++
+		Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
+		nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
+			Reporte: Reporte}
+
+		nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
+			Reporte: Reporte}
+
+		reporteData.TotalesIngresos = append(reporteData.TotalesIngresos, nuevoTotal)
+
+		reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
+
+		Reporte = getSumTotal(lastRow.Reporte, "2", vigencia)
+		nuevaFila = &rowPac{Fdescrip: "Total Ingresos ",
+			Reporte: Reporte}
+		nuevoTotal = &rowTotales{Descripcion: "Total Ingresos ",
+			Reporte: Reporte}
+
+		reporteData.TotalesIngresos = append(reporteData.TotalesIngresos, nuevoTotal)
+
+		reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
 	}
-	Reporte := getNewRow(lastRow.Reporte, idFuenteAnt, codrubro, vigencia)
-	nuevaFila := &rowPac{Fdescrip: "Total Rubro " + descripcionAnt,
-		Reporte: Reporte}
-
- nuevoTotal := &rowTotales{Descripcion: "Total Rubro " + descripcionAnt,
-				Reporte: Reporte}
-
- reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
-
- reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
-
-	Reporte = getSumTotal(lastRow.Reporte, "2", vigencia)
-	nuevaFila = &rowPac{Fdescrip: "Total Ingresos ",
-		Reporte: Reporte}
-	nuevoTotal = &rowTotales{Descripcion: "Total Ingresos ",
-														Reporte: Reporte}
-
-	reporteData.TotalesIngresos = append(reporteData.TotalesIngresos,nuevoTotal)
-
-	reporteData.Ingresos = append(reporteData.Ingresos, nuevaFila)
-}
 	wg.Done()
 	return
 }
 
 func getNewRow(row []*reportePacData, idFuente string, codrubro string, vigencia int) (Reporte []*reportePacData) {
 	var Mes string
-	var N_mes int
+	var NMes int
 	var valorSumaF interface{}
 	var mapValorSumaF map[string]interface{}
 	var ejecutado float64
@@ -629,9 +386,9 @@ func getNewRow(row []*reportePacData, idFuente string, codrubro string, vigencia
 	for _, valoresMes := range row {
 
 		err := formatdata.FillStruct(valoresMes.Mes, &Mes)
-		err = formatdata.FillStruct(valoresMes.N_mes, &N_mes)
+		err = formatdata.FillStruct(valoresMes.N_mes, &NMes)
 
-		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetSumbySource?vigencia="+strconv.Itoa(vigencia)+"&mes="+strconv.Itoa(N_mes)+"&fuente="+idFuente+"&tipo="+codrubro, &valorSumaF); err == nil {
+		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetSumbySource?vigencia="+strconv.Itoa(vigencia)+"&mes="+strconv.Itoa(NMes)+"&fuente="+idFuente+"&tipo="+codrubro, &valorSumaF); err == nil {
 			err = formatdata.FillStruct(valorSumaF, &mapValorSumaF)
 			err = formatdata.FillStruct(mapValorSumaF["ejecutado"], &ejecutado)
 			err = formatdata.FillStruct(mapValorSumaF["proyectado"], &proyectado)
@@ -644,7 +401,7 @@ func getNewRow(row []*reportePacData, idFuente string, codrubro string, vigencia
 			fmt.Println("Error", err.Error())
 		}
 		valoresN := &reportePacData{Mes: Mes,
-			N_mes:   N_mes,
+			N_mes:   NMes,
 			Valores: &valorSuma}
 
 		Reporte = append(Reporte, valoresN)
@@ -654,7 +411,7 @@ func getNewRow(row []*reportePacData, idFuente string, codrubro string, vigencia
 
 func getSumTotal(row []*reportePacData, tipo string, vigencia int) (Reporte []*reportePacData) {
 	var Mes string
-	var N_mes int
+	var NMes int
 	var valorSumaF interface{}
 	var mapValorSumaF map[string]interface{}
 	var ejecutado float64
@@ -666,9 +423,9 @@ func getSumTotal(row []*reportePacData, tipo string, vigencia int) (Reporte []*r
 	for _, valoresMes := range row {
 
 		err := formatdata.FillStruct(valoresMes.Mes, &Mes)
-		err = formatdata.FillStruct(valoresMes.N_mes, &N_mes)
+		err = formatdata.FillStruct(valoresMes.N_mes, &NMes)
 
-		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetSumbySource?vigencia="+strconv.Itoa(vigencia)+"&mes="+strconv.Itoa(N_mes)+"&tipo="+tipo, &valorSumaF); err == nil {
+		if err = request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/rubro/GetSumbySource?vigencia="+strconv.Itoa(vigencia)+"&mes="+strconv.Itoa(NMes)+"&tipo="+tipo, &valorSumaF); err == nil {
 			err = formatdata.FillStruct(valorSumaF, &mapValorSumaF)
 			err = formatdata.FillStruct(mapValorSumaF["ejecutado"], &ejecutado)
 			err = formatdata.FillStruct(mapValorSumaF["proyectado"], &proyectado)
@@ -681,7 +438,7 @@ func getSumTotal(row []*reportePacData, tipo string, vigencia int) (Reporte []*r
 			fmt.Println("Error", err.Error())
 		}
 		valoresN := &reportePacData{Mes: Mes,
-			N_mes:   N_mes,
+			N_mes:   NMes,
 			Valores: &valorSuma}
 
 		Reporte = append(Reporte, valoresN)
@@ -721,7 +478,6 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 		}
 		m[i]["reporte"] = fechas
-		//m[i]["egresos"], err = RubroOrdenPago(m[i]["id"])
 		if err != nil {
 			fmt.Println("err1 ", err)
 			return
@@ -731,7 +487,7 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 	var ingresos interface{}
 	err = formatdata.FillStruct(m, &ingresos)
 	if err != nil {
-		fmt.Println("err2 ", err)
+		beego.Error("err 2 ", err.Error())
 		return
 	}
 	cuerpo["ingresos"] = ingresos
@@ -762,7 +518,6 @@ func cuerpoReporte(inicio time.Time, fin time.Time) (res cuerpoPac, err error) {
 
 		}
 		m[i]["reporte"] = fechas
-		//m[i]["egresos"], err = RubroOrdenPago(m[i]["id"])
 		if err != nil {
 			fmt.Println("err1 ", err)
 			return
@@ -801,7 +556,7 @@ func cierreIngresosEgresos(vigencia int, mes int, alert *models.Alert) (res cuer
 
 	err = formatdata.FillStruct(cierreRow, &ingresos)
 	if err != nil {
-		fmt.Println("err2 ", err)
+		fmt.Println("err2 ", err.Error())
 		return
 	}
 
@@ -809,7 +564,7 @@ func cierreIngresosEgresos(vigencia int, mes int, alert *models.Alert) (res cuer
 
 	err = formatdata.FillStruct(cierreRowEg, &egresos)
 	if err != nil {
-		fmt.Println("err2 ", err)
+		fmt.Println("err2 ", err.Error())
 		return
 	}
 	mapCierre["ingresos"] = ingresos
@@ -823,7 +578,7 @@ func cierreIngresosEgresos(vigencia int, mes int, alert *models.Alert) (res cuer
 	}
 	return
 }
-func ProyeccionIngresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nperiodos int, alert *models.Alert) {
+func proyeccionIngresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nperiodos int, alert *models.Alert) {
 
 	var rubro string
 	var fuente string
@@ -884,7 +639,7 @@ func ProyeccionIngresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nper
 	wg.Done()
 	return
 }
-func ProyeccionEgresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nperiodos int, alert *models.Alert) {
+func proyeccionEgresosCierre(reporte *cuerpoCierre, mes int, vigencia int, nperiodos int, alert *models.Alert) {
 
 	var rubro string
 	var fuente string
@@ -980,13 +735,11 @@ func (c *RubroController) GenerarCierre() {
 				fmt.Println("error val", err.Error())
 			}
 			if cuerpoCierre, err := cierreIngresosEgresos(vigencia, m, &alert); err == nil {
-				if alert.Body == nil {
-					fmt.Println("no alert")
-				} else {
-					fmt.Println("alert ", alert)
+				if alert.Body != nil {
+					beego.Error("alert ", alert)
 				}
-				go ProyeccionEgresosCierre(&cuerpoCierre, m, vigencia, nperiodos, &alert)
-				go ProyeccionIngresosCierre(&cuerpoCierre, m, vigencia, nperiodos, &alert)
+				go proyeccionEgresosCierre(&cuerpoCierre, m, vigencia, nperiodos, &alert)
+				go proyeccionIngresosCierre(&cuerpoCierre, m, vigencia, nperiodos, &alert)
 				wg.Wait()
 				c.Data["json"] = cuerpoCierre
 			} else {
@@ -1029,16 +782,21 @@ func (c *RubroController) RegistrarRubro() {
 						urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro/registrarRubro"
 						var data map[string]interface{}
 						sendData := res["Body"].(map[string]interface{})
-						request.SendJson(urlmongo, "POST", &data, &sendData)
+						err := request.SendJson(urlmongo, "POST", &data, &sendData)
 						beego.Info("data: ", sendData)
-						if data["Type"] != nil {
+						if data["Type"] != nil && err == nil {
 							if data["Type"].(string) == "error" {
 								resul := res["Body"].(map[string]interface{})
 								ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
 								urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
-								request.SendJson(urlcrud, "DELETE", &data, nil)
-								beego.Info("Data ", data)
-								panic("Mongo API Error")
+								if errorDelete := request.SendJson(urlcrud, "DELETE", &data, nil); errorDelete == nil {
+									beego.Info("Data ", data)
+									panic("Mongo API Error")
+								} else {
+									beego.Info("Error delete ", errorDelete)
+									panic("Delete API Error")
+								}
+
 							} else if data["Type"].(string) == "success" {
 								beego.Info("Registrado en Mongo")
 							}
@@ -1046,9 +804,14 @@ func (c *RubroController) RegistrarRubro() {
 							resul := res["Body"].(map[string]interface{})
 							ue := resul["RubroHijo"].(map[string]interface{})["UnidadEjecutora"].(float64)
 							urlcrud = urlcrud + "/DeleteRubroRelation/" + strconv.Itoa(int(resul["Id"].(float64))) + "/" + strconv.Itoa(int(ue))
-							request.SendJson(urlcrud, "DELETE", &data, nil)
-							beego.Info("Data ", data)
-							panic("Mongo API not Found")
+							if errorDelete := request.SendJson(urlcrud, "DELETE", &data, nil); errorDelete == nil {
+								beego.Info("Data ", data)
+								panic("Mongo API not Found")
+							} else {
+								beego.Info("Error delete ", errorDelete)
+								panic("Delete API Error")
+							}
+
 						}
 					} else if res["Type"] == nil {
 						panic("Financiera Crud Service Error")
@@ -1070,26 +833,36 @@ func (c *RubroController) RegistrarRubro() {
 						var data map[string]interface{}
 						res["Body"] = map[string]interface{}{"RubroHijo": res["Body"].(map[string]interface{}), "RubroPadre": map[string]interface{}{}}
 						rubroRow := res["Body"].(map[string]interface{})
-						request.SendJson(urlmongo, "POST", &data, &rubroRow)
+						errorPost := request.SendJson(urlmongo, "POST", &data, &rubroRow)
 						beego.Info("data: ", urlmongo)
-						if data["Type"] != nil {
+						if data["Type"] != nil && errorPost == nil {
 							if data["Type"].(string) == "error" {
 								beego.Info("Error en mongo")
 								resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
 								beego.Info("Send Data: ", resul)
 								urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-								request.SendJson(urlcrud, "DELETE", &data, nil)
-								beego.Info("Data ", data)
-								panic("Mongo API Error")
+								if errorDelete := request.SendJson(urlcrud, "DELETE", &data, nil); errorDelete == nil {
+									beego.Info("Data ", data)
+									panic("Mongo API Error")
+								} else {
+									beego.Info("Error ", errorDelete)
+									panic("delete API Error")
+								}
+
 							} else if data["Type"].(string) == "success" {
 								beego.Info("Registrado en Mongo")
 							}
 						} else {
 							resul := res["Body"].(map[string]interface{})["RubroHijo"].(map[string]interface{})
 							urlcrud = urlcrud + "/" + strconv.Itoa(int(resul["Id"].(float64)))
-							request.SendJson(urlcrud, "DELETE", &data, nil)
-							beego.Info("Data ", data)
-							panic("Mongo API not Found")
+							if errorDelete := request.SendJson(urlcrud, "DELETE", &data, nil); errorDelete == nil {
+								beego.Info("Data ", data)
+								panic("Mongo API not Found")
+							} else {
+								beego.Info("Error ", errorDelete)
+								panic("delete API Error")
+							}
+
 						}
 
 					} else if res["Type"] == nil {

@@ -114,7 +114,7 @@ func (c *ReintegroController) Create() {
 			}
 		}
 
-		// GetReintegroDisponible...
+		// GetReintegroDisponible ...
 		// @Title GetReintegroDisponible
 		// @Description get reintegro which his income has been aproved
 		// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
@@ -126,7 +126,7 @@ func (c *ReintegroController) Create() {
 		func (c *ReintegroController) GetReintegroDisponible() {
 		  defer c.ServeJSON()
 
-			var limit int = 10
+			var limit = 10
 			var offset int
 			var query string
 

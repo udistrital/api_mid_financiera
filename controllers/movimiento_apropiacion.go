@@ -13,10 +13,12 @@ import (
 	"github.com/udistrital/utils_oas/request"
 )
 
+// MovimientoApropiacionController operations for MovimientoApropiacion
 type MovimientoApropiacionController struct {
 	beego.Controller
 }
 
+// URLMapping ...
 func (c *MovimientoApropiacionController) URLMapping() {
 
 }
@@ -202,6 +204,7 @@ func sumValorMovimientoAPropiacion(final bool, codigoRubro string, unidadEjecuto
 
 // Mongo function's
 
+// AddMovimientoApropiacionMongo ...
 func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 	idMov := 0.0
 	var movimientos []map[string]interface{}
@@ -274,17 +277,26 @@ func AddMovimientoApropiacionMongo(parameter ...interface{}) (err interface{}) {
 		estadoMov := infoMovimiento["EstadoMovimientoApropiacion"].(map[string]interface{})
 		estadoMov["Id"] = 1
 		infoMovimiento["EstadoMovimientoApropiacion"] = estadoMov
-		request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento)
-		for _, data := range movimientos {
-			if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
-				idDisp := dispo["Id"].(float64)
-				Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadMovimiento/" + strconv.Itoa(int(idDisp))
-				request.SendJson(Urlcrud, "DELETE", &resC, nil)
-				beego.Info(resC)
-			}
+		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoMovimiento); errorPut == nil {
+			for _, data := range movimientos {
+				if dispo, e := data["Disponibilidad"].(map[string]interface{}); e {
+					idDisp := dispo["Id"].(float64)
+					Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad/DeleteDisponibilidadMovimiento/" + strconv.Itoa(int(idDisp))
+					if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil {
+						beego.Info(resC)
+					} else {
+						beego.Info(errorDelete)
+					}
 
+				}
+
+			}
+			beego.Error("error job ", e)
+
+		} else {
+			beego.Error("error en put ", errorPut)
 		}
-		beego.Error("error job ", e)
+
 	})
 	return
 }

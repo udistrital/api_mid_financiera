@@ -1,5 +1,6 @@
 package models
 
+// FuenteFinanciacionRubroNecesidad ...
 type FuenteFinanciacionRubroNecesidad struct {
 	Id                   int     `orm:"column(id);pk"`
 	Apropiacion          int     `orm:"column(apropiacion)"`

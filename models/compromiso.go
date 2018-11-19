@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Compromiso ...
 type Compromiso struct {
 	Id                    int                    `orm:"column(id);pk;auto"`
 	Objeto                string                 `orm:"column(objeto)"`

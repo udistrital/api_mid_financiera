@@ -11,6 +11,8 @@ import (
 	"github.com/udistrital/utils_oas/ruler"
 )
 
+
+// AprobacionFuenteController operations for AprobacionFuenteController
 type AprobacionFuenteController struct {
 	beego.Controller
 }

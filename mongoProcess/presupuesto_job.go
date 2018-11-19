@@ -115,6 +115,7 @@ func sendMovimientoInfoToMongo(ctx *context.Context) {
 	})
 }
 
+<<<<<<< HEAD
 func sendFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
 	try.This(func() {
 		var serviceResponse models.Alert
@@ -163,6 +164,9 @@ func sendModificacionFuenteFinanciamientoInfoToMongo(ctx *context.Context) {
 
 }
 
+=======
+// PresupuestoMongoJobInit ... 
+>>>>>>> 79bee003d1c63f8acc7a2949208ac0358dfa3448
 func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que deben guardarse simultaneamente en postgres y mongo
 	optimize.StartDispatcher(1, 200)
 
