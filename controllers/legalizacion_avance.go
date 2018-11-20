@@ -258,8 +258,10 @@ func (c *LegalizacionAvanceController) GetAllLegalizacionAvance() {
 		query = r
 	}
 	respuesta := make(map[string]interface{})
+	beego.Error("http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/avance_legalizacion/?limit=" + strconv.FormatInt(limit, 10) + "&offset=" + strconv.FormatInt(offset, 10) + "&query=" + query)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &legalizaciones); err == nil {
 		if legalizaciones != nil {
+			beego.Error("Legalizaciones ", legalizaciones)
 			respuesta["Legalizaciones"] = optimize.ProccDigest(legalizaciones, getValuesLegalizacion, nil, 3)
 			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/avance_legalizacion/GetLegalizacionRecordsNumber/?query="+query, &regCuantity); err == nil {
 				if strings.Compare(regCuantity["Type"].(string), "success") == 0 {
@@ -280,7 +282,7 @@ func getValuesLegalizacion(rpintfc interface{}, params ...interface{}) (res inte
 	var resValLegalizacion float64
 	legalID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/estado_legalizacion_avance_legalizacion/?query=Activo:true"+",AvanceLegalizacion.Id:"+legalID, &resEstado); err == nil {
-		if resEstado[0] != nil {
+		if resEstado != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
 	} else {
