@@ -97,7 +97,7 @@ func (c *AdministrativaPersonasController) GetPersona() {
 	var typeIDStr string
 	var resProveedor []map[string]interface{}
 	var resPersonaNat []map[string]interface{}
-	var resPersonaJur []map[string]interface{}
+	var resPersonaJur map[string]interface{}
 	if v := c.GetString("numberId"); v != "" {
 		numberIDStr = v
 	}
@@ -119,7 +119,7 @@ func (c *AdministrativaPersonasController) GetPersona() {
 					}
 				} else {
 					if v["Tipopersona"].(string) == "JURIDICA" {
-						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIDStr, &resPersonaJur); err != nil {
+						if err := request.GetJson("http://"+beego.AppConfig.String("AdministrativaAmazonService")+"/informacion_persona_juridica/"+numberIDStr, &resPersonaJur); err == nil {
 							if resPersonaJur != nil && typeIDStr == "11" {
 								c.Data["json"] = v
 								return
