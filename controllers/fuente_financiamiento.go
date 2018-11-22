@@ -73,14 +73,26 @@ func (c *FuenteFinanciamientoController) RegistrarModificacionFuente() {
 func AddFuenteFinanciamientoMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
 		//Convertir Datos retornados para registrarlos en mongo.
-		//dataMongo := make(map[string]interface{})
-		infoFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})
-		infoAfectacion := parameter[0].(map[string]interface{})["AfectacionFuente"].(map[string]interface{})
-		beego.Info(infoFuente)
-		beego.Info(infoAfectacion)
-		panic("No sé que más hacer !!!")
+		dataMongo := parameter[0].(map[string]interface{})
+		resM := make(map[string]interface{})
+		//infoFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})
+		//infoAfectacion := parameter[0].(map[string]interface{})["AfectacionFuente"].(map[string]interface{})
+		beego.Info("Data from job ", parameter[0])
+		//beego.Info(infoAfectacion)
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/fuente_financiamiento"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataMongo); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+		//panic("No sé que más hacer !!!")
 	}).Catch(func(e try.E) {
 		beego.Error("Retroceder Tr ")
+		beego.Error("Error ", e)
 		idFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})["Id"].(float64)
 		beego.Error("IdFuente ", idFuente)
 		var resCrud interface{}
