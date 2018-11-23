@@ -171,6 +171,6 @@ func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que d
 	beego.InsertFilter("/v1/registro_presupuestal/AprobarAnulacion", beego.AfterExec, sendAnulacionRpInfoToMongo, false)
 	beego.InsertFilter("/v1/disponibilidad/AprobarAnulacion", beego.AfterExec, sendAnulacionCdpInfoToMongo, false)
 	beego.InsertFilter("/v1/movimiento_apropiacion/AprobarMovimietnoApropiacion/*", beego.AfterExec, sendMovimientoInfoToMongo, false)
-	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarFuente", beego.AfterExec, sendFuenteFinanciamientoInfoToMongo, false)
+	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarFuente/:UnidadEjecutora", beego.AfterExec, sendFuenteFinanciamientoInfoToMongo, false)
 	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarModificacionFuente", beego.AfterExec, sendModificacionFuenteFinanciamientoInfoToMongo, false)
 }

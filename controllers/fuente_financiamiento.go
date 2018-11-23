@@ -25,12 +25,17 @@ func (c *FuenteFinanciamientoController) URLMapping() {
 // @Param	body		body 	string	true		"body for Rubro content"
 // @Success 201 {int} models.Rubro
 // @Failure 403 body is empty
-// @router /RegistrarFuente [post]
+// @router /RegistrarFuente/:UnidadEjecutora [post]
 func (c *FuenteFinanciamientoController) Post() {
 	var v map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		var resCrud interface{}
+		ue, err := c.GetInt(":UnidadEjecutora")
+		if err != nil {
+			panic("Parameter Error")
+		}
+		var resCrud map[string]interface{}
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/RegistrarFuenteFinanciamientoTr", "POST", &resCrud, &v); err == nil {
+			resCrud["FuenteFinanciamiento"].(map[string]interface{})["UnidadEjecutora"] = ue
 			alert := models.Alert{Type: "success", Code: "S_F0001", Body: resCrud}
 			c.Data["json"] = alert
 		} else {

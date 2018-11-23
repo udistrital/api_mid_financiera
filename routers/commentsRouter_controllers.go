@@ -424,7 +424,7 @@ func init() {
     beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:FuenteFinanciamientoController"],
         beego.ControllerComments{
             Method: "Post",
-            Router: `/RegistrarFuente`,
+            Router: `/RegistrarFuente/:UnidadEjecutora`,
             AllowHTTPMethods: []string{"post"},
             MethodParams: param.Make(),
             Filters: nil,
