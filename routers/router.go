@@ -145,6 +145,11 @@ func init() {
 				&controllers.CuentasBancariasController{},
 			),
 		),
+		//beego.NSNamespace("/academica_personas",
+		//	beego.NSInclude(
+		//		&controllers.AcademicaPersonasController{},
+		//	),
+		//),
 	)
 	beego.AddNamespace(ns)
 }

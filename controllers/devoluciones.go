@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"reflect"
 	"strconv"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 
@@ -273,13 +273,13 @@ func (c *DevolucionesController) GetAllDevolucionesTributarias() {
 	if r := c.GetString("query"); r != "" {
 		query = r
 	}
-	respuesta:=make(map[string]interface{})
+	respuesta := make(map[string]interface{})
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query, &devoluciones); err == nil {
 		if devoluciones != nil {
-			respuesta["Devolutions"]= optimize.ProccDigest(devoluciones, getValuesDevolTributaria, nil, 3)
+			respuesta["Devolutions"] = optimize.ProccDigest(devoluciones, getValuesDevolTributaria, nil, 3)
 			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria/GetDevolucionRecordsNumber/?query="+query, &regCuantity); err == nil {
-				if (strings.Compare(regCuantity["Type"].(string),"success")==0) {
-					respuesta["RegCuantity"]=regCuantity["Body"]
+				if strings.Compare(regCuantity["Type"].(string), "success") == 0 {
+					respuesta["RegCuantity"] = regCuantity["Body"]
 					c.Ctx.Output.SetStatus(201)
 				}
 			}
@@ -298,7 +298,7 @@ func getValuesDevolTributaria(rpintfc interface{}, params ...interface{}) (res i
 	var resActa []map[string]interface{}
 	var resDocumentoGen []map[string]interface{}
 	var tipoCuenta map[string]interface{}
-	var valorDevol float64;
+	var valorDevol float64
 	devolID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria_estado_devolucion/?query=Activo:true"+",Devolucion.Id:"+devolID, &resEstado); err == nil {
 		if resEstado[0] != nil {
@@ -309,7 +309,7 @@ func getValuesDevolTributaria(rpintfc interface{}, params ...interface{}) (res i
 	}
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria_concepto/?query=DevolucionTributaria.Id:"+devolID+"&fields=ValorDevolucion&limit=1", &resValorDevol); err == nil {
 		if resValorDevol != nil {
-			for _,v := range resValorDevol {
+			for _, v := range resValorDevol {
 				valorDevol = valorDevol + v["ValorDevolucion"].(float64)
 			}
 			rpintfc.(map[string]interface{})["ValorDevolucion"] = valorDevol
@@ -317,16 +317,16 @@ func getValuesDevolTributaria(rpintfc interface{}, params ...interface{}) (res i
 	} else {
 		beego.Error("Error", err.Error())
 	}
-	tipoCuentaID:=strconv.FormatFloat(rpintfc.(map[string]interface{})["CuentaDevolucion"].(map[string]interface{})["TipoCuenta"].(float64), 'f', -1, 64)
+	tipoCuentaID := strconv.FormatFloat(rpintfc.(map[string]interface{})["CuentaBancariaEnte"].(map[string]interface{})["TipoCuenta"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_cuenta_bancaria/"+tipoCuentaID, &tipoCuenta); err == nil {
 		if resValorDevol != nil {
-			rpintfc.(map[string]interface{})["CuentaDevolucion"].(map[string]interface{})["TipoCuenta"] = tipoCuenta
+			rpintfc.(map[string]interface{})["CuentaBancariaEnte"].(map[string]interface{})["TipoCuenta"] = tipoCuenta
 		}
 	} else {
 		beego.Error("Error", err.Error())
 	}
 
-	actaID:=strconv.FormatFloat(rpintfc.(map[string]interface{})["Acta"].(float64), 'f', -1, 64)
+	actaID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Acta"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"documento/?query=Id:"+actaID+"&limit=1", &resActa); err == nil {
 		if resActa != nil {
 			rpintfc.(map[string]interface{})["Acta"] = resActa[0]
@@ -334,11 +334,11 @@ func getValuesDevolTributaria(rpintfc interface{}, params ...interface{}) (res i
 	} else {
 		beego.Error("Error", err.Error())
 	}
-	documentoGenerador:=rpintfc.(map[string]interface{})["DocumentoGenerador"]
-	documentoID:=strconv.FormatFloat(documentoGenerador.(map[string]interface{})["TipoDocumento"].(float64), 'f', -1, 64)
+	documentoGenerador := rpintfc.(map[string]interface{})["DocumentoGenerador"]
+	documentoID := strconv.FormatFloat(documentoGenerador.(map[string]interface{})["TipoDocumento"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("coreService")+"documento/?query=Id:"+documentoID+"&limit=1", &resDocumentoGen); err == nil {
 		if resDocumentoGen != nil {
-			rpintfc.(map[string]interface{})["DocumentoGenerador"].(map[string]interface{})["TipoDocumento"]= resDocumentoGen[0]
+			rpintfc.(map[string]interface{})["DocumentoGenerador"].(map[string]interface{})["TipoDocumento"] = resDocumentoGen[0]
 		}
 	} else {
 		beego.Error("Error", err.Error())
@@ -367,17 +367,17 @@ func (c *DevolucionesController) GetTributaDevolutionAccountantInf() {
 	idStr := c.Ctx.Input.Param(":id")
 	var respMovimientosDevolucion []interface{}
 	var params []interface{}
-	params = append(params,idStr)
+	params = append(params, idStr)
 	beego.Error(params)
 	var respConceptos []interface{}
-	respuesta:=make(map[string]interface{})
+	respuesta := make(map[string]interface{})
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria_movimiento/?query=devolucion.id:"+idStr, &respMovimientosDevolucion); err == nil {
 		if respMovimientosDevolucion != nil {
-			respuesta["MovimientosAsociados"]=optimize.ProccDigest(respMovimientosDevolucion, getValuesMovimientosDevolucion, nil, 3)
+			respuesta["MovimientosAsociados"] = optimize.ProccDigest(respMovimientosDevolucion, getValuesMovimientosDevolucion, nil, 3)
 		}
 		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/devolucion_tributaria_concepto/?query=DevolucionTributaria.Id:"+idStr+"&fields=ValorDevolucion,Id,Concepto", &respConceptos); err == nil {
 			if respConceptos != nil {
-				respuesta["Conceptos"] = optimize.ProccDigest(respConceptos,getConceptosDevolucion,params, 3)
+				respuesta["Conceptos"] = optimize.ProccDigest(respConceptos, getConceptosDevolucion, params, 3)
 			}
 		} else {
 			beego.Error("Error", err.Error())
@@ -395,8 +395,8 @@ func getValuesMovimientosDevolucion(rpintfc interface{}, params ...interface{}) 
 	var resValorBase []map[string]interface{}
 	var resOp map[string]interface{}
 	cuentaEspecialID := strconv.FormatFloat(rpintfc.(map[string]interface{})["MovimientoContable"].(map[string]interface{})["CuentaEspecial"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
-	OrdenPagoID:= strconv.FormatFloat(rpintfc.(map[string]interface{})["MovimientoContable"].(map[string]interface{})["CodigoDocumentoAfectante"].(float64), 'f', -1, 64)
-	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago_cuenta_especial/?query=CuentaEspecial.Id:"+cuentaEspecialID+",OrdenPago.Id:"+OrdenPagoID +"&fields=ValorBase", &resValorBase); err == nil {
+	OrdenPagoID := strconv.FormatFloat(rpintfc.(map[string]interface{})["MovimientoContable"].(map[string]interface{})["CodigoDocumentoAfectante"].(float64), 'f', -1, 64)
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/orden_pago_cuenta_especial/?query=CuentaEspecial.Id:"+cuentaEspecialID+",OrdenPago.Id:"+OrdenPagoID+"&fields=ValorBase", &resValorBase); err == nil {
 		if resValorBase != nil {
 			rpintfc.(map[string]interface{})["ValorBase"] = resValorBase[0]["ValorBase"]
 		}
@@ -411,21 +411,21 @@ func getValuesMovimientosDevolucion(rpintfc interface{}, params ...interface{}) 
 	} else {
 		beego.Error("Error", err.Error())
 	}
-return rpintfc
+	return rpintfc
 }
 
 func getConceptosDevolucion(rpintfc interface{}, params ...interface{}) (res interface{}) {
-	var resMovimientoContable  []map[string]interface{}
+	var resMovimientoContable []map[string]interface{}
 	rpintfcCp := rpintfc.(map[string]interface{})
 	concepto := rpintfcCp["Concepto"].(map[string]interface{})
 	devolucionID := params[0].(string)
-	delete(rpintfcCp,"Id")
-	for k,v:=range concepto {
-		rpintfcCp[k]=v
+	delete(rpintfcCp, "Id")
+	for k, v := range concepto {
+		rpintfcCp[k] = v
 	}
-	delete(rpintfcCp,"Concepto")
+	delete(rpintfcCp, "Concepto")
 
-	conceptoID:=strconv.FormatFloat(rpintfcCp["Id"].(float64), 'f', -1, 64)
+	conceptoID := strconv.FormatFloat(rpintfcCp["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_contable/?query=Concepto.Id:"+conceptoID+",CodigoDocumentoAfectante:"+devolucionID+",TipoDocumentoAfectante.NumeroOrden:6&fields=Id,Credito,Debito,CuentaContable", &resMovimientoContable); err == nil {
 		if resMovimientoContable != nil {
 			rpintfcCp["MovimientoContable"] = resMovimientoContable
