@@ -791,6 +791,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:IngresoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:IngresoController"],
+		beego.ControllerComments{
+			Method: "AprobacionPresupuestalIngreso",
+			Router: `AprobacionPresupuestalIngreso/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:IngresoSinSituacionFondosController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:IngresoSinSituacionFondosController"],
 		beego.ControllerComments{
 			Method: "Post",
@@ -841,17 +849,17 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
 		beego.ControllerComments{
-			Method: "GetAll",
+			Method: "Post",
 			Router: `/`,
-			AllowHTTPMethods: []string{"get"},
+			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
 		beego.ControllerComments{
-			Method: "Post",
+			Method: "GetAll",
 			Router: `/`,
-			AllowHTTPMethods: []string{"post"},
+			AllowHTTPMethods: []string{"get"},
 			MethodParams: param.Make(),
 			Params: nil})
 
@@ -876,14 +884,6 @@ func init() {
 			Method: "Put",
 			Router: `/:id`,
 			AllowHTTPMethods: []string{"put"},
-			MethodParams: param.Make(),
-			Params: nil})
-
-	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:InversionController"],
-		beego.ControllerComments{
-			Method: "AprobacionPresupuestalIngreso",
-			Router: `AprobacionPresupuestalIngreso/`,
-			AllowHTTPMethods: []string{"post"},
 			MethodParams: param.Make(),
 			Params: nil})
 
