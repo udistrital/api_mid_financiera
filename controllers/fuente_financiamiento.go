@@ -114,7 +114,14 @@ func AddModificacionFuenteFinanciamientoMongo(parameter ...interface{}) (err int
 		//Convertir Datos retornados para registrarlos en mongo.
 		//dataMongo := make(map[string]interface{})
 		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
-		beego.Info(infoFuente)
+		dataSend := make(map[string]interface{})
+		// Formato informacion del servicio para registrar la modificación en MONGO.
+
+		dataSend["FuenteFinanciamiento"] = infoFuente[0].(map[string]interface{})["FuenteFinanciamiento"] // Igualar fuente del Movimiento , Siempre se envian movimientos que solo pertenecen a una fuente.
+		dataSend["AfectacionFuente"] = infoFuente
+
+		beego.Info("Data Mongo", dataSend)
+
 		panic("No sé que más hacer !!!")
 	}).Catch(func(e try.E) {
 
