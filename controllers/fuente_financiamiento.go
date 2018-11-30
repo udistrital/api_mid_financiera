@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/udistrital/utils_oas/formatdata"
+
 	"github.com/astaxie/beego"
 	"github.com/manucorporat/try"
 	"github.com/udistrital/api_mid_financiera/models"
@@ -25,17 +27,12 @@ func (c *FuenteFinanciamientoController) URLMapping() {
 // @Param	body		body 	string	true		"body for Rubro content"
 // @Success 201 {int} models.Rubro
 // @Failure 403 body is empty
-// @router /RegistrarFuente/:UnidadEjecutora [post]
+// @router /RegistrarFuente [post]
 func (c *FuenteFinanciamientoController) Post() {
 	var v map[string]interface{}
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
-		ue, err := c.GetInt(":UnidadEjecutora")
-		if err != nil {
-			panic("Parameter Error")
-		}
 		var resCrud map[string]interface{}
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/RegistrarFuenteFinanciamientoTr", "POST", &resCrud, &v); err == nil {
-			resCrud["FuenteFinanciamiento"].(map[string]interface{})["UnidadEjecutora"] = ue
 			alert := models.Alert{Type: "success", Code: "S_F0001", Body: resCrud}
 			c.Data["json"] = alert
 		} else {
@@ -61,7 +58,7 @@ func (c *FuenteFinanciamientoController) RegistrarModificacionFuente() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		var resCrud interface{}
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/MovimientoFuenteFinanciamientoTr", "POST", &resCrud, &v); err == nil {
-			alert := models.Alert{Type: "success", Code: "S_F0001", Body: resCrud}
+			alert := models.Alert{Type: "success", Code: "S_F0001", Body: v}
 			c.Data["json"] = alert
 		} else {
 			alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
@@ -77,13 +74,20 @@ func (c *FuenteFinanciamientoController) RegistrarModificacionFuente() {
 // AddFuenteFinanciamientoMongo... agrega la informacion de una fuente a mongo.
 func AddFuenteFinanciamientoMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
+
 		//Convertir Datos retornados para registrarlos en mongo.
 		dataMongo := parameter[0].(map[string]interface{})
 		resM := make(map[string]interface{})
 		//infoFuente := parameter[0].(map[string]interface{})["FuenteFinanciamiento"].(map[string]interface{})
 		//infoAfectacion := parameter[0].(map[string]interface{})["AfectacionFuente"].(map[string]interface{})
-		beego.Info("Data from job ", parameter[0])
-		//beego.Info(infoAfectacion)
+		afectacion := dataMongo["AfectacionFuente"].([]interface{})
+		var afectacionArr []map[string]interface{}
+		for _, data := range afectacion {
+			afectacionMap := data.(map[string]interface{})
+			afectacionMap["FuenteFinanciamiento"] = dataMongo["FuenteFinanciamiento"]
+			afectacionArr = append(afectacionArr, afectacionMap)
+		}
+		dataMongo["AfectacionFuente"] = afectacionArr
 		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/fuente_financiamiento"
 		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataMongo); err1 == nil {
 			if resM["Type"].(string) == "success" {
@@ -113,20 +117,28 @@ func AddModificacionFuenteFinanciamientoMongo(parameter ...interface{}) (err int
 	try.This(func() {
 		//Convertir Datos retornados para registrarlos en mongo.
 		//dataMongo := make(map[string]interface{})
-		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
-		dataSend := make(map[string]interface{})
+		infoFuente := parameter[0].([]interface{})
+		dataMongo := make(map[string]interface{})
+		resM := make(map[string]interface{})
+
 		// Formato informacion del servicio para registrar la modificación en MONGO.
-
-		dataSend["FuenteFinanciamiento"] = infoFuente[0].(map[string]interface{})["FuenteFinanciamiento"] // Igualar fuente del Movimiento , Siempre se envian movimientos que solo pertenecen a una fuente.
-		dataSend["AfectacionFuente"] = infoFuente
-
-		beego.Info("Data Mongo", dataSend)
-
-		panic("No sé que más hacer !!!")
+		dataMongo["FuenteFinanciamiento"] = infoFuente[0].(map[string]interface{})["FuenteFinanciamiento"]
+		dataMongo["AfectacionFuente"] = infoFuente
+		formatdata.JsonPrint(dataMongo)
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/fuente_financiamiento"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataMongo); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
 	}).Catch(func(e try.E) {
 
 		beego.Error("Retroceder Tr ")
-		beego.Error("Data ", parameter[0])
+		beego.Error("Data ", e)
 		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
 		var resCrud interface{}
 		request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteModificacionFuenteFinanciamientoTr", "POST", &resCrud, infoFuente)
