@@ -3,9 +3,9 @@ package controllers
 import (
 	"encoding/json"
 	"strconv"
-	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_financiera/models"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -34,41 +34,35 @@ func (c *TipoTransaccionController) URLMapping() {
 func (c *TipoTransaccionController) Post() {
 	var v map[string]interface{}
 	var version map[string]interface{}
-	var tipoTransaccionVersion map[string]interface{}
 	var detalleTransaccion map[string]interface{}
-	var response map[string]interface{}
-	var respDetalle map[string]interface{}
-	var resDelete map[string]interface{}
+
 	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+	responseRoute := make(map[string]interface{})
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		version = v["version"].(map[string]interface{})
 		detalleTransaccion = v["detalleTransaccion"].(map[string]interface{})
-		if err = request.SendJson(urlCrud+"/version_tipo_transaccion", "POST", &response, version); err == nil {
-			if strings.Compare(response["Type"].(string), "success") == 0 {
-				if err = request.SendJson(urlCrud+"/tipo_transaccion_version", "POST", &tipoTransaccionVersion, response["Body"]); err == nil {
-					detalleTransaccion["TipoTransaccionVersion"] = tipoTransaccionVersion
-					if err = request.SendJson(urlCrud+"/detalle_tipo_transaccion_version", "POST", &respDetalle, detalleTransaccion); err == nil {
-						c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: respDetalle["Body"]}
-						c.Ctx.Output.SetStatus(201)
-					} else {
-
-					}
-				} else {
-					idVersion := strconv.Itoa(int(response["Body"].(map[string]interface{})["Id"].(float64)))
-					if errorDelete := request.SendJson(urlCrud+"/version_tipo_transaccion/"+idVersion, "DELETE", &resDelete, nil); errorDelete == nil {
-						beego.Info("Data ", resDelete)
-						panic("Mongo API Error")
-					} else {
-						beego.Info("Error delete ", errorDelete)
-						panic("Delete API Error")
-					}
-				}
-
-			} else {
-				beego.Error("Error", response)
-				c.Data["json"] = response
+		try.This(func() {
+			err, responseV := request.ServiceTransaction(SaveVersionTipo, nil, urlCrud+"/version_tipo_transaccion", version)
+			if err != nil {
+				panic(err)
 			}
-		}
+			responseRoute[urlCrud+"version_tipo_transaccion"] = version
+			err, responseTipoV := request.ServiceTransaction(SaveVersionTipo, RollbackTipoVer, urlCrud+"/tipo_transaccion_version", responseV, responseRoute)
+			responseRoute[urlCrud+"tipo_transaccion_version"] = responseV
+			if err != nil {
+				panic(err)
+			}
+			detalleTransaccion = v["detalleTransaccion"].(map[string]interface{})
+			err, _ = request.ServiceTransaction(SaveVersionTipo, RollbackTipoVer, urlCrud+"/detalle_tipo_transaccion_version", responseTipoV, detalleTransaccion, responseRoute)
+			responseRoute[urlCrud+"detalle_tipo_transaccion_version"] = responseTipoV
+			if err != nil {
+				panic(err)
+			}
+			c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: responseRoute}
+			c.Ctx.Output.SetStatus(201)
+		}).Catch(func(e try.E) {
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+		})
 	}
 }
 
@@ -120,4 +114,20 @@ func (c *TipoTransaccionController) Put() {
 // @router /:id [delete]
 func (c *TipoTransaccionController) Delete() {
 
+}
+
+func SaveVersionTipo(object ...interface{}) (err error, response interface{}) {
+	route := object[0]
+	err = request.SendJson(route.(string), "POST", &response, object)
+	return
+}
+
+func RollbackTipoVer(object ...interface{}) (err error, response interface{}) {
+	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+	respuestas := object[3]
+	for key, value := range respuestas.(map[string]interface{}) {
+		id := strconv.Itoa(int(value.(map[string]interface{})["Id"].(float64)))
+		err = request.SendJson(urlCrud+"/"+key+"/"+id, "DELETE", &response, nil)
+	}
+	return
 }
