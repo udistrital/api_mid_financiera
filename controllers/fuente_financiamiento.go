@@ -139,9 +139,10 @@ func AddModificacionFuenteFinanciamientoMongo(parameter ...interface{}) (err int
 
 		beego.Error("Retroceder Tr ")
 		beego.Error("Data ", e)
-		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
+		infoFuente := parameter[0].([]interface{})
 		var resCrud interface{}
-		request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteModificacionFuenteFinanciamientoTr", "POST", &resCrud, infoFuente)
+		err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteModificacionFuenteFinanciamientoTr", "POST", &resCrud, infoFuente)
+		beego.Error("err ", err)
 		beego.Error("res crud ", resCrud)
 	})
 
