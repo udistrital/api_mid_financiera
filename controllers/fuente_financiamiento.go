@@ -58,7 +58,7 @@ func (c *FuenteFinanciamientoController) RegistrarModificacionFuente() {
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		var resCrud interface{}
 		if err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/MovimientoFuenteFinanciamientoTr", "POST", &resCrud, &v); err == nil {
-			alert := models.Alert{Type: "success", Code: "S_F0001", Body: v}
+			alert := models.Alert{Type: "success", Code: "S_F0001", Body: resCrud}
 			c.Data["json"] = alert
 		} else {
 			alert := models.Alert{Type: "error", Code: "E_0458", Body: err}
@@ -115,14 +115,14 @@ func AddFuenteFinanciamientoMongo(parameter ...interface{}) (err interface{}) {
 // AddModificacionFuenteFinanciamientoMongo... agrega la informacion de una Modificacion de fuente a mongo.
 func AddModificacionFuenteFinanciamientoMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
+
 		//Convertir Datos retornados para registrarlos en mongo.
 		//dataMongo := make(map[string]interface{})
-		infoFuente := parameter[0].([]interface{})
+		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
 		dataMongo := make(map[string]interface{})
 		resM := make(map[string]interface{})
 
 		// Formato informacion del servicio para registrar la modificación en MONGO.
-		dataMongo["FuenteFinanciamiento"] = infoFuente[0].(map[string]interface{})["FuenteFinanciamiento"]
 		dataMongo["AfectacionFuente"] = infoFuente
 		formatdata.JsonPrint(dataMongo)
 		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/fuente_financiamiento"
@@ -139,7 +139,7 @@ func AddModificacionFuenteFinanciamientoMongo(parameter ...interface{}) (err int
 
 		beego.Error("Retroceder Tr ")
 		beego.Error("Data ", e)
-		infoFuente := parameter[0].([]interface{})
+		infoFuente := parameter[0].(map[string]interface{})["Body"].([]interface{})
 		var resCrud interface{}
 		err := request.SendJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/fuente_financiamiento/DeleteModificacionFuenteFinanciamientoTr", "POST", &resCrud, infoFuente)
 		beego.Error("err ", err)
