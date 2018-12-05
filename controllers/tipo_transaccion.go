@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
-	"github.com/manucorporat/try"
 	"github.com/udistrital/api_financiera/models"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -32,37 +33,60 @@ func (c *TipoTransaccionController) URLMapping() {
 // @Failure 403 body is empty
 // @router / [post]
 func (c *TipoTransaccionController) Post() {
+	defer c.ServeJSON()
 	var v map[string]interface{}
 	var version map[string]interface{}
 	var detalleTransaccion map[string]interface{}
-
 	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
 	responseRoute := make(map[string]interface{})
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
 		version = v["version"].(map[string]interface{})
 		detalleTransaccion = v["detalleTransaccion"].(map[string]interface{})
-		try.This(func() {
-			err, responseV := request.ServiceTransaction(SaveVersionTipo, nil, urlCrud+"/version_tipo_transaccion", version)
+		request.Commit(func() {
+			err, respV := SaveForTipoTr(urlCrud+"/version_tipo_transaccion", version)
 			if err != nil {
+				beego.Error(err)
 				panic(err)
 			}
-			responseRoute[urlCrud+"version_tipo_transaccion"] = version
-			err, responseTipoV := request.ServiceTransaction(SaveVersionTipo, RollbackTipoVer, urlCrud+"/tipo_transaccion_version", responseV, responseRoute)
-			responseRoute[urlCrud+"tipo_transaccion_version"] = responseV
+			responseRoute["version_tipo_transaccion"] = respV
+			err, responseTTV := SaveForTipoTr(urlCrud+"/tipo_transaccion_version/CreateTipoVersion", responseRoute["version_tipo_transaccion"].(map[string]interface{})["Body"])
 			if err != nil {
+				beego.Error(err)
 				panic(err)
 			}
-			detalleTransaccion = v["detalleTransaccion"].(map[string]interface{})
-			err, _ = request.ServiceTransaction(SaveVersionTipo, RollbackTipoVer, urlCrud+"/detalle_tipo_transaccion_version", responseTipoV, detalleTransaccion, responseRoute)
-			responseRoute[urlCrud+"detalle_tipo_transaccion_version"] = responseTipoV
+			responseRoute["tipo_transaccion_version"] = responseTTV
+			detalleTransaccion["TipoTransaccionVersion"] = responseTTV.(map[string]interface{})["Body"]
+			beego.Info("detalle transaccion ", detalleTransaccion)
+			err, responseDT := SaveForTipoTr(urlCrud+"/detalle_tipo_transaccion_version", detalleTransaccion)
 			if err != nil {
+				beego.Error(err)
 				panic(err)
 			}
-			c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: responseRoute}
+			responseRoute["detalle_tipo_transaccion_version"] = responseDT
+			panic("errorrrrrrr!!!")
 			c.Ctx.Output.SetStatus(201)
-		}).Catch(func(e try.E) {
-			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
-		})
+			c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: responseRoute}
+		}).Rollback(func(response interface{}, error interface{}) {
+			beego.Error("Error Rollback ", error)
+			urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+			respuestas := response.(map[string]interface{})
+			for key, value := range respuestas {
+				body := value.(map[string]interface{})["Body"].(map[string]interface{})
+				beego.Error("value ", value, "key ", key)
+				if body["Id"] != nil {
+					id := strconv.Itoa(int(body["Id"].(float64)))
+					err = request.SendJson(urlCrud+"/"+key+"/"+id, "DELETE", &response, nil)
+					beego.Error("response delete ", response)
+					if err != nil {
+						beego.Error(err)
+						panic(err)
+					}
+				}
+			}
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: respuestas}
+		}, responseRoute)
+	} else {
+		beego.Error(err.Error())
 	}
 }
 
@@ -116,18 +140,13 @@ func (c *TipoTransaccionController) Delete() {
 
 }
 
-func SaveVersionTipo(object ...interface{}) (err error, response interface{}) {
+func SaveForTipoTr(object ...interface{}) (err error, response interface{}) {
 	route := object[0]
-	err = request.SendJson(route.(string), "POST", &response, object)
-	return
-}
-
-func RollbackTipoVer(object ...interface{}) (err error, response interface{}) {
-	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
-	respuestas := object[3]
-	for key, value := range respuestas.(map[string]interface{}) {
-		id := strconv.Itoa(int(value.(map[string]interface{})["Id"].(float64)))
-		err = request.SendJson(urlCrud+"/"+key+"/"+id, "DELETE", &response, nil)
+	sendData := object[1]
+	err = request.SendJson(route.(string), "POST", &response, sendData)
+	if strings.Compare(response.(map[string]interface{})["Type"].(string), "success") != 0 {
+		beego.Error(response)
+		err = errors.New(response.(map[string]interface{})["Code"].(string))
 	}
 	return
 }
