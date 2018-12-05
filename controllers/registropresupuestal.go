@@ -886,9 +886,30 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
-		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil{
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil {
 			beego.Info("Data ", resC)
-		}else{
+		} else {
+			beego.Info("Error ", errorDelete)
+		}
+
+		err = e
+	})
+	return
+}
+
+// AddOpMongo ...
+func AddOpMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoOp := parameter[0].(models.OrdenPagoEstadoOrdenPago)
+		beego.Info(infoOp)
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		infoOp := parameter[0].(models.OrdenPagoEstadoOrdenPago)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago_estado_orden_pago/DeleteOpData/" + strconv.Itoa(infoOp.OrdenPago.Id)
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil {
+			beego.Info("Data ", resC)
+		} else {
 			beego.Info("Error ", errorDelete)
 		}
 
@@ -938,9 +959,9 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
 		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); errorPut == nil {
-				beego.Info("Data ", resC)
-		}else{
-				beego.Info("Error ", errorPut)
+			beego.Info("Data ", resC)
+		} else {
+			beego.Info("Error ", errorPut)
 		}
 
 	})

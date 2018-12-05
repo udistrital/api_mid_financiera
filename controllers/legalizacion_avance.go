@@ -280,7 +280,7 @@ func getValuesLegalizacion(rpintfc interface{}, params ...interface{}) (res inte
 	var resValLegalizacion float64
 	legalID := strconv.FormatFloat(rpintfc.(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/estado_legalizacion_avance_legalizacion/?query=Activo:true"+",AvanceLegalizacion.Id:"+legalID, &resEstado); err == nil {
-		if resEstado[0] != nil {
+		if resEstado != nil {
 			rpintfc.(map[string]interface{})["Estado"] = resEstado[0]["Estado"]
 		}
 	} else {

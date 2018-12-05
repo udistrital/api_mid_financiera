@@ -301,6 +301,9 @@ func (c *GiroController) GetSumGiro() {
 			if totalGiro != nil {
 				if err := request.GetJson(urlcrud+"/giro/"+strconv.Itoa(giroId), &infoGiro); err == nil {
 					totalGiro[0].(map[string]interface{})["total_op"] = strconv.FormatFloat(infoGiro.(map[string]interface{})["ValorTotal"].(float64), 'f', -1, 64)
+					if totalGiro[0].(map[string]interface{})["total_cuentas_especiales"] == nil {
+						totalGiro[0].(map[string]interface{})["total_cuentas_especiales"] = 0
+					}
 				} else {
 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
 				}
