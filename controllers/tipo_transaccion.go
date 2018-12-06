@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/astaxie/beego"
+	"github.com/manucorporat/try"
 	"github.com/udistrital/api_financiera/models"
+	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 )
 
@@ -56,34 +58,32 @@ func (c *TipoTransaccionController) Post() {
 			}
 			responseRoute["tipo_transaccion_version"] = responseTTV
 			detalleTransaccion["TipoTransaccionVersion"] = responseTTV.(map[string]interface{})["Body"]
-			beego.Info("detalle transaccion ", detalleTransaccion)
 			err, responseDT := SaveForTipoTr(urlCrud+"/detalle_tipo_transaccion_version", detalleTransaccion)
 			if err != nil {
 				beego.Error(err)
 				panic(err)
 			}
 			responseRoute["detalle_tipo_transaccion_version"] = responseDT
-			panic("errorrrrrrr!!!")
 			c.Ctx.Output.SetStatus(201)
 			c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: responseRoute}
 		}).Rollback(func(response interface{}, error interface{}) {
 			beego.Error("Error Rollback ", error)
-			urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
-			respuestas := response.(map[string]interface{})
-			for key, value := range respuestas {
-				body := value.(map[string]interface{})["Body"].(map[string]interface{})
-				beego.Error("value ", value, "key ", key)
-				if body["Id"] != nil {
-					id := strconv.Itoa(int(body["Id"].(float64)))
-					err = request.SendJson(urlCrud+"/"+key+"/"+id, "DELETE", &response, nil)
-					beego.Error("response delete ", response)
-					if err != nil {
-						beego.Error(err)
-						panic(err)
-					}
-				}
+			err, _ := removeElement("detalle_tipo_transaccion_version", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
 			}
-			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: respuestas}
+			err, _ = removeElement("tipo_transaccion_version", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			err, _ = removeElement("version_tipo_transaccion", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: response}
 		}, responseRoute)
 	} else {
 		beego.Error(err.Error())
@@ -149,4 +149,93 @@ func SaveForTipoTr(object ...interface{}) (err error, response interface{}) {
 		err = errors.New(response.(map[string]interface{})["Code"].(string))
 	}
 	return
+}
+
+func removeElement(idMap string, object interface{}) (err error, response interface{}) {
+	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+	value := object.(map[string]interface{})[idMap]
+	body := value.(map[string]interface{})["Body"].(map[string]interface{})
+	if body["Id"] != nil {
+		id := strconv.Itoa(int(body["Id"].(float64)))
+		err = request.SendJson(urlCrud+"/"+idMap+"/"+id, "DELETE", &response, nil)
+	}
+	return
+}
+
+// GetTipoTransaccionByVersion ...
+// @Title GetTipoTransaccionByVersion
+// @Description get TipoTransaccionTipoTransaccionController given initial version
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} models.TipoTransaccion
+// @Failure 403
+// @router /GetTipoTransaccionByVersion/ [get]
+func (c *TipoTransaccionController) GetTipoTransaccionByVersion() {
+	var versionesTipoT []interface{}
+	var limit int64 = 10
+	var offset int64
+	var query string
+	var sortby string
+	var order string
+	var regCuantity map[string]interface{}
+	defer c.ServeJSON()
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("query"); r != "" {
+		query = r
+	}
+	if v := c.GetString("sortby"); v != "" {
+		sortby = "&sortby=" + v
+	}
+	// order: desc,asc
+	if v := c.GetString("order"); v != "" {
+		order = "&order=" + v
+	}
+	try.This(func() {
+		respuesta := make(map[string]interface{})
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/version_tipo_transaccion/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query+sortby+order, &versionesTipoT); err == nil {
+			if versionesTipoT != nil {
+				respuesta["TipoTransaccion"] = optimize.ProccDigest(versionesTipoT, getValuesTiposTr, nil, 3)
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/version_tipo_transaccion/GetVersionesTipoNumber/?query="+query, &regCuantity); err == nil {
+					if strings.Compare(regCuantity["Type"].(string), "success") == 0 {
+						respuesta["RegCuantity"] = regCuantity["Body"]
+						c.Ctx.Output.SetStatus(201)
+					}
+				}
+				c.Data["json"] = respuesta
+			}
+		} else {
+			panic(err)
+		}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: e}
+	})
+}
+
+func getValuesTiposTr(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var tipoTransaccionVersion []interface{}
+	var detalleTipoTr []interface{}
+	idVersionStr := strconv.Itoa(int(rpintfc.(map[string]interface{})["Id"].(float64)))
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_transaccion_version/?&query=Version.Id:"+idVersionStr, &tipoTransaccionVersion); err == nil {
+		idTipoTranVStr := strconv.Itoa(int(tipoTransaccionVersion[0].(map[string]interface{})["Id"].(float64)))
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/detalle_tipo_transaccion_version/?&query=TipoTransaccionVersion.Id:"+idTipoTranVStr, &detalleTipoTr); err == nil {
+			rpintfc.(map[string]interface{})["DetalleTipoTransaccion"] = detalleTipoTr[0]
+		} else {
+			beego.Error("Error", err.Error())
+		}
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	return rpintfc
 }
