@@ -239,3 +239,77 @@ func getValuesTiposTr(rpintfc interface{}, params ...interface{}) (res interface
 	}
 	return rpintfc
 }
+
+// GetTipoTransaccionByTipo ...
+// @Title GetTipoTransaccionByTipo
+// @Description get TipoTransaccionTipoTransaccionController given initial version
+// @Param	query	query	string	false	"Filter. e.g. col1:v1,col2:v2 ..."
+// @Param	fields	query	string	false	"Fields returned. e.g. col1,col2 ..."
+// @Param	sortby	query	string	false	"Sorted-by fields. e.g. col1,col2 ..."
+// @Param	order	query	string	false	"Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ..."
+// @Param	limit	query	string	false	"Limit the size of result set. Must be an integer"
+// @Param	offset	query	string	false	"Start position of result set. Must be an integer"
+// @Success 200 {object} models.TipoTransaccion
+// @Failure 403
+// @router /GetTipoTransaccionByTipo/ [get]
+func (c *TipoTransaccionController) GetTipoTransaccionByTipo() {
+	var tipoTransaccion []interface{}
+	var limit int64 = 10
+	var offset int64
+	var query string
+	var sortby string
+	var order string
+	var regCuantity map[string]interface{}
+	defer c.ServeJSON()
+	// limit: 10 (default is 10)
+	if v, err := c.GetInt64("limit"); err == nil {
+		limit = v
+	}
+	// offset: 0 (default is 0)
+	if v, err := c.GetInt64("offset"); err == nil {
+		offset = v
+	}
+	if r := c.GetString("query"); r != "" {
+		query = r
+	}
+	if v := c.GetString("sortby"); v != "" {
+		sortby = "&sortby=" + v
+	}
+	// order: desc,asc
+	if v := c.GetString("order"); v != "" {
+		order = "&order=" + v
+	}
+	try.This(func() {
+		respuesta := make(map[string]interface{})
+		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_transaccion_version/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query+sortby+order, &tipoTransaccion); err == nil {
+			if tipoTransaccion != nil {
+				respuesta["TipoTransaccion"] = optimize.ProccDigest(tipoTransaccion, getValuesDetallesTiposTr, nil, 3)
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/tipo_transaccion_version/GetTipoTransaccionVersionesNumber/?query="+query, &regCuantity); err == nil {
+					if strings.Compare(regCuantity["Type"].(string), "success") == 0 {
+						respuesta["RegCuantity"] = regCuantity["Body"]
+						c.Ctx.Output.SetStatus(201)
+					}
+				}
+				c.Data["json"] = respuesta
+			}
+		} else {
+			panic(err)
+		}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: e}
+	})
+}
+
+func getValuesDetallesTiposTr(rpintfc interface{}, params ...interface{}) (res interface{}) {
+	var detalleTipoTr []interface{}
+	idTipoTrStr := strconv.Itoa(int(rpintfc.(map[string]interface{})["Id"].(float64)))
+	if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/detalle_tipo_transaccion_version/?query=TipoTransaccionVersion.Id:"+idTipoTrStr, &detalleTipoTr); err == nil {
+		if detalleTipoTr != nil {
+			rpintfc.(map[string]interface{})["DetalleTipoTransaccion"] = detalleTipoTr[0]
+		}
+	} else {
+		beego.Error("Error", err.Error())
+	}
+	return rpintfc
+}
