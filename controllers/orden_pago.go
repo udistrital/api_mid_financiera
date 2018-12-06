@@ -132,7 +132,7 @@ func (c *OrdenPagoController) WorkFlowOrdenPago() {
 		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
 		if err = request.SendJson(urlcrud+"/orden_pago_estado_orden_pago/WorkFlowOrdenPago", "POST", &response, dataEstado); err == nil {
 			if strings.Compare(response["Type"].(string), "success") == 0 {
-				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"].([]interface{})[0].(map[string]interface{})["Body"]}
+				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"]}
 				c.Ctx.Output.SetStatus(201)
 			} else {
 				beego.Error("Error", response)

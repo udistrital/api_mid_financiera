@@ -900,8 +900,38 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 // AddOpMongo ...
 func AddOpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
-		infoOp := parameter[0].(models.OrdenPagoEstadoOrdenPago)
-		beego.Info(infoOp)
+		infoOp := parameter[0].(models.OrdenPago)
+		dataSend := make(map[string]interface{})
+		dataSend["Vigencia"] = strconv.FormatFloat(infoOp.Vigencia, 'f', 0, 64)
+		dataSend["Id"] = infoOp.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(time.Now().Month()))
+		var afectacion []interface{}
+		var resM map[string]interface{}
+		aux := make(map[string]interface{})
+
+		for _, data := range infoOp.OrdenPagoRegistroPresupuestal {
+			aux["RP"] = data.RegistroPresupuestal.Id
+			aux["FuenteNombre"] = "" //data.FuenteFinanciacion.Nombre
+			aux["Rubro"] = ""        //data.Apropiacion.Rubro.Codigo
+			aux["UnidadEjecutora"] = infoOp.UnidadEjecutora
+			aux["Valor"] = infoOp.ValorBase
+			aux["FuenteCodigo"] = "" //data.FuenteFinanciacion.Codigo
+			afectacion = append(afectacion, aux)
+		}
+		dataSend["Afectacion"] = afectacion
+		beego.Info("infoOp", infoOp)
+		beego.Info("dataSend", dataSend)
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Op"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+
 	}).Catch(func(e try.E) {
 		beego.Info("Exepc ", e)
 		infoOp := parameter[0].(models.OrdenPagoEstadoOrdenPago)

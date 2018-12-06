@@ -96,7 +96,7 @@ func sendOpInfoToMongo(ctx *context.Context) {
 		beego.Info(data.Body)
 		dataaux := data.Body.(map[string]interface{})
 		var params []interface{}
-		if data.Type == "success" && dataaux["EstadoOrdenPago"].(map[string]interface{})["Id"].(float64) == 7 {
+		if data.Type == "success" && dataaux["NuevoEstado"].(map[string]interface{})["Id"].(float64) == 7 {
 			info := data.Body
 			params = append(params, info)
 			work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddOpMongo)}
@@ -104,7 +104,7 @@ func sendOpInfoToMongo(ctx *context.Context) {
 			optimize.WorkQueue <- work
 			beego.Info("Job Queued!")
 		} else {
-			beego.Info("Job Not Work! Id:7")
+			beego.Info("Job Not Work! Id !=7")
 		}
 	}).Catch(func(e try.E) {
 		beego.Info("Exepc ", e)
