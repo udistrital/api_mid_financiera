@@ -900,27 +900,37 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 // AddOpMongo ...
 func AddOpMongo(parameter ...interface{}) (err interface{}) {
 	try.This(func() {
-		infoOp := parameter[0].(models.OrdenPago)
+		infoOp := models.OrdenPago{}
+		infoOpData := parameter[0].(map[string]interface{})["OrdenPago"].([]interface{})[0]
+		//beego.Info("infoOpData", infoOpData)
+		err := formatdata.FillStruct(infoOpData, &infoOp)
+		if err != nil {
+			panic(err.Error())
+		}
 		dataSend := make(map[string]interface{})
 		dataSend["Vigencia"] = strconv.FormatFloat(infoOp.Vigencia, 'f', 0, 64)
 		dataSend["Id"] = infoOp.Id
 		dataSend["MesRegistro"] = strconv.Itoa(int(time.Now().Month()))
+		dataSend["TipoMovimiento"] = "OP-Proveedor"
 		var afectacion []interface{}
 		var resM map[string]interface{}
+		dispApropiacion := []models.RegistroPresupuestalDisponibilidadApropiacion{}
 		aux := make(map[string]interface{})
-
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
 		for _, data := range infoOp.OrdenPagoRegistroPresupuestal {
 			aux["RP"] = data.RegistroPresupuestal.Id
 			aux["FuenteNombre"] = "" //data.FuenteFinanciacion.Nombre
-			aux["Rubro"] = ""        //data.Apropiacion.Rubro.Codigo
+			//beego.Info(urlcrud + "/registro_presupuestal_disponibilidad_apropiacion?limit=-1" + "&query=RegistroPresupuestal.Id:" + strconv.Itoa(data.RegistroPresupuestal.Id) + "&fields=DisponibilidadApropiacion")
+			if err := request.GetJson(urlcrud+"/registro_presupuestal_disponibilidad_apropiacion?limit=-1"+"&query=RegistroPresupuestal.Id:"+strconv.Itoa(data.RegistroPresupuestal.Id)+"&fields=DisponibilidadApropiacion", &dispApropiacion); err == nil {
+				aux["Rubro"] = dispApropiacion[0].DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+			}
 			aux["UnidadEjecutora"] = infoOp.UnidadEjecutora
 			aux["Valor"] = infoOp.ValorBase
 			aux["FuenteCodigo"] = "" //data.FuenteFinanciacion.Codigo
 			afectacion = append(afectacion, aux)
 		}
 		dataSend["Afectacion"] = afectacion
-		beego.Info("infoOp", infoOp)
-		beego.Info("dataSend", dataSend)
+		//beego.Info("dataSend", dataSend)
 		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Op"
 		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
 			if resM["Type"].(string) == "success" {

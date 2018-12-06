@@ -93,7 +93,7 @@ func sendRpInfoToMongo(ctx *context.Context) {
 func sendOpInfoToMongo(ctx *context.Context) {
 	try.This(func() {
 		data := ctx.Input.Data()["json"].(models.Alert)
-		beego.Info(data.Body)
+		//beego.Info(data.Body)
 		dataaux := data.Body.(map[string]interface{})
 		var params []interface{}
 		if data.Type == "success" && dataaux["NuevoEstado"].(map[string]interface{})["Id"].(float64) == 7 {
