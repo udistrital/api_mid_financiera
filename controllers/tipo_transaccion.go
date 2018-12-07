@@ -162,6 +162,15 @@ func removeElement(idMap string, object interface{}) (err error, response interf
 	return
 }
 
+func getElement(route string) (err error, response interface{}) {
+	request.GetJson(route, &response)
+	if strings.Compare(response.(map[string]interface{})["Type"].(string), "success") != 0 {
+		beego.Error(response)
+		err = errors.New(response.(map[string]interface{})["Code"].(string))
+	}
+	return
+}
+
 // GetTipoTransaccionByVersion ...
 // @Title GetTipoTransaccionByVersion
 // @Description get TipoTransaccionTipoTransaccionController given initial version
@@ -312,4 +321,78 @@ func getValuesDetallesTiposTr(rpintfc interface{}, params ...interface{}) (res i
 		beego.Error("Error", err.Error())
 	}
 	return rpintfc
+}
+
+// NewTipoTransaccionVersion ...
+// @Title CreateNewTipoTransaccionVersion
+// @Description create NewTipoTransaccionVersion
+// @Param	body		body 	models.TipoTransaccion	true		"body for TipoTransaccion content"
+// @Success 201 {object} models.TipoTransaccion
+// @Failure 403 body is empty
+// @router /NewTipoTransaccionVersion/ [post]
+func (c *TipoTransaccionController) NewTipoTransaccionVersion() {
+	defer c.ServeJSON()
+	var v map[string]interface{}
+	var tipoTransaccionVersion map[string]interface{}
+	var version map[string]interface{}
+	var detalleTransaccion map[string]interface{}
+	urlCrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+	responseRoute := make(map[string]interface{})
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &v); err == nil {
+		tipoTransaccionVersion = v["tipoTransaccionVersion"].(map[string]interface{})
+		detalleTransaccion = v["detalleTransaccion"].(map[string]interface{})
+		version = v["version"].(map[string]interface{})
+		request.Commit(func() {
+			idTipoStr := strconv.Itoa(int(tipoTransaccionVersion["Id"].(float64)))
+			err, respVersionNumero := getElement(urlCrud + "/version_tipo_transaccion/GetVersionToType/" + idTipoStr)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			version["NumeroVersion"] = respVersionNumero.(map[string]interface{})["Body"]
+			err, respV := SaveForTipoTr(urlCrud+"/version_tipo_transaccion", version)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			responseRoute["version_tipo_transaccion"] = respV
+			tipoTransaccionCrear := make(map[string]interface{})
+			tipoTransaccionCrear["TipoTransaccion"] = tipoTransaccionVersion["TipoTransaccion"]
+			tipoTransaccionCrear["Version"] = respV.(map[string]interface{})["Body"]
+			err, responseTTV := SaveForTipoTr(urlCrud+"/tipo_transaccion_version", tipoTransaccionCrear)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			responseRoute["tipo_transaccion_version"] = responseTTV
+			detalleTransaccion["TipoTransaccionVersion"] = responseTTV.(map[string]interface{})["Body"]
+			err, responseDT := SaveForTipoTr(urlCrud+"/detalle_tipo_transaccion_version", detalleTransaccion)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			responseRoute["detalle_tipo_transaccion_version"] = responseDT
+			c.Ctx.Output.SetStatus(201)
+			c.Data["json"] = models.Alert{Type: "success", Code: "S_543", Body: responseRoute}
+		}).Rollback(func(response interface{}, error interface{}) {
+			err, _ := removeElement("detalle_tipo_transaccion_version", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			err, _ = removeElement("tipo_transaccion_version", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			err, _ = removeElement("version_tipo_transaccion", response)
+			if err != nil {
+				beego.Error(err)
+				panic(err)
+			}
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: response}
+		}, responseRoute)
+	} else {
+		beego.Error(err.Error())
+	}
 }
