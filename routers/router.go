@@ -150,6 +150,16 @@ func init() {
 				&controllers.AcademicaPersonasController{},
 			),
 		),
+		beego.NSNamespace("/ingreso",
+			beego.NSInclude(
+				&controllers.IngresoController{},
+			),
+		),
+		beego.NSNamespace("/tipo_transaccion",
+			beego.NSInclude(
+				&controllers.TipoTransaccionController{},
+			),
+		),
 	)
 	beego.AddNamespace(ns)
 }
