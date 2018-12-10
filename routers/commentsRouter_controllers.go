@@ -1001,6 +1001,14 @@ func init() {
 
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"],
 		beego.ControllerComments{
+			Method: "WorkFlowOrdenPago",
+			Router: `/WorkFlowOrdenPago/`,
+			AllowHTTPMethods: []string{"post"},
+			MethodParams: param.Make(),
+			Params: nil})
+
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"],
+		beego.ControllerComments{
 			Method: "AnularOrdenPago",
 			Router: `/anulacion_orden_pago/`,
 			AllowHTTPMethods: []string{"post"},

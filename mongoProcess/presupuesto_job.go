@@ -90,6 +90,27 @@ func sendRpInfoToMongo(ctx *context.Context) {
 	})
 }
 
+func sendOpInfoToMongo(ctx *context.Context) {
+	try.This(func() {
+		data := ctx.Input.Data()["json"].(models.Alert)
+		//beego.Info(data.Body)
+		dataaux := data.Body.(map[string]interface{})
+		var params []interface{}
+		if data.Type == "success" && dataaux["NuevoEstado"].(map[string]interface{})["Id"].(float64) == 7 {
+			info := data.Body
+			params = append(params, info)
+			work := optimize.WorkRequest{JobParameter: params, Job: (controllers.AddOpMongo)}
+			// Push the work onto the queue.
+			optimize.WorkQueue <- work
+			beego.Info("Job Queued!")
+		} else {
+			beego.Info("Job Not Work! Id !=7")
+		}
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+	})
+}
+
 func sendMovimientoInfoToMongo(ctx *context.Context) {
 	try.This(func() {
 		var serviceResponse []models.Alert
@@ -173,4 +194,5 @@ func PresupuestoMongoJobInit() { //inicia los escuchadores de los procesos que d
 	beego.InsertFilter("/v1/movimiento_apropiacion/AprobarMovimietnoApropiacion/*", beego.AfterExec, sendMovimientoInfoToMongo, false)
 	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarFuente", beego.AfterExec, sendFuenteFinanciamientoInfoToMongo, false)
 	beego.InsertFilter("/v1/fuente_financiamiento/RegistrarModificacionFuente", beego.AfterExec, sendModificacionFuenteFinanciamientoInfoToMongo, false)
+	beego.InsertFilter("/v1/orden_pago/WorkFlowOrdenPago", beego.AfterExec, sendOpInfoToMongo, false)
 }

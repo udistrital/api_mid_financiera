@@ -886,9 +886,70 @@ func AddRpMongo(parameter ...interface{}) (err interface{}) {
 		infoRp := parameter[0].(models.DatosRegistroPresupuestal)
 		var resC interface{}
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/registro_presupuestal/DeleteRpData/" + strconv.Itoa(infoRp.Rp.Id)
-		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil{
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil {
 			beego.Info("Data ", resC)
-		}else{
+		} else {
+			beego.Info("Error ", errorDelete)
+		}
+
+		err = e
+	})
+	return
+}
+
+// AddOpMongo ...
+func AddOpMongo(parameter ...interface{}) (err interface{}) {
+	try.This(func() {
+		infoOp := models.OrdenPago{}
+		infoOpData := parameter[0].(map[string]interface{})["OrdenPago"].([]interface{})[0]
+		//beego.Info("infoOpData", infoOpData)
+		err := formatdata.FillStruct(infoOpData, &infoOp)
+		if err != nil {
+			panic(err.Error())
+		}
+		dataSend := make(map[string]interface{})
+		dataSend["Vigencia"] = strconv.FormatFloat(infoOp.Vigencia, 'f', 0, 64)
+		dataSend["Id"] = infoOp.Id
+		dataSend["MesRegistro"] = strconv.Itoa(int(time.Now().Month()))
+		dataSend["TipoMovimiento"] = "OP-Proveedor"
+		var afectacion []interface{}
+		var resM map[string]interface{}
+		dispApropiacion := []models.RegistroPresupuestalDisponibilidadApropiacion{}
+		aux := make(map[string]interface{})
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+		for _, data := range infoOp.OrdenPagoRegistroPresupuestal {
+			aux["RP"] = data.RegistroPresupuestal.Id
+			aux["FuenteNombre"] = "" //data.FuenteFinanciacion.Nombre
+			//beego.Info(urlcrud + "/registro_presupuestal_disponibilidad_apropiacion?limit=-1" + "&query=RegistroPresupuestal.Id:" + strconv.Itoa(data.RegistroPresupuestal.Id) + "&fields=DisponibilidadApropiacion")
+			if err := request.GetJson(urlcrud+"/registro_presupuestal_disponibilidad_apropiacion?limit=-1"+"&query=RegistroPresupuestal.Id:"+strconv.Itoa(data.RegistroPresupuestal.Id)+"&fields=DisponibilidadApropiacion", &dispApropiacion); err == nil {
+				aux["Rubro"] = dispApropiacion[0].DisponibilidadApropiacion.Apropiacion.Rubro.Codigo
+			}
+			aux["UnidadEjecutora"] = infoOp.UnidadEjecutora
+			aux["Valor"] = infoOp.ValorBase
+			aux["FuenteCodigo"] = "" //data.FuenteFinanciacion.Codigo
+			afectacion = append(afectacion, aux)
+		}
+		dataSend["Afectacion"] = afectacion
+		//beego.Info("dataSend", dataSend)
+		Urlmongo := "http://" + beego.AppConfig.String("financieraMongoCurdApiService") + "/arbol_rubro_apropiaciones/RegistrarMovimiento/Op"
+		if err1 := request.SendJson(Urlmongo, "POST", &resM, &dataSend); err1 == nil {
+			if resM["Type"].(string) == "success" {
+				err = err1
+			} else {
+				panic("Mongo api error")
+			}
+		} else {
+			panic("Mongo Not Found")
+		}
+
+	}).Catch(func(e try.E) {
+		beego.Info("Exepc ", e)
+		infoOp := parameter[0].(models.OrdenPagoEstadoOrdenPago)
+		var resC interface{}
+		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago_estado_orden_pago/DeleteOpData/" + strconv.Itoa(infoOp.OrdenPago.Id)
+		if errorDelete := request.SendJson(Urlcrud, "DELETE", &resC, nil); errorDelete == nil {
+			beego.Info("Data ", resC)
+		} else {
 			beego.Info("Error ", errorDelete)
 		}
 
@@ -938,9 +999,9 @@ func AddAnulacionRpMongo(parameter ...interface{}) (err interface{}) {
 		Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/anulacion_registro_presupuestal/" + strconv.Itoa(infoAnulacion.Id)
 		infoAnulacion.EstadoAnulacion["Id"] = 2
 		if errorPut := request.SendJson(Urlcrud, "PUT", &resC, &infoAnulacion); errorPut == nil {
-				beego.Info("Data ", resC)
-		}else{
-				beego.Info("Error ", errorPut)
+			beego.Info("Data ", resC)
+		} else {
+			beego.Info("Error ", errorPut)
 		}
 
 	})
