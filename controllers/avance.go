@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/astaxie/beego"
 	"github.com/manucorporat/try"
@@ -177,6 +178,7 @@ func (c *AvanceController) GetSolicitudes() {
 	var query string
 	var sortby string
 	var order string
+	var regCuantity map[string]interface{}
 	defer c.ServeJSON()
 
 	if v, err := c.GetInt64("limit"); err == nil {
@@ -200,7 +202,14 @@ func (c *AvanceController) GetSolicitudes() {
 	try.This(func() {
 		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/solicitud_avance/?limit="+strconv.FormatInt(limit, 10)+"&offset="+strconv.FormatInt(offset, 10)+"&query="+query+sortby+order, &solicitudes); err == nil {
 			if solicitudes != nil {
-				response := optimize.ProccDigest(solicitudes, getSolicitudInfo, nil, 3)
+				response := make(map[string]interface{})
+				response["Solicitudes"] = optimize.ProccDigest(solicitudes, getSolicitudInfo, nil, 3)
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/solicitud_avance/GetSolicitudesNumber/?query="+query, &regCuantity); err == nil {
+					if strings.Compare(regCuantity["Type"].(string), "success") == 0 {
+						response["RegCuantity"] = regCuantity["Body"]
+						c.Ctx.Output.SetStatus(201)
+					}
+				}
 				c.Data["json"] = response
 			}
 		}
