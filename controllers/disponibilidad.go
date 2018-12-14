@@ -275,39 +275,43 @@ func (c *DisponibilidadController) ListaDisponibilidades() {
 func (c *DisponibilidadController) DisponibilidadByNecesidad() {
 	var resdisponibilidad []map[string]interface{}
 	var solicitud []map[string]interface{}
-	idStr := c.Ctx.Input.Param(":id")                                                                                                                                               //id de la necesidad.
-	if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Expedida:true,Necesidad.Id:"+idStr, &solicitud); err == nil { //traer solicitudes por id de necesidad
-		var id int64
-		err = formatdata.FillStruct(solicitud[0]["Id"], &id)
-		if err != nil {
-			c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
-			c.ServeJSON()
-		}
-		fmt.Println("id solicitud", id)
-		fmt.Println("peticion: " + "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/disponibilidad?limit=-1&query=Solicitud:" + strconv.FormatInt(id, 10))
-		if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Solicitud:"+strconv.FormatInt(id, 10), &resdisponibilidad); err == nil {
-			err = formatdata.FillStruct(resdisponibilidad[0]["Id"], &id)
+	idStr := c.Ctx.Input.Param(":id")
+	try.This(func() {
+		if err := request.GetJson("http://"+beego.AppConfig.String("argoService")+"solicitud_disponibilidad?limit=1&query=Expedida:true,Necesidad.Id:"+idStr, &solicitud); err == nil {
+			var id float64
+			//err = formatdata.FillStruct(solicitud[0]["Id"], &id)
+			id, _ = solicitud[0]["ProcesoExterno"].(float64)
 			if err != nil {
 				c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
 				c.ServeJSON()
 			}
-			var rp []map[string]interface{}
-			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.FormatInt(id, 10), &rp); err == nil {
-				resdisponibilidad[0]["registro_presupuestal"] = rp
-				c.Data["json"] = resdisponibilidad
+			if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/disponibilidad?limit=1&query=Solicitud:"+strconv.FormatFloat(id, 'f', -1, 64), &resdisponibilidad); err == nil {
+				err = formatdata.FillStruct(resdisponibilidad[0]["Id"], &id)
+				if err != nil {
+					c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+					c.ServeJSON()
+				}
+				var rp []map[string]interface{}
+				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/registro_presupuestal?query=RegistroPresupuestalDisponibilidadApropiacion.DisponibilidadApropiacion.Disponibilidad.Id:"+strconv.FormatFloat(id, 'f', -1, 64), &rp); err == nil {
+					resdisponibilidad[0]["registro_presupuestal"] = rp
+					c.Data["json"] = resdisponibilidad
+				} else {
+					fmt.Println(err)
+					c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+				}
+
 			} else {
 				fmt.Println(err)
 				c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
 			}
 
 		} else {
-			fmt.Println(err)
-			c.Data["json"] = models.Alert{Code: "", Type: "error", Body: err.Error()}
+			c.Data["json"] = err.Error()
 		}
-
-	} else {
-		c.Data["json"] = err.Error()
-	}
+	}).Catch(func(e try.E) {
+		beego.Error("expc ", e)
+		c.Data["json"] = resdisponibilidad
+	})
 	c.ServeJSON()
 }
 
