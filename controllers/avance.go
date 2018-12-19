@@ -237,6 +237,16 @@ func getSolicitudInfo(rpintfc interface{}, params ...interface{}) (res interface
 	if err := request.GetJsonWSO2(beego.AppConfig.String("Wso2Service")+"servicios_academicos/consulta_datos_docente_planta/"+beneficiarioID, &resDocente); err == nil {
 		if resDocente["datosCollection"].(map[string]interface{})["datos"] != nil {
 			rpintfc.(map[string]interface{})["Tercero"] = resDocente["datosCollection"].(map[string]interface{})["datos"].([]interface{})[0]
+		} else {
+			personaInfo := GetPersonaInfo(beneficiarioID, "")
+			if personaInfo != nil {
+				rpintfc.(map[string]interface{})["Tercero"] = map[string]interface{}{"documento": personaInfo["NumDocumento"]}
+				rpintfc.(map[string]interface{})["Tercero"].(map[string]interface{})["tipo_documento"] = personaInfo["TipoDocumento"].(map[string]interface{})["ValorParametro"]
+				rpintfc.(map[string]interface{})["Tercero"].(map[string]interface{})["nombres"] = personaInfo["Nombres"]
+				rpintfc.(map[string]interface{})["Tercero"].(map[string]interface{})["apellidos"] = personaInfo["Apellidos"]
+				rpintfc.(map[string]interface{})["Tercero"].(map[string]interface{})["direccion"] = personaInfo["Direccion"]
+				rpintfc.(map[string]interface{})["Tercero"].(map[string]interface{})["correo"] = personaInfo["Correo"]
+			}
 		}
 	} else {
 		beego.Error("Error", err.Error())
@@ -254,11 +264,11 @@ func getSolicitudInfo(rpintfc interface{}, params ...interface{}) (res interface
 			if rpintfc.(map[string]interface{})["Total"] == nil {
 				rpintfc.(map[string]interface{})["Total"] = float64(0)
 			}
-			var Sol float64
-			var Leg float64
 
 			rpintfc.(map[string]interface{})["Tipos"] = solTipoAvance
 			for _, v := range solTipoAvance {
+				var Sol float64
+				var Leg float64
 				rpintfc.(map[string]interface{})["Total"] = rpintfc.(map[string]interface{})["Total"].(float64) + v.(map[string]interface{})["Valor"].(float64)
 				strIdTipoAvc := strconv.FormatFloat(v.(map[string]interface{})["TipoAvance"].(map[string]interface{})["Id"].(float64), 'f', -1, 64)
 				solicitudTipoAvcID := v.(map[string]interface{})["Id"]
@@ -274,7 +284,7 @@ func getSolicitudInfo(rpintfc interface{}, params ...interface{}) (res interface
 							Leg += 1
 						}
 						vr.(map[string]interface{})["SolicitudTipoAvance"] = map[string]interface{}{"Id": solicitudTipoAvcID}
-						vr.(map[string]interface{})["RequisitoTipoAvance"] = map[string]interface{}{"Id": requisitoTipoAvance.(map[string]interface{})["Id"]}
+						vr.(map[string]interface{})["RequisitoTipoAvance"] = map[string]interface{}{"Id": vr.(map[string]interface{})["Id"]}
 					}
 				} else {
 					beego.Error("Error ", err.Error())
