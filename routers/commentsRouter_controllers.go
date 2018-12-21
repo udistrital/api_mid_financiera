@@ -999,6 +999,14 @@ func init() {
 			MethodParams: param.Make(),
 			Params: nil})
 
+	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoContableController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:MovimientoContableController"],
+		beego.ControllerComments{
+			Method: "ResumenMovimientos",
+			Router: `/ResumenMovimientos`,
+			AllowHTTPMethods: []string{"get"},
+			MethodParams: param.Make(),
+			Params: nil})
+
 	beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"] = append(beego.GlobalControllerRouter["github.com/udistrital/api_mid_financiera/controllers:OrdenPagoController"],
 		beego.ControllerComments{
 			Method: "GetOrdenPagoByFuenteFinanciamiento",
