@@ -1,4 +1,4 @@
-# Api Mid Financiera
+# :no_entry: REPOSITORIO INACTIVO Api Mid Financiera
 Api de funcionamiento medio o capa lógica para el sistema financiero de la OAS
 <br>
 <br>
