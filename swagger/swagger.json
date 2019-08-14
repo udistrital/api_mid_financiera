@@ -15,6 +15,72 @@
     },
     "basePath": "/v1",
     "paths": {
+        "/aprobacion_apropiacion/AprobacionAsignacionInicial/": {
+            "post": {
+                "tags": [
+                    "aprobacion_apropiacion"
+                ],
+                "description": "aprueba la asignacion inicial de presupuesto",
+                "operationId": "AprobacionController.AprobacionAsignacionInicial",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "Vigencia",
+                        "description": "vigencia a comprobar",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "UnidadEjecutora",
+                        "description": "unidad ejecutora de los rubros a comprobar",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} resultado"
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/aprobacion_apropiacion/InformacionAsignacionInicial/": {
+            "get": {
+                "tags": [
+                    "aprobacion_apropiacion"
+                ],
+                "description": "Devuelve saldos iniciales antes de aprobar",
+                "operationId": "AprobacionController.InformacionAsignacionInicial",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "Vigencia",
+                        "description": "vigencia a comprobar",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "UnidadEjecutora",
+                        "description": "unidad ejecutora de los rubros a comprobar",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{string} resultado"
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/aprobacion_apropiacionAprobar/": {
             "post": {
                 "tags": [
@@ -29,13 +95,183 @@
                         "description": "body for Apropiacion  content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.Apropiacion"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Apropiacion"
+                            }
                         }
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "{int} models.InfoSolDisp"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/aprobacion_fuente/ValorMovimientoFuente": {
+            "get": {
+                "tags": [
+                    "aprobacion_fuente"
+                ],
+                "description": "muestra el valor comprometido de una fuente especifica por dependencia y apropiacion",
+                "operationId": "AprobacionFuenteController.ValorMovimientoFuente",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idfuente",
+                        "description": "id de la fuente a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "iddependencia",
+                        "description": "id de la dependencia a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idapropiacion",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int}"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/aprobacion_fuente/ValorMovimientoFuenteLista": {
+            "get": {
+                "tags": [
+                    "aprobacion_fuente"
+                ],
+                "description": "devuelve una lista de las fuentes, dependecias y apropiaciones con los valores de la fuente (comprometido, disponible y el valor total)",
+                "operationId": "AprobacionFuenteController.ValorMovimientoFuenteLista",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idfuente",
+                        "description": "id de la fuente a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "iddependencia",
+                        "description": "id de la dependencia a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idapropiacion",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int}"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/aprobacion_fuente/ValorMovimientoFuenteListaFunc": {
+            "get": {
+                "tags": [
+                    "aprobacion_fuente"
+                ],
+                "description": "devuelve una lista de las fuentes, dependecias y apropiaciones con los valores de la fuente (comprometido, disponible y el valor total)",
+                "operationId": "AprobacionFuenteController.ValorMovimientoFuenteListaFunc",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idfuente",
+                        "description": "id de la fuente a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "iddependencia",
+                        "description": "id de la dependencia a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idapropiacion",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int}"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/aprobacion_fuente/ValorMovimientoFuenteTraslado": {
+            "get": {
+                "tags": [
+                    "aprobacion_fuente"
+                ],
+                "description": "retorna si se puede realizar un traslado o no en una fuente de financiamiento",
+                "operationId": "AprobacionFuenteController.ValorMovimientoFuenteTraslado",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idfuente",
+                        "description": "id de la fuente a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "iddependencia",
+                        "description": "id de la dependencia a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idapropiacion",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "valortraslado",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int}"
                     },
                     "403": {
                         "description": "body is empty"
@@ -85,13 +321,88 @@
                         "description": "body for InfoSolDisp content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.map[string]interface{}"
+                            "$ref": "#/definitions/map[string]interface{}"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "{int} models.InfoSolDisp"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/disponibilidad/ExpedirDisponibilidad": {
+            "post": {
+                "tags": [
+                    "disponibilidad"
+                ],
+                "description": "create Disponibilidad",
+                "operationId": "DisponibilidadController.ExpedirDisponibilidad",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for InfoSolDisp content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/map[string]string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "tipoDisponibilidad",
+                        "description": "tipo de disponibilidad a expedir",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int} map[string]string"
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/disponibilidad/ValorDisponibilidadesFuenteRubroDependencia": {
+            "get": {
+                "tags": [
+                    "disponibilidad"
+                ],
+                "description": "Obtener el valor total de las disponibilidades expediadas a una determinada dependencia por una fuente y apropiacion especifica",
+                "operationId": "DisponibilidadController.ValorDisponibilidadesFuenteRubroDependencia",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idfuente",
+                        "description": "id de la fuente a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "iddependencia",
+                        "description": "id de la dependencia a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idapropiacion",
+                        "description": "id de la apropiacion a consultar",
+                        "type": "integer",
+                        "format": "int64"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "{int}"
                     },
                     "403": {
                         "description": "body is empty"
@@ -148,7 +459,71 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.interface{}"
+                            "$ref": "#/definitions/interface{}"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
+        "/disponibilidadListaDisponibilidades/{vigencia}": {
+            "get": {
+                "tags": [
+                    "disponibilidad"
+                ],
+                "description": "get Disponibilidad by vigencia",
+                "operationId": "DisponibilidadController.ListaDisponibilidades",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "vigencia de la lista",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "UnidadEjecutora",
+                        "description": "unidad ejecutora de las solicitudes a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "query de filtrado para la lista de los cdp",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Disponibilidad"
                         }
                     },
                     "403": {
@@ -215,7 +590,7 @@
                 }
             }
         },
-        "/disponibilidadSolicitudes/": {
+        "/disponibilidadSolicitudes/{vigencia}": {
             "get": {
                 "tags": [
                     "disponibilidad"
@@ -225,26 +600,14 @@
                 "parameters": [
                     {
                         "in": "query",
-                        "name": "query",
-                        "description": "Filter. e.g. col1:v1,col2:v2 ...",
+                        "name": "vigencia",
+                        "description": "vigencia de las solicitudes a consultar",
                         "type": "string"
                     },
                     {
                         "in": "query",
-                        "name": "fields",
-                        "description": "Fields returned. e.g. col1,col2 ...",
-                        "type": "string"
-                    },
-                    {
-                        "in": "query",
-                        "name": "sortby",
-                        "description": "Sorted-by fields. e.g. col1,col2 ...",
-                        "type": "string"
-                    },
-                    {
-                        "in": "query",
-                        "name": "order",
-                        "description": "Order corresponding to each sortby field, if single value, apply to all sortby fields. e.g. desc,asc ...",
+                        "name": "UnidadEjecutora",
+                        "description": "unidad ejecutora de las solicitudes a consultar",
                         "type": "string"
                     },
                     {
@@ -257,6 +620,24 @@
                         "in": "query",
                         "name": "offset",
                         "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "query de filtrado para la lista de los cdp",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
                         "type": "string"
                     }
                 ],
@@ -273,21 +654,28 @@
                 }
             }
         },
-        "/orden_pago_nomina/": {
+        "/homologacionMidHomologacionLiquidacion": {
             "post": {
                 "tags": [
-                    "orden_pago_nomina"
+                    "homologacion"
                 ],
-                "description": "create Orden_pago_planta",
-                "operationId": "OrdenPagoNominaController.Create",
+                "description": "homologa conceptos de titan con conceptos kronos",
+                "operationId": "HomologacionController.MidHomologacionLiquidacion",
                 "parameters": [
+                    {
+                        "in": "identificador",
+                        "name": "idPreliquidacion",
+                        "description": "la",
+                        "schema": {
+                            "$ref": "#/definitions/de"
+                        }
+                    },
                     {
                         "in": "body",
                         "name": "body",
-                        "description": "body for Orden_pago_planta content",
-                        "required": true,
+                        "description": "body for Homologacion content",
                         "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
+                            "$ref": "#/definitions/models.IdLiquidacion,"
                         }
                     }
                 ],
@@ -295,7 +683,7 @@
                     "201": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
+                            "$ref": "#/definitions/models.Conceptos"
                         }
                     },
                     "403": {
@@ -304,29 +692,41 @@
                 }
             }
         },
-        "/orden_pago_nominaCrearOPSeguridadSocial": {
-            "post": {
+        "/orden_pago/GetOrdenPagoByFuenteFinanciamiento": {
+            "get": {
                 "tags": [
-                    "orden_pago_nomina"
+                    "orden_pago"
                 ],
-                "description": "create Orden Pago Seguridad Social",
-                "operationId": "OrdenPagoNominaController.CrearOPSeguridadSocial",
+                "description": "lista Ordenes de Pago por fuente de financiamineto.",
+                "operationId": "OrdenPagoController.GetOrdenPagoByFuenteFinanciamiento",
                 "parameters": [
                     {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Orden_pago_planta content",
+                        "in": "query",
+                        "name": "fuente",
+                        "description": "Id Fuente de Financiamiento",
                         "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
-                        }
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "Vigencia de registro Presupuestal",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "unidadEjecutora",
+                        "description": "Unidad Ejecutora",
+                        "required": true,
+                        "type": "string"
                     }
                 ],
                 "responses": {
                     "201": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
+                            "$ref": "#/definitions/models.Alert"
                         }
                     },
                     "403": {
@@ -335,28 +735,217 @@
                 }
             }
         },
-        "/orden_pago_nominaCrearOPSeguridadSocial": {
-            "post": {
+        "/orden_pago_nomina/ListaConceptosNominaHomologados": {
+            "get": {
                 "tags": [
                     "orden_pago_nomina"
                 ],
-                "description": "create Orden Pago Seguridad Social",
-                "operationId": "OrdenPagoNominaController.CrearOPSeguridadSocial",
+                "description": "lista liquidaciones para ordenes de pago masivas.",
+                "operationId": "OrdenPagoNominaController.ListaConceptosNominaHomologados",
                 "parameters": [
                     {
-                        "in": "body",
-                        "name": "body",
-                        "description": "body for Orden_pago_planta content",
-                        "required": true,
+                        "in": "query",
+                        "name": "nContrato",
+                        "description": "nomina a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "vigenciaContrato",
+                        "description": "mes de la liquidacion a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idLiquidacion",
+                        "description": "anio de la liquidacion a listar",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/orden_pago_nomina/ListaLiquidacionNominaHomologada": {
+            "get": {
+                "tags": [
+                    "orden_pago_nomina"
+                ],
+                "description": "lista liquidaciones para ordenes de pago masivas.",
+                "operationId": "OrdenPagoNominaController.ListaLiquidacionNominaHomologada",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idNomina",
+                        "description": "nomina a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mesLiquidacion",
+                        "description": "mes de la liquidacion a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "anioLiquidacion",
+                        "description": "anio de la liquidacion a listar",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/orden_pago_nomina/PreviewCargueMasivoOp": {
+            "get": {
+                "tags": [
+                    "orden_pago_nomina"
+                ],
+                "description": "lista liquidaciones para ordenes de pago masivas.",
+                "operationId": "OrdenPagoNominaController.PreviewCargueMasivoOp",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idNomina",
+                        "description": "nomina a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mesLiquidacion",
+                        "description": "mes de la liquidacion a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "anioLiquidacion",
+                        "description": "anio de la liquidacion a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "map[string]string",
+                        "name": "OrdenPago",
+                        "description": "body for OrdenPago content",
+                        "schema": {
+                            "$ref": "#/definitions/true"
                         }
                     }
                 ],
                 "responses": {
                     "201": {
+                        "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Orden_pago_planta"
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/orden_pago_nomina/RegistroCargueMasivoOp": {
+            "post": {
+                "tags": [
+                    "orden_pago_nomina"
+                ],
+                "description": "lista liquidaciones para ordenes de pago masivas.",
+                "operationId": "OrdenPagoNominaController.RegistroCargueMasivoOp",
+                "parameters": [
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "body for RegistroPresupuestal content",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistroPresupuestal"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/orden_pago_ss/GetConceptosMovimeintosContablesSs": {
+            "get": {
+                "tags": [
+                    "orden_pago_ss"
+                ],
+                "description": "lista pagos de seguridad socila por persona.",
+                "operationId": "OrdenPagoSsController.GetConceptosMovimeintosContablesSs",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "idNomina",
+                        "description": "nomina a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "mesLiquidacion",
+                        "description": "mes de la liquidacion a listar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "anioLiquidacion",
+                        "description": "anio de la liquidacion a listar",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/orden_pago_ss/TestJota01": {
+            "get": {
+                "tags": [
+                    "orden_pago_ss"
+                ],
+                "description": "lista pagos de seguridad socila por persona.",
+                "operationId": "OrdenPagoSsController.TestJota01",
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
                         }
                     },
                     "403": {
@@ -414,7 +1003,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
+                            "$ref": "#/definitions/models.Partidadoble"
                         }
                     },
                     "403": {
@@ -435,10 +1024,9 @@
                         "description": "cuerpo para el post del servicio, debe ser en un array",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/controllers.PDMovimientoContable"
-                        },
-                        "type": "array",
-                        "items": {}
+                            "type": "array",
+                            "items": {}
+                        }
                     }
                 ],
                 "responses": {
@@ -474,7 +1062,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
+                            "$ref": "#/definitions/models.Partidadoble"
                         }
                     },
                     "403": {
@@ -502,7 +1090,7 @@
                         "description": "body for Partidadoble content",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
+                            "$ref": "#/definitions/models.Partidadoble"
                         }
                     }
                 ],
@@ -510,7 +1098,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.Partidadoble"
+                            "$ref": "#/definitions/models.Partidadoble"
                         }
                     },
                     "403": {
@@ -574,13 +1162,57 @@
                 }
             }
         },
-        "/registro_presupuestal/GetSolicitudesRp": {
+        "/registro_presupuestal/GetSolicitudesRp/{vigencia}": {
             "get": {
                 "tags": [
                     "registro_presupuestal"
                 ],
                 "description": "get saldo rp by apropiacion",
                 "operationId": "RegistroPresupuestalController.GetSolicitudesRp",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "vigencia de las solicitudes a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "UnidadEjecutora",
+                        "description": "unidad ejecutora de las solicitudes a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "query de filtrado para la lista de los cdp",
+                        "type": "string"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "",
@@ -589,7 +1221,7 @@
                         }
                     },
                     "403": {
-                        "description": ":id is empty"
+                        "description": ":vigencia is empty"
                     }
                 }
             }
@@ -623,6 +1255,186 @@
                 }
             }
         },
+        "/registro_presupuestal/ListaNecesidadesByRp/{vigencia}": {
+            "get": {
+                "tags": [
+                    "registro_presupuestal"
+                ],
+                "description": "Lsta de las necesidades origen de los rp registrados",
+                "operationId": "RegistroPresupuestalController.ListaNecesidadesByRp",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "vigencia de la lista",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "tipoNecesidad",
+                        "description": "tipo de la necesidad origen del rp",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/registro_presupuestal/SolicitudesRpByDependencia/{vigencia}": {
+            "get": {
+                "tags": [
+                    "registro_presupuestal"
+                ],
+                "description": "Lsta de las necesidades origen de los rp registrados",
+                "operationId": "RegistroPresupuestalController.SolicitudesRpByDependencia",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "vigencia de la lista",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "idDependencia",
+                        "description": "tipo de la necesidad origen del rp",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "tipoNecesidad",
+                        "description": "tipo de la necesidad origen del rp",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.Alert"
+                        }
+                    },
+                    "403": {
+                        "description": "body is empty"
+                    }
+                }
+            }
+        },
+        "/registro_presupuestalListaRp/{vigencia}": {
+            "get": {
+                "tags": [
+                    "registro_presupuestal"
+                ],
+                "description": "get RP by vigencia",
+                "operationId": "RegistroPresupuestalController.ListaRp",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "vigencia",
+                        "description": "vigencia de la lista",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "limit",
+                        "description": "Limit the size of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "offset",
+                        "description": "Start position of result set. Must be an integer",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangoinicio",
+                        "description": "rango inicial del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "rangofin",
+                        "description": "rango final del periodo a consultar",
+                        "type": "string"
+                    },
+                    {
+                        "in": "query",
+                        "name": "query",
+                        "description": "query de filtrado para la lista de los cdp",
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "schema": {
+                            "$ref": "#/definitions/models.RegistroPresupuestal"
+                        }
+                    },
+                    "403": {
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/rubro/GenerarPac/": {
             "post": {
                 "tags": [
@@ -637,7 +1449,7 @@
                         "description": "objeto con fechas del rango del PAC",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/.interface{}"
+                            "$ref": "#/definitions/interface{}"
                         }
                     }
                 ],
@@ -645,7 +1457,7 @@
                     "200": {
                         "description": "",
                         "schema": {
-                            "$ref": "#/definitions/.interface{}"
+                            "$ref": "#/definitions/interface{}"
                         }
                     },
                     "403": {
@@ -656,55 +1468,50 @@
         }
     },
     "definitions": {
-        ".Apropiacion": {
+        "25764.0xc0000e6f30.false": {
+            "title": "false",
             "type": "object"
         },
-        ".Orden_pago_planta": {
+        "25799.0xc0000e6f60.false": {
+            "title": "false",
             "type": "object"
         },
-        ".Partidadoble": {
+        "711.0xc0004a4ae0.false": {
+            "title": "false",
             "type": "object"
         },
-        ".false": {
-            "type": "object"
-        },
-        ".interface{}": {
-            "type": "object"
-        },
-        ".map[string]interface{}": {
-            "type": "object"
-        },
-
-        "controllers.PDMovimientoContable": {
+        "PDMovimientoContable": {
             "title": "PDMovimientoContable",
-            "type": "object",
-            "properties": {
-                "CodigoCuentaContable": {
-                    "type": "string"
-                },
-                "Credito": {
-                    "type": "integer",
-                    "format": "int64"
-                },
-                "Debito": {
-                    "type": "integer",
-                    "format": "int64"
-                }
-            }
+            "type": "object"
+        },
+        "de": {
+            "title": "de",
+            "type": "object"
+        },
+        "interface{}": {
+            "title": "interface{}",
+            "type": "object"
+        },
+        "map[string]interface{}": {
+            "title": "map[string]interface{}",
+            "type": "object"
+        },
+        "map[string]string": {
+            "title": "map[string]string",
+            "type": "object"
         },
         "models.Alert": {
             "title": "Alert",
             "type": "object",
             "properties": {
                 "Body": {
-                    "$ref": "#/definitions/13758.0xc420383f50.false"
+                    "$ref": "#/definitions/711.0xc0004a4ae0.false"
                 },
                 "Code": {
                     "type": "string"
                 },
                 "Type": {
                     "type": "string"
-
                 }
             }
         },
@@ -712,13 +1519,6 @@
             "title": "Apropiacion",
             "type": "object",
             "properties": {
-                "DocumentoFecha": {
-                    "type": "string",
-                    "format": "string"
-                },
-                "DocumentoNumero": {
-                    "type": "string"
-                },
                 "Estado": {
                     "$ref": "#/definitions/models.EstadoApropiacion"
                 },
@@ -729,18 +1529,11 @@
                 "Rubro": {
                     "$ref": "#/definitions/models.Rubro"
                 },
-                "TipoDocumento": {
-                    "type": "string"
-                },
                 "UnidadEjecutora": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "Valor": {
-                    "type": "number",
-                    "format": "double"
-                },
-                "ValorRezago": {
                     "type": "number",
                     "format": "double"
                 },
@@ -775,15 +1568,15 @@
                 },
                 "FechaFin": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "FechaInicio": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "FechaModificacion": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "Id": {
                     "type": "integer",
@@ -796,13 +1589,18 @@
                     "$ref": "#/definitions/models.TipoCompromisoTesoral"
                 },
                 "UnidadEjecutora": {
-                    "$ref": "#/definitions/models.UnidadEjecutora"
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "Vigencia": {
                     "type": "number",
                     "format": "double"
                 }
             }
+        },
+        "models.Conceptos": {
+            "title": "Conceptos",
+            "type": "object"
         },
         "models.DatosRegistroPresupuestal": {
             "title": "DatosRegistroPresupuestal",
@@ -884,12 +1682,24 @@
                 "DatosNecesidad": {
                     "$ref": "#/definitions/models.Necesidad"
                 },
+                "DisponibilidadApropiacion": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DisponibilidadApropiacion"
+                    }
+                },
+                "DisponibilidadProcesoExterno": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.DisponibilidadProcesoExterno"
+                    }
+                },
                 "Estado": {
                     "$ref": "#/definitions/models.EstadoDisponibilidad"
                 },
                 "FechaRegistro": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "Id": {
                     "type": "integer",
@@ -913,19 +1723,46 @@
                 }
             }
         },
-        "models.Entidad": {
-            "title": "Entidad",
+        "models.DisponibilidadApropiacion": {
+            "title": "DisponibilidadApropiacion",
             "type": "object",
             "properties": {
-                "CodigoEntidad": {
-                    "type": "string"
+                "Apropiacion": {
+                    "$ref": "#/definitions/models.Apropiacion"
+                },
+                "Disponibilidad": {
+                    "$ref": "#/definitions/models.Disponibilidad"
+                },
+                "FuenteFinanciamiento": {
+                    "$ref": "#/definitions/models.FuenteFinanciacion"
                 },
                 "Id": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "Nombre": {
-                    "type": "string"
+                "Valor": {
+                    "type": "number",
+                    "format": "double"
+                }
+            }
+        },
+        "models.DisponibilidadProcesoExterno": {
+            "title": "DisponibilidadProcesoExterno",
+            "type": "object",
+            "properties": {
+                "Disponibilidad": {
+                    "$ref": "#/definitions/models.Disponibilidad"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "ProcesoExterno": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "TipoDisponibilidad": {
+                    "$ref": "#/definitions/models.TipoDisponibilidad"
                 }
             }
         },
@@ -1009,6 +1846,10 @@
                 }
             }
         },
+        "models.IdLiquidacion,": {
+            "title": "IdLiquidacion,",
+            "type": "object"
+        },
         "models.InfoSolDisp": {
             "title": "InfoSolDisp",
             "type": "object",
@@ -1018,6 +1859,10 @@
                 },
                 "DependenciaSolicitante": {
                     "$ref": "#/definitions/models.Dependencia"
+                },
+                "Responsable": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "SolicitudDisponibilidad": {
                     "$ref": "#/definitions/models.SolicitudDisponibilidad"
@@ -1042,8 +1887,7 @@
                     "type": "string"
                 },
                 "Id": {
-                    "type": "integer",
-                    "format": "int64"
+                    "type": "string"
                 },
                 "MontoCapitalAutorizado": {
                     "type": "number",
@@ -1084,8 +1928,7 @@
                     "type": "string"
                 },
                 "NumDocumento": {
-                    "type": "number",
-                    "format": "double"
+                    "type": "string"
                 },
                 "Tipopersona": {
                     "type": "string"
@@ -1165,6 +2008,10 @@
                 }
             }
         },
+        "models.Partidadoble": {
+            "title": "Partidadoble",
+            "type": "object"
+        },
         "models.RegistroPresupuestal": {
             "title": "RegistroPresupuestal",
             "type": "object",
@@ -1172,9 +2019,6 @@
                 "Beneficiario": {
                     "type": "integer",
                     "format": "int64"
-                },
-                "Compromiso": {
-                    "$ref": "#/definitions/models.Compromiso"
                 },
                 "DatosSolicitud": {
                     "$ref": "#/definitions/models.SolicitudRp"
@@ -1184,15 +2028,25 @@
                 },
                 "FechaRegistro": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "NumeroCompromiso": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "NumeroRegistroPresupuestal": {
                     "type": "integer",
                     "format": "int64"
+                },
+                "RegistroPresupuestalDisponibilidadApropiacion": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.RegistroPresupuestalDisponibilidadApropiacion"
+                    }
                 },
                 "Responsable": {
                     "type": "integer",
@@ -1202,7 +2056,30 @@
                     "type": "integer",
                     "format": "int64"
                 },
+                "TipoCompromiso": {
+                    "$ref": "#/definitions/models.Compromiso"
+                },
                 "Vigencia": {
+                    "type": "number",
+                    "format": "double"
+                }
+            }
+        },
+        "models.RegistroPresupuestalDisponibilidadApropiacion": {
+            "title": "RegistroPresupuestalDisponibilidadApropiacion",
+            "type": "object",
+            "properties": {
+                "DisponibilidadApropiacion": {
+                    "$ref": "#/definitions/models.DisponibilidadApropiacion"
+                },
+                "Id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "RegistroPresupuestal": {
+                    "$ref": "#/definitions/models.RegistroPresupuestal"
+                },
+                "Valor": {
                     "type": "number",
                     "format": "double"
                 }
@@ -1212,9 +2089,6 @@
             "title": "Rubro",
             "type": "object",
             "properties": {
-                "Administracion": {
-                    "type": "string"
-                },
                 "Codigo": {
                     "type": "string"
                 },
@@ -1222,23 +2096,19 @@
                     "type": "string"
                 },
                 "Entidad": {
-                    "$ref": "#/definitions/models.Entidad"
-                },
-                "Estado": {
                     "type": "integer",
-                    "format": "int32"
+                    "format": "int64"
                 },
                 "Id": {
                     "type": "integer",
                     "format": "int64"
                 },
-                "TipoPlan": {
+                "Nombre": {
+                    "type": "string"
+                },
+                "UnidadEjecutora": {
                     "type": "integer",
                     "format": "int32"
-                },
-                "Vigencia": {
-                    "type": "number",
-                    "format": "double"
                 }
             }
         },
@@ -1251,7 +2121,7 @@
                 },
                 "FechaSolicitud": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "Id": {
                     "type": "integer",
@@ -1278,12 +2148,8 @@
                     "type": "integer",
                     "format": "int64"
                 },
-                "Compromiso": {
-                    "type": "integer",
-                    "format": "int64"
-                },
                 "DatosCompromiso": {
-                    "$ref": "#/definitions/models.Compromiso"
+                    "$ref": "#/definitions/25764.0xc0000e6f30.false"
                 },
                 "DatosDisponibilidad": {
                     "$ref": "#/definitions/models.Disponibilidad"
@@ -1296,7 +2162,7 @@
                 },
                 "FechaSolicitud": {
                     "type": "string",
-                    "format": "string"
+                    "format": "datetime"
                 },
                 "Id": {
                     "type": "integer",
@@ -1305,21 +2171,34 @@
                 "Masivo": {
                     "type": "boolean"
                 },
+                "NumeroCompromiso": {
+                    "type": "integer",
+                    "format": "int64"
+                },
                 "NumeroContrato": {
                     "type": "string"
+                },
+                "Proveedor": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "Rubros": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/6887.0xc420382f30.false"
+                        "$ref": "#/definitions/25799.0xc0000e6f60.false"
                     }
+                },
+                "TipoCompromiso": {
+                    "type": "integer",
+                    "format": "int64"
                 },
                 "Vigencia": {
                     "type": "integer",
                     "format": "int64"
                 },
                 "VigenciaContrato": {
-                    "type": "string"
+                    "type": "integer",
+                    "format": "int64"
                 }
             }
         },
@@ -1345,10 +2224,13 @@
                 }
             }
         },
-        "models.UnidadEjecutora": {
-            "title": "UnidadEjecutora",
+        "models.TipoDisponibilidad": {
+            "title": "TipoDisponibilidad",
             "type": "object",
             "properties": {
+                "Activo": {
+                    "type": "boolean"
+                },
                 "Descripcion": {
                     "type": "string"
                 },
@@ -1358,8 +2240,16 @@
                 },
                 "Nombre": {
                     "type": "string"
+                },
+                "NumeroOrden": {
+                    "type": "number",
+                    "format": "double"
                 }
             }
+        },
+        "true": {
+            "title": "true",
+            "type": "object"
         }
     },
     "tags": [
@@ -1374,6 +2264,18 @@
         {
             "name": "orden_pago_nomina",
             "description": "OrdenPagoNominaController operations for Orden_pago_planta\n"
+        },
+        {
+            "name": "orden_pago_ss",
+            "description": "OrdenPagoSsController operations for Orden_pago_seguridad_social\n"
+        },
+        {
+            "name": "orden_pago",
+            "description": "OrdenPagoController operations for Orden_pago\n"
+        },
+        {
+            "name": "homologacion",
+            "description": "HomologacionController operations for homologation fo liquidation of titan\n"
         }
     ]
 }
