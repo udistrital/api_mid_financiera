@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Disponibilidad ...
 type Disponibilidad struct {
 	Id                           int                             `orm:"auto;column(id);pk"`
 	Vigencia                     float64                         `orm:"column(vigencia)"`
@@ -17,6 +18,7 @@ type Disponibilidad struct {
 	DatosNecesidad               *Necesidad
 }
 
+//  DisponibilidadProcesoExterno ...
 type DisponibilidadProcesoExterno struct {
 	Id                 int                 `orm:"auto;column(id);pk"`
 	TipoDisponibilidad *TipoDisponibilidad `orm:"column(tipo_disponibilidad);rel(fk)"`
@@ -24,6 +26,7 @@ type DisponibilidadProcesoExterno struct {
 	Disponibilidad     *Disponibilidad     `orm:"column(disponibilidad);rel(fk)"`
 }
 
+//TipoDisponibilidad ...
 type TipoDisponibilidad struct {
 	Id          int     `orm:"auto;column(id);pk"`
 	Nombre      string  `orm:"column(nombre)"`
@@ -32,6 +35,7 @@ type TipoDisponibilidad struct {
 	NumeroOrden float64 `orm:"column(numero_orden);null"`
 }
 
+// InfoSolDisp ...
 type InfoSolDisp struct {
 	SolicitudDisponibilidad SolicitudDisponibilidad
 	DependenciaSolicitante  Dependencia

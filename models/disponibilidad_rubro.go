@@ -1,7 +1,7 @@
 package models
 
 
-
+//DisponibilidadRubro ...
 type DisponibilidadRubro struct {
 	Id             int             `orm:"column(id);pk"`
 	Vigencia       float64         `orm:"column(vigencia)"`

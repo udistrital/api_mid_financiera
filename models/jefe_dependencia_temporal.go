@@ -1,7 +1,7 @@
 package models
 
 
-
+// JefeDependenciaTemporal ...
 type JefeDependenciaTemporal struct {
 	Id                  int                  `orm:"column(id);pk"`
 	Nombre              string               `orm:"column(nombre)"`

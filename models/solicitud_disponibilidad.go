@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// SolicitudDisponibilidad ...
 type SolicitudDisponibilidad struct {
 	Id             int        `orm:"column(id);pk"`
 	Numero         int        `orm:"column(numero)"`

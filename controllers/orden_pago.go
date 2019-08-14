@@ -1,10 +1,15 @@
 package controllers
 
 import (
+	"encoding/json"
 	"strconv"
+	"strings"
+
+	"fmt"
+	"time"
 
 	"github.com/astaxie/beego"
-	"github.com/udistrital/ss_crud_api/models"
+	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/optimize"
 	"github.com/udistrital/utils_oas/request"
 )
@@ -17,6 +22,50 @@ type OrdenPagoController struct {
 // URLMapping ...
 func (c *OrdenPagoController) URLMapping() {
 	c.Mapping("GetOrdenPagoByFuenteFinanciamiento", c.GetOrdenPagoByFuenteFinanciamiento)
+	c.Mapping("AnularOrdenPago", c.AnularOrdenPago)
+}
+
+// AnularOrdenPago ...
+// @Title AnularOrdenPago
+// @Description Cambia el estado y registra el histórico de la Orden de Pago
+// @Param	body		body 	var v models.OrdenPago	true		"body for OrdenPago content"
+// @Success 201 {object}  models.Alert
+// @Failure 403 body is empty
+// @router /anulacion_orden_pago/ [post]
+func (c *OrdenPagoController) AnularOrdenPago() {
+
+	var v models.OrdenPago
+	var res map[string]interface{}
+	var respuestaMovimientos models.Alert
+	if errUnmarshal := json.Unmarshal(c.Ctx.Input.RequestBody, &v); errUnmarshal == nil {
+		var NuevoOPEOP models.OrdenPagoEstadoOrdenPago
+		NuevoOPEOP.OrdenPago = &models.OrdenPago{Id: v.Id}
+		NuevoOPEOP.FechaRegistro = time.Now()
+		NuevoOPEOP.EstadoOrdenPago = &models.EstadoOrdenPago{Id: 11}
+		NuevoOPEOP.Usuario = 1
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/orden_pago_estado_orden_pago/"
+
+		respuestaMovimientos = anularMovimientosContables(v.Id)
+
+		if respuestaMovimientos.Type == "success" {
+			if errPost := request.SendJson(urlcrud, "POST", &res, &NuevoOPEOP); errPost == nil {
+				c.Data["json"] = map[string]interface{}{"Code": "E_2", "Body": res, "Type": "success"}
+
+			} else {
+				fmt.Println(errPost)
+				c.Data["json"] = map[string]interface{}{"Code": "E_2", "Body": errPost, "Type": "error"}
+			}
+
+		} else {
+			c.Data["json"] = respuestaMovimientos
+		}
+
+	} else {
+		c.Data["json"] = map[string]interface{}{"Code": "E_3", "Body": errUnmarshal, "Type": "error"}
+
+	}
+
+	c.ServeJSON()
 }
 
 // GetOrdenPagoByFuenteFinanciamiento ...
@@ -43,7 +92,7 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 			done := make(chan interface{})
 			defer close(done)
 			resch := optimize.GenChanInterface(registroPresupuestales...)
-			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpId, resch, parametro)
+			chlistaOrdenes := optimize.Digest(done, searchOrdenPagoByRpID, resch, parametro)
 			for arrayOrdenPago := range chlistaOrdenes {
 				if dataOrden, e := arrayOrdenPago.([]interface{}); e {
 					for _, ordenPago := range dataOrden {
@@ -68,13 +117,44 @@ func (c *OrdenPagoController) GetOrdenPagoByFuenteFinanciamiento() {
 
 }
 
-func searchOrdenPagoByRpId(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
-	unidadEjecutoraId, e1 := params[0].(string)
+// WorkFlowOrdenPago ...
+// @Title WorkFlowOrdenPago
+// @Description Valida cambios de estado de la Orden de Pago
+// @Param	query	query	string	false	"Objeto con los estados de la OP"
+// @Success 201 {object} models.Alert
+// @Failure 403 body is empty
+// @router /WorkFlowOrdenPago/ [post]
+func (c *OrdenPagoController) WorkFlowOrdenPago() {
+	defer c.ServeJSON()
+	var dataEstado map[string]interface{}
+	var response map[string]interface{}
+	if err := json.Unmarshal(c.Ctx.Input.RequestBody, &dataEstado); err == nil {
+		urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud")
+		if err = request.SendJson(urlcrud+"/orden_pago_estado_orden_pago/WorkFlowOrdenPago", "POST", &response, dataEstado); err == nil {
+			if strings.Compare(response["Type"].(string), "success") == 0 {
+				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"]}
+				c.Ctx.Output.SetStatus(201)
+			} else {
+				beego.Error("Error", response)
+				c.Data["json"] = models.Alert{Type: response["Type"].(string), Code: response["Code"].(string), Body: response["Body"]}
+			}
+		} else {
+			beego.Error("Error", err)
+			c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+		}
+	} else {
+		beego.Error("Error", err)
+		c.Data["json"] = models.Alert{Type: "error", Code: "E_0458", Body: err}
+	}
+}
+
+func searchOrdenPagoByRpID(inputRegistroPresupuestal interface{}, params ...interface{}) (res interface{}) {
+	unidadEjecutoraID, e1 := params[0].(string)
 	rowRp, e2 := inputRegistroPresupuestal.(map[string]interface{})
 	if e1 && e2 {
 		var ordenesPagos []interface{}
 		// seach dependencia de necesidad
-		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraId); necesidad != nil {
+		if necesidad := getNecesidadDesdeRp(inputRegistroPresupuestal, unidadEjecutoraID); necesidad != nil {
 			if areaNecesidad := getAreaDeNecesidad(necesidad); areaNecesidad != nil {
 				//op
 				if err := request.GetJson("http://"+beego.AppConfig.String("kronosService")+"orden_pago/?query=RegistroPresupuestal.Id:"+strconv.Itoa(int(rowRp["Id"].(float64))), &ordenesPagos); err == nil && ordenesPagos != nil {
@@ -86,7 +166,65 @@ func searchOrdenPagoByRpId(inputRegistroPresupuestal interface{}, params ...inte
 					return ordenesPagos
 				}
 			}
+		} else {
+			//beego.Info("No hay Necesidad desde Rp")
+
 		}
 	}
 	return
+}
+
+func anularMovimientosContables(iDOp int) (res models.Alert) {
+	var movimientoContables []models.MovimientoContable
+	var retorno models.Alert
+	var cuentaEsp *models.CuentaEspecial
+	var respuesta interface{}
+	if errMov := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_contable?limit=-1&query=CodigoDocumentoAfectante:"+strconv.Itoa(iDOp), &movimientoContables); errMov == nil && movimientoContables != nil {
+		for x, dato := range movimientoContables {
+
+			cuentaEsp = nil
+
+			if dato.Debito == 0 {
+
+				movimientoContables[x].Debito = movimientoContables[x].Credito
+				movimientoContables[x].Credito = 0
+
+			}
+			if dato.Credito == 0 {
+
+				movimientoContables[x].Credito = movimientoContables[x].Debito
+				movimientoContables[x].Debito = 0
+			}
+
+			if movimientoContables[x].CuentaEspecial != nil {
+				cuentaEsp = &models.CuentaEspecial{Id: movimientoContables[x].CuentaEspecial.Id}
+			}
+
+			nuevoObjetoMovimiento := &models.MovimientoContable{
+				Debito:                   movimientoContables[x].Debito,
+				Credito:                  movimientoContables[x].Credito,
+				Fecha:                    time.Now(),
+				Concepto:                 &models.Concepto{Id: movimientoContables[x].Concepto.Id},
+				CuentaContable:           &models.CuentaContable{Id: movimientoContables[x].CuentaContable.Id},
+				TipoDocumentoAfectante:   &models.TipoDocumentoAfectante{Id: movimientoContables[x].TipoDocumentoAfectante.Id},
+				CodigoDocumentoAfectante: movimientoContables[x].CodigoDocumentoAfectante,
+				EstadoMovimientoContable: &models.EstadoMovimientoContable{Id: movimientoContables[x].EstadoMovimientoContable.Id},
+				CuentaEspecial:           cuentaEsp,
+			}
+
+			Urlcrud := "http://" + beego.AppConfig.String("Urlcrud") + ":" + beego.AppConfig.String("Portcrud") + "/" + beego.AppConfig.String("Nscrud") + "/movimiento_contable"
+			if errNuevosMovi := request.SendJson(Urlcrud, "POST", &respuesta, nuevoObjetoMovimiento); errNuevosMovi == nil && respuesta != nil {
+				retorno = models.Alert{Code: "E_", Body: res, Type: "success"}
+
+			} else {
+				retorno = models.Alert{Code: "E_", Body: errNuevosMovi, Type: "error"}
+			}
+		}
+
+	} else {
+		fmt.Println(errMov)
+		retorno = models.Alert{Code: "E_", Body: errMov, Type: "error"}
+	}
+
+	return retorno
 }

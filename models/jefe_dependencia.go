@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// JefeDependencia ...
 type JefeDependencia struct {
 	Id             int       `orm:"column(id);pk;auto"`
 	FechaInicio    time.Time `orm:"column(fecha_inicio)"`

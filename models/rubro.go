@@ -1,5 +1,6 @@
 package models
 
+// Rubro ...
 type Rubro struct {
 	Id              int    `orm:"auto;column(id);pk"`
 	Entidad         int    `orm:"column(entidad)"`
