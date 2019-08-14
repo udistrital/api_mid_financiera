@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"github.com/astaxie/beego"
-	. "github.com/mndrix/golog"
+	// . "github.com/mndrix/golog"
 	"github.com/udistrital/api_mid_financiera/models"
 	"github.com/udistrital/utils_oas/request"
-	"github.com/udistrital/utils_oas/ruler"
+	// "github.com/udistrital/utils_oas/ruler"
 )
 
 
@@ -128,125 +128,125 @@ func (c *AprobacionFuenteController) ValorMovimientoFuente() {
 // @Failure 403 body is empty
 // @router /ValorMovimientoFuenteTraslado [get]
 func (c *AprobacionFuenteController) ValorMovimientoFuenteTraslado() {
-	var res []interface{}
-	var resfuente []interface{}
-	var predicados []models.Predicado
-	if idfuente, err := c.GetInt("idfuente"); err == nil {
-		if iddependencia, err := c.GetInt("iddependencia"); err == nil {
-			if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
-				if valortraslado, err := c.GetFloat("traslado"); err == nil {
+	// var res []interface{}
+	// var resfuente []interface{}
+	// var predicados []models.Predicado
+	// if idfuente, err := c.GetInt("idfuente"); err == nil {
+	// 	if iddependencia, err := c.GetInt("iddependencia"); err == nil {
+	// 		if idapropiacion, err := c.GetInt("idapropiacion"); err == nil {
+	// 			if valortraslado, err := c.GetFloat("traslado"); err == nil {
 
-					var Movimiento []map[string]interface{}
-					if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
-						if Movimiento != nil {
+	// 				var Movimiento []map[string]interface{}
+	// 				if err := request.GetJson("http://"+beego.AppConfig.String("Urlcrud")+":"+beego.AppConfig.String("Portcrud")+"/"+beego.AppConfig.String("Nscrud")+"/movimiento_fuente_financiamiento_apropiacion?query=FuenteFinanciamientoApropiacion.FuenteFinanciamiento.Id:"+strconv.Itoa(idfuente)+",FuenteFinanciamientoApropiacion.Apropiacion.Id:"+strconv.Itoa(idapropiacion)+",FuenteFinanciamientoApropiacion.Dependencia:"+strconv.Itoa(iddependencia), &Movimiento); err == nil {
+	// 					if Movimiento != nil {
 
-							for _, Movimientos := range Movimiento {
-								resfuente = append(resfuente, Movimientos)
-							}
+	// 						for _, Movimientos := range Movimiento {
+	// 							resfuente = append(resfuente, Movimientos)
+	// 						}
 
-							//var valorGastado map[string]interface{}
-							if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
-								beego.Error("Valor Fuente CDP: ", valorGastado)
-								if valorGastado != nil {
-									for _, valores := range valorGastado {
-										res = append(res, valores)
-									}
+	// 						//var valorGastado map[string]interface{}
+	// 						if err, valorGastado := ValorDisponibilidadPorFuenteDependencia(idfuente, iddependencia, idapropiacion); err == nil {
+	// 							beego.Error("Valor Fuente CDP: ", valorGastado)
+	// 							if valorGastado != nil {
+	// 								for _, valores := range valorGastado {
+	// 									res = append(res, valores)
+	// 								}
 
-									if resfuente != nil {
-										if res != nil {
-											var valor float64
-											valor = 0
-											var valorcdp float64
-											valorcdp = 0
-											valorcdp = res[0].(float64)
+	// 								if resfuente != nil {
+	// 									if res != nil {
+	// 										var valor float64
+	// 										valor = 0
+	// 										var valorcdp float64
+	// 										valorcdp = 0
+	// 										valorcdp = res[0].(float64)
 
-											for _, rowfuente := range resfuente {
-												valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
-											}
-											//reglas
-											reglasBase := ruler.CargarReglasBase("FuenteFinanciamiento")
+	// 										for _, rowfuente := range resfuente {
+	// 											valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+	// 										}
+	// 										//reglas
+	// 										reglasBase := ruler.CargarReglasBase("FuenteFinanciamiento")
 
-											predicados = append(predicados, models.Predicado{Nombre: "movimientofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valor, 'f', -1, 64) + ")."})
-											predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valorcdp, 'f', -1, 64) + ")."})
-											//valor que se va a transladar
-											predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valortraslado, 'f', -1, 64) + ")."})
-											reglas := ruler.FormatoReglas(predicados) + reglasBase
+	// 										predicados = append(predicados, models.Predicado{Nombre: "movimientofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valor, 'f', -1, 64) + ")."})
+	// 										predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valorcdp, 'f', -1, 64) + ")."})
+	// 										//valor que se va a transladar
+	// 										predicados = append(predicados, models.Predicado{Nombre: "saldofuente(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + "," + strconv.FormatFloat(valortraslado, 'f', -1, 64) + ")."})
+	// 										reglas := ruler.FormatoReglas(predicados) + reglasBase
 
-											m := NewMachine().Consult(reglas)
-											resultados := m.ProveAll("validacion_total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + ",Y).")
-											var resp string
+	// 										m := NewMachine().Consult(reglas)
+	// 										resultados := m.ProveAll("validacion_total_fuente_dependencia_apropiacion_saldo(" + strconv.Itoa(idapropiacion) + "," + strconv.Itoa(iddependencia) + "," + strconv.Itoa(idfuente) + ",Y).")
+	// 										var resp string
 
-											for _, solution := range resultados {
-												resp = fmt.Sprintf("%s", solution.ByName_("Y"))
-											}
-											f, _ := strconv.ParseBool(resp)
+	// 										for _, solution := range resultados {
+	// 											resp = fmt.Sprintf("%s", solution.ByName_("Y"))
+	// 										}
+	// 										f, _ := strconv.ParseBool(resp)
 
-											var trasladar bool
-											trasladar = f
+	// 										var trasladar bool
+	// 										trasladar = f
 
-											c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
-										}
-									}
-								} else {
+	// 										c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
+	// 									}
+	// 								}
+	// 							} else {
 
-									var valor float64
-									valor = 0
-									for _, rowfuente := range resfuente {
-										valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
-									}
-									valor = valor - valortraslado
+	// 								var valor float64
+	// 								valor = 0
+	// 								for _, rowfuente := range resfuente {
+	// 									valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+	// 								}
+	// 								valor = valor - valortraslado
 
-									var trasladar bool
-									if valor >= 0 {
-										trasladar = true
-									} else {
-										trasladar = false
-									}
+	// 								var trasladar bool
+	// 								if valor >= 0 {
+	// 									trasladar = true
+	// 								} else {
+	// 									trasladar = false
+	// 								}
 
-									c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
+	// 								c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
 
-								}
+	// 							}
 
-							} else {
-								var valor float64
-								valor = 0
-								for _, rowfuente := range resfuente {
-									valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
-								}
-								valor = valor - valortraslado
+	// 						} else {
+	// 							var valor float64
+	// 							valor = 0
+	// 							for _, rowfuente := range resfuente {
+	// 								valor = valor + rowfuente.(map[string]interface{})["Valor"].(float64)
+	// 							}
+	// 							valor = valor - valortraslado
 
-								var trasladar bool
-								if valor >= 0 {
-									trasladar = true
-								} else {
-									trasladar = false
-								}
+	// 							var trasladar bool
+	// 							if valor >= 0 {
+	// 								trasladar = true
+	// 							} else {
+	// 								trasladar = false
+	// 							}
 
-								c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
-							}
-						} else {
-							c.Data["json"] = nil
-						}
-					} else {
-						fmt.Println("err4 ", err.Error())
-						c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-					}
-				} else {
-					fmt.Println("err3.5 ", err.Error())
-					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-				}
-			} else {
-				fmt.Println("err3 ", err.Error())
-				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-			}
-		} else {
-			fmt.Println("err2 ", err.Error())
-			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-		}
-	} else {
-		fmt.Println("err1 ", err.Error())
-		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
-	}
+	// 							c.Data["json"] = map[string]interface{}{"Apropiacion": idapropiacion, "Dependencia": iddependencia, "FuenteFinanciamiento": idfuente, "Trasladar": trasladar}
+	// 						}
+	// 					} else {
+	// 						c.Data["json"] = nil
+	// 					}
+	// 				} else {
+	// 					fmt.Println("err4 ", err.Error())
+	// 					c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	// 				}
+	// 			} else {
+	// 				fmt.Println("err3.5 ", err.Error())
+	// 				c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	// 			}
+	// 		} else {
+	// 			fmt.Println("err3 ", err.Error())
+	// 			c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	// 		}
+	// 	} else {
+	// 		fmt.Println("err2 ", err.Error())
+	// 		c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	// 	}
+	// } else {
+	// 	fmt.Println("err1 ", err.Error())
+	// 	c.Data["json"] = models.Alert{Code: "E_0458", Body: err.Error(), Type: "error"}
+	// }
 
 	c.ServeJSON()
 }
